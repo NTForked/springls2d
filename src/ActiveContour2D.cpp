@@ -72,8 +72,7 @@ namespace aly {
 
 	}
 	void ActiveContour2D::setup(const aly::ParameterPanePtr& pane){
-
-
+	
 	}
 	void ActiveContour2D::cleanup(){
 		cache->clear();
