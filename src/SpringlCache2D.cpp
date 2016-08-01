@@ -19,6 +19,7 @@
  * THE SOFTWARE.
  */
 #include "SpringlCache2D.h"
+#include "AlloyFileUtil.h"
 namespace aly {
 	void CacheElement::load() {
 		std::lock_guard<std::mutex> lockMe(accessLock);
@@ -89,6 +90,11 @@ namespace aly {
 		}
 		else {
 			return std::shared_ptr<CacheElement>();
+		}
+	}
+	CacheElement::~CacheElement() {
+		if (FileExists(contourFile)) {
+			RemoveFile(contourFile);
 		}
 	}
 	void SpringlCache2D::clear() {

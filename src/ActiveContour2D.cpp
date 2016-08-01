@@ -76,7 +76,7 @@ namespace aly {
 
 	}
 	void ActiveContour2D::cleanup(){
-
+		cache->clear();
 	}
 	bool ActiveContour2D::init() {
 		int2 dims = initialLevelSet.dimensions();

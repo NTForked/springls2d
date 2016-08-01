@@ -40,6 +40,10 @@ namespace aly {
 		}
 		CacheElement():loaded(false), writeOnce(true){
 		}
+		~CacheElement();
+		std::string getFile() const {
+			return contourFile;
+		}
 		void load();
 		void unload();
 		void set(const Contour2D& springl);
