@@ -69,7 +69,6 @@ void Viewer2D::createTextLevelSet(aly::Image1f& distField, aly::Image1f& gray, i
 	//Make boundary == 0, outside == 0.5 inside == -0.5
 	gray -= float1(0.5f);
 	DistanceField2f df;
-	//Solve distance field out to +/- 40 pixels
 	df.solve(gray, distField, maxDistance);
 	gray = (-gray + float1(0.5f));
 }
@@ -216,15 +215,9 @@ bool Viewer2D::init(Composite& rootNode) {
 	renderRegion->add(viewRegion);
 	renderRegion->add(timelineSlider);
 
-	float downScale = 1.0f;
-	static int offsetIncrement = 0;
-	pixel2 offset(50.0f * offsetIncrement, 50.0f * offsetIncrement);
-	offsetIncrement++;
-	if (img.width > 0 && img.height > 0) {
-		downScale = std::min(700.0f/ img.width, 520.0f / img.height);
-	}
+	float downScale = std::min(700.0f/ img.width, 520.0f / img.height);
 	resizeableRegion = AdjustableCompositePtr(
-		new AdjustableComposite("Image", CoordPerPX(0.5, 0.5, -img.width * downScale * 0.5f + offset.x, -img.height * downScale * 0.5f + offset.y),
+		new AdjustableComposite("Image", CoordPerPX(0.5, 0.5, -img.width * downScale * 0.5f, -img.height * downScale * 0.5f),
 			CoordPX(img.width * downScale, img.height * downScale)));
 	Application::addListener(resizeableRegion.get());
 	ImageGlyphPtr imageGlyph = AlloyApplicationContext()->createImageGlyph(img, false);
@@ -246,10 +239,10 @@ bool Viewer2D::init(Composite& rootNode) {
 			std::list<uint32_t> curve = contour.indexes[n];
 			bool firstTime = true;
 			for (uint32_t idx : curve) {
-				float2 pt = contour.vertexes[idx];
+				float2 pt = contour.vertexes[idx] + float2(0.5f);
 				pt.x = pt.x / (float)img.width;
 				pt.y = pt.y / (float)img.height;
-				pt = pt*bounds.dimensions + bounds.position+float2(0.5f);
+				pt = pt*bounds.dimensions + bounds.position;
 				if (firstTime) {
 					nvgMoveTo(nvg, pt.x, pt.y);
 				}
