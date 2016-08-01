@@ -47,7 +47,7 @@
 using namespace aly;
 
 Viewer2D::Viewer2D() :
-	Application(1200, 600, "Distance Field Example"), currentIso(0.0f) {
+	Application(1200, 600, "Level Set Segmenation Toy",false), currentIso(0.0f) {
 }
 void Viewer2D::createTextLevelSet(aly::Image1f& distField, aly::Image1f& gray, int w, int h, const std::string& text, float textSize, float maxDistance) {
 	GLFrameBuffer renderBuffer;
@@ -122,10 +122,10 @@ bool Viewer2D::init(Composite& rootNode) {
 	};
 
 	float aspect = 6.0f;
-	lineWidth = Float(2.0f);
+	lineWidth = Float(4.0f);
 	particleSize = Float(0.2f);
 
-	lineColor = AlloyApplicationContext()->theme.DARK.toSemiTransparent(0.5f);
+	lineColor = Color(255, 128, 64);
 	pointColor = Color(255, 255, 255, 255);
 
 	controls->setAlwaysShowVerticalScrollBar(false);
@@ -137,7 +137,7 @@ bool Viewer2D::init(Composite& rootNode) {
 	controlLayout->backgroundColor = MakeColor(getContext()->theme.DARKER);
 	controlLayout->borderWidth = UnitPX(0.0f);
 	CompositePtr renderRegion = CompositePtr(new Composite("View", CoordPX(0.0f, 0.0f), CoordPercent(1.0f, 1.0f)));
-	layout->setWest(controlLayout, UnitPX(300.0f));
+	layout->setWest(controlLayout, UnitPX(400.0f));
 	controlLayout->setCenter(controls);
 	layout->setCenter(renderRegion);
 	CompositePtr infoComposite = CompositePtr(new Composite("Info", CoordPX(0.0f, 0.0f), CoordPercent(1.0f, 1.0f)));
@@ -186,16 +186,16 @@ bool Viewer2D::init(Composite& rootNode) {
 	infoComposite->add(stopButton);
 	controlLayout->setSouth(infoComposite, UnitPX(80.0f));
 	rootNode.add(layout);
-	ImageRGBA tmpImg(4, 4);
-	tmpImg.set(RGBA(255, 255, 255, 255));
-	controls->addGroup("Visualization", true);
-	controls->addNumberField("Line Width", lineWidth, Float(1.0f), Float(10.0f), 5.5f);
-	controls->addNumberField("Particle Size", particleSize, Float(0.0f), Float(1.0f), 5.5f);
-	controls->addColorField("Point", pointColor);
-	controls->addColorField("Line", lineColor);
 
 	controls->addGroup("Simulation", true);
 	simulation->setup(controls);
+	controls->addGroup("Visualization", true);
+	controls->addNumberField("Line Width", lineWidth, Float(1.0f), Float(10.0f), 6.0f);
+	controls->addNumberField("Particle Size", particleSize, Float(0.0f), Float(1.0f), 6.0f);
+	controls->addColorField("Point", pointColor);
+	controls->addColorField("Line", lineColor);
+
+
 	timelineSlider = TimelineSliderPtr(
 		new TimelineSlider("Timeline", CoordPerPX(0.0f, 1.0f, 0.0f, -80.0f), CoordPerPX(1.0f, 0.0f, 0.0f, 80.0f), Integer(0), Integer(0), Integer(0)));
 	CompositePtr viewRegion = CompositePtr(new Composite("View", CoordPX(0.0f, 0.0f), CoordPerPX(1.0f, 1.0f, 0.0f, -80.0f)));
@@ -221,7 +221,7 @@ bool Viewer2D::init(Composite& rootNode) {
 	pixel2 offset(50.0f * offsetIncrement, 50.0f * offsetIncrement);
 	offsetIncrement++;
 	if (img.width > 0 && img.height > 0) {
-		downScale = std::min(650.0f / img.width, 580.0f / img.height);
+		downScale = std::min(700.0f/ img.width, 520.0f / img.height);
 	}
 	resizeableRegion = AdjustableCompositePtr(
 		new AdjustableComposite("Image", CoordPerPX(0.5, 0.5, -img.width * downScale * 0.5f + offset.x, -img.height * downScale * 0.5f + offset.y),
@@ -238,8 +238,8 @@ bool Viewer2D::init(Composite& rootNode) {
 		else {
 			contour = simulation->getContour();
 		}
-		nvgStrokeWidth(nvg, 4.0f);
-		nvgStrokeColor(nvg, Color(255, 128, 64));
+		nvgStrokeWidth(nvg, lineWidth.toFloat());
+		nvgStrokeColor(nvg,lineColor);
 		nvgLineCap(nvg, NVG_ROUND);
 		nvgBeginPath(nvg);
 		for (int n = 0;n < (int)contour.indexes.size();n++) {
@@ -249,7 +249,7 @@ bool Viewer2D::init(Composite& rootNode) {
 				float2 pt = contour.vertexes[idx];
 				pt.x = pt.x / (float)img.width;
 				pt.y = pt.y / (float)img.height;
-				pt = pt*bounds.dimensions + bounds.position;
+				pt = pt*bounds.dimensions + bounds.position+float2(0.5f);
 				if (firstTime) {
 					nvgMoveTo(nvg, pt.x, pt.y);
 				}

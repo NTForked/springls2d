@@ -67,23 +67,37 @@ namespace aly {
 		return contour;
 	}
 	ActiveContour2D::ActiveContour2D(const std::shared_ptr<SpringlCache2D>& cache) :Simulation("Active Contour 2D"),
-			cache(cache),advectionWeight(1.0f), pressureWeight(1.0), curvatureWeight(0.1f), targetPressure(NAN), maxLayers(3), preserveTopology(false), clampSpeed(false), updateIsoSurface(
-					false), resamplingInterval(5){
-
+			cache(cache),advectionWeight(1.0f), pressureWeight(1.0), curvatureWeight(0.1f), targetPressure(0.5f),  preserveTopology(false), clampSpeed(false), updateIsoSurface(
+					false){
+		advectionParam = Float(advectionWeight);
+		pressureParam = Float(pressureWeight);
+		targetPressureParam = Float(targetPressure);
+		curvatureParam = Float(curvatureWeight);
 	}
 	void ActiveContour2D::setup(const aly::ParameterPanePtr& pane){
-	
+
+		pane->addNumberField("Target Pressure", targetPressureParam, Float(0.0f), Float(1.0f));
+		pane->addNumberField("Advection Weight", advectionParam, Float(-4.0f), Float(4.0f));
+		pane->addNumberField("Pressure Weight", pressureParam, Float(-4.0f), Float(4.0f));
+		pane->addNumberField("Curvature Weight", curvatureParam, Float(0.0f), Float(4.0f));
+		pane->addCheckBox("Preserve Topology", preserveTopology);
+		pane->addCheckBox("Clamp Speed",clampSpeed);
 	}
 	void ActiveContour2D::cleanup(){
-		cache->clear();
+		if(cache.get()!=nullptr)cache->clear();
 	}
 	bool ActiveContour2D::init() {
 		int2 dims = initialLevelSet.dimensions();
+		if (dims.x == 0 || dims.y == 0)return false;
 		mSimulationDuration=std::max(dims.x,dims.y);
 		mSimulationIteration=0;
 		mSimulationTime=0;
 		mTimeStep=0.5;
-		if(dims.x==0||dims.y==0)return false;
+		advectionWeight = advectionParam.toFloat();
+		pressureWeight = pressureParam.toFloat();
+		curvatureWeight = curvatureParam.toFloat();
+		targetPressure = targetPressureParam.toFloat();
+
 		levelSet.resize(dims.x, dims.y);
 		swapLevelSet.resize(dims.x, dims.y);
 #pragma omp parallel for

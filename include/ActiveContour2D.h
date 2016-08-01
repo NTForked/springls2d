@@ -40,12 +40,17 @@ namespace aly {
 		float pressureWeight;
 		float curvatureWeight;
 		float targetPressure;
-		const float MAX_DISTANCE = 3.5f;
-		int maxLayers;
 		bool preserveTopology;
 		bool clampSpeed;
+
+		Number advectionParam;
+		Number pressureParam;
+		Number curvatureParam;
+		Number targetPressureParam;
+		
+		const float MAX_DISTANCE = 3.5f;
+		const int maxLayers = 3;
 		bool updateIsoSurface;
-		int resamplingInterval;
 		Image1f initialLevelSet;
 		Image1f levelSet;
 		Image1f swapLevelSet;
