@@ -56,7 +56,7 @@ public:
 	inline void setName(const std::string& name){mName=name;}
 	inline double getSimulationTime()const {return mSimulationTime;}
 	inline double getSimulationDuration() const {return mSimulationDuration;}
-	inline long getSimulationIteration()const {return mSimulationIteration;}
+	inline uint64_t getSimulationIteration()const {return mSimulationIteration;}
 	inline double getComputeTimePerFrame() const {return mComputeTimeSeconds;}
 	inline double getTimeStep() const {return mTimeStep;}
 	virtual ~Simulation(){};

@@ -19,26 +19,26 @@
  * THE SOFTWARE.
  */
 #include "Viewer2D.h"
-/*
- * Copyright(C) 2015, Blake C. Lucas, Ph.D. (img.science@gmail.com)
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- */
+ /*
+  * Copyright(C) 2015, Blake C. Lucas, Ph.D. (img.science@gmail.com)
+  *
+  * Permission is hereby granted, free of charge, to any person obtaining a copy
+  * of this software and associated documentation files (the "Software"), to deal
+  * in the Software without restriction, including without limitation the rights
+  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  * copies of the Software, and to permit persons to whom the Software is
+  * furnished to do so, subject to the following conditions:
+  * The above copyright notice and this permission notice shall be included in
+  * all copies or substantial portions of the Software.
+  *
+  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+  * THE SOFTWARE.
+  */
 
 #include "Alloy.h"
 #include "Viewer2D.h"
@@ -47,7 +47,7 @@
 using namespace aly;
 
 Viewer2D::Viewer2D() :
-		Application(1200, 600, "Distance Field Example"), currentIso(0.0f) {
+	Application(1200, 600, "Distance Field Example"), currentIso(0.0f) {
 }
 void Viewer2D::createTextLevelSet(aly::Image1f& distField, aly::Image1f& gray, int w, int h, const std::string& text, float textSize, float maxDistance) {
 	GLFrameBuffer renderBuffer;
@@ -77,7 +77,7 @@ aly::Image1f Viewer2D::createCircleLevelSet(int w, int h, float2 center, float r
 	aly::Image1f levelSet(w, h);
 	for (int j = 0; j < h; j++) {
 		for (int i = 0; i < w; i++) {
-			levelSet(i, j).x = distance(float2(i, j), center) - r;
+			levelSet(i, j).x = distance(float2((float)i, (float)j), center) - r;
 		}
 	}
 	return levelSet;
@@ -90,98 +90,22 @@ bool Viewer2D::init(Composite& rootNode) {
 	float maxDistance = 128;
 	createTextLevelSet(distField, gray, w, h, "A", 200.0f, maxDistance);
 	ConvertImage(gray, img);
-	/*
-	 //SANITY_CHECK_DISTANCE_FIELD();
-
-	 worker=RecurrentTaskPtr(new RecurrentTask(
-	 [this](uint64_t iteration){
-	 return activeContour.step();
-	 },5));
-	 //Normalize distance field range so it can be rendered as gray scale image.
-	 distField = (distField + float1(maxDistance)) / float1(2.0f * maxDistance);
-	 GlyphRegionPtr imageRegion = MakeGlyphRegion(createImageGlyph(distField),
-	 CoordPX(0.0f, 0.0f), CoordPercent(1.0f,1.0f), AspectRule::FixedHeight,
-	 COLOR_NONE, COLOR_NONE, Color(200, 200, 200, 255), UnitPX(1.0f));
-	 rootNode.add(imageRegion);
-	 draw = DrawPtr(new Draw("Iso-Contour", CoordPX(0.0f, 0.0f), CoordPercent(1.0f, 1.0f)));
-	 draw->setAspectRule(AspectRule::FixedHeight);
-	 draw->onMouseOver = [this,maxDistance](const AlloyContext* context, const InputEvent& e) {
-	 box2px bounds = draw->getBounds();
-	 float2 pt=(e.cursor-bounds.position)/bounds.dimensions;
-	 float level = distField(pt.x*distField.width, pt.y*distField.height).x;
-	 if (std::abs(level-currentIso)>1.0f/maxDistance&&level<0.999f) {
-	 IsoContour traceContour;
-	 traceContour.solve(distField, tracePoints, traceIndexes, level, TopologyRule2D::Unconstrained);
-	 currentIso = level;
-	 }
-	 return false;
-	 };
-	 draw->onDraw = [this](const AlloyContext* context, const box2px& bounds) {
-	 NVGcontext* nvg = context->nvgContext;
-	 nvgStrokeWidth(nvg, 3.0f);
-	 nvgStrokeColor(nvg, Color(128, 128, 255));
-	 nvgLineCap(nvg, NVG_ROUND);
-	 nvgBeginPath(nvg);
-	 for (int n = 0;n < (int)traceIndexes.size();n++) {
-	 uint2 ln = traceIndexes[n];
-	 float2 pt = tracePoints[ln.x];
-	 pt.x = pt.x / (float)distField.width;
-	 pt.y = pt.y / (float)distField.height;
-	 pt = pt*bounds.dimensions + bounds.position;
-	 nvgMoveTo(nvg, pt.x, pt.y);
-	 pt = tracePoints[ln.y];
-	 pt.x = pt.x / (float)distField.width;
-	 pt.y = pt.y / (float)distField.height;
-	 pt = pt*bounds.dimensions + bounds.position;
-	 nvgLineTo(nvg, pt.x, pt.y);
-	 }
-	 nvgStroke(nvg);
-	 nvgStrokeWidth(nvg, 4.0f);
-	 nvgStrokeColor(nvg, Color( 255,128,64));
-	 nvgLineCap(nvg, NVG_ROUND);
-	 nvgBeginPath(nvg);
-	 const Contour2D& contour=activeContour.getContour();
-	 for (int n = 0;n < (int)contour.indexes.size();n++) {
-	 std::list<uint32_t> curve =  contour.indexes[n];
-	 bool firstTime = true;
-	 for (uint32_t idx : curve) {
-	 float2 pt =  contour.vertexes[idx];
-	 pt.x = pt.x / (float)distField.width;
-	 pt.y = pt.y / (float)distField.height;
-	 pt = pt*bounds.dimensions + bounds.position;
-	 if (firstTime) {
-	 nvgMoveTo(nvg, pt.x, pt.y);
-	 } else {
-	 nvgLineTo(nvg, pt.x, pt.y);
-	 }
-	 firstTime = false;
-	 }
-	 }
-	 nvgStroke(nvg);
-
-
-	 };
-	 rootNode.add(draw);
-
-	 worker->execute();
-	 */
-
-	simulation = std::shared_ptr<ActiveContour2D>(new ActiveContour2D());
-
-	simulation->onUpdate = [this](uint64_t iteration,bool lastIteration) {
-		if(lastIteration) {
+	cache = std::shared_ptr<SpringlCache2D>(new SpringlCache2D());
+	simulation = std::shared_ptr<ActiveContour2D>(new ActiveContour2D(cache));
+	simulation->onUpdate = [this](uint64_t iteration, bool lastIteration) {
+		if (lastIteration) {
 			stopButton->setVisible(false);
 			playButton->setVisible(true);
 		}
 		AlloyApplicationContext()->addDeferredTask([this]() {
-					timelineSlider->setUpperValue((int)simulation->getSimulationIteration());
-					timelineSlider->setTimeValue((int)simulation->getSimulationIteration());
+			timelineSlider->setUpperValue((int)simulation->getSimulationIteration());
+			timelineSlider->setTimeValue((int)simulation->getSimulationIteration());
 
-				});
+		});
 	};
 
-	simulation->setInitialDistanceField(createCircleLevelSet(w,h,float2(0.5f*w,0.5f*h),std::min(w,h)*0.25f));
-	simulation->setPressure(gray,1.0f,0.5f);
+	simulation->setInitialDistanceField(createCircleLevelSet(w, h, float2(0.5f*w, 0.5f*h), std::min(w, h)*0.25f));
+	simulation->setPressure(gray, 1.0f, 0.5f);
 	simulation->init();
 
 
@@ -192,9 +116,9 @@ bool Viewer2D::init(Composite& rootNode) {
 	ParameterPanePtr controls = ParameterPanePtr(new ParameterPane("Controls", CoordPX(0.0f, 0.0f), CoordPercent(1.0f, 1.0f)));
 	BorderCompositePtr controlLayout = BorderCompositePtr(new BorderComposite("Control Layout", CoordPX(0.0f, 0.0f), CoordPercent(1.0f, 1.0f), true));
 
-	controls->onChange = [this](const std::string& label,const AnyInterface& value) {
+	controls->onChange = [this](const std::string& label, const AnyInterface& value) {
 
-		parametersDirty=true;
+		parametersDirty = true;
 	};
 
 	float aspect = 6.0f;
@@ -232,14 +156,14 @@ bool Viewer2D::init(Composite& rootNode) {
 	stopButton->iconColor = MakeColor(getContext()->theme.LIGHTER);
 	playButton->borderColor = MakeColor(getContext()->theme.LIGHTEST);
 	stopButton->borderColor = MakeColor(getContext()->theme.LIGHTEST);
-	playButton->onMouseDown = [this](AlloyContext* context,const InputEvent& e) {
-		if(e.button==GLFW_MOUSE_BUTTON_LEFT) {
+	playButton->onMouseDown = [this](AlloyContext* context, const InputEvent& e) {
+		if (e.button == GLFW_MOUSE_BUTTON_LEFT) {
 			stopButton->setVisible(true);
 			playButton->setVisible(false);
 			simulation->cancel();
-			//cache->clear();
+			cache->clear();
 			simulation->init();
-			int maxIteration=(int)std::ceil(simulation->getSimulationDuration() / simulation->getTimeStep());
+			int maxIteration = (int)std::ceil(simulation->getSimulationDuration() / simulation->getTimeStep());
 			timelineSlider->setTimeValue(0);
 			timelineSlider->setMaxValue(maxIteration);
 			timelineSlider->setVisible(true);
@@ -248,8 +172,8 @@ bool Viewer2D::init(Composite& rootNode) {
 		}
 		return false;
 	};
-	stopButton->onMouseDown = [this](AlloyContext* context,const InputEvent& e) {
-		if(e.button==GLFW_MOUSE_BUTTON_LEFT) {
+	stopButton->onMouseDown = [this](AlloyContext* context, const InputEvent& e) {
+		if (e.button == GLFW_MOUSE_BUTTON_LEFT) {
 			stopButton->setVisible(false);
 			playButton->setVisible(true);
 			simulation->cancel();
@@ -273,8 +197,8 @@ bool Viewer2D::init(Composite& rootNode) {
 	controls->addGroup("Simulation", true);
 	simulation->setup(controls);
 	timelineSlider = TimelineSliderPtr(
-			new TimelineSlider("Timeline", CoordPerPX(0.0f, 1.0f, 0.0f, -80.0f), CoordPerPX(1.0f, 0.0f, 0.0f, 80.0f), Integer(0), Integer(0), Integer(0)));
-	CompositePtr viewRegion=CompositePtr(new Composite("View",CoordPX(0.0f,0.0f),CoordPerPX(1.0f,1.0f,0.0f,-80.0f)));
+		new TimelineSlider("Timeline", CoordPerPX(0.0f, 1.0f, 0.0f, -80.0f), CoordPerPX(1.0f, 0.0f, 0.0f, 80.0f), Integer(0), Integer(0), Integer(0)));
+	CompositePtr viewRegion = CompositePtr(new Composite("View", CoordPX(0.0f, 0.0f), CoordPerPX(1.0f, 1.0f, 0.0f, -80.0f)));
 	timelineSlider->backgroundColor = MakeColor(AlloyApplicationContext()->theme.DARKER);
 	timelineSlider->borderColor = MakeColor(AlloyApplicationContext()->theme.DARK);
 	timelineSlider->borderWidth = UnitPX(0.0f);
@@ -285,7 +209,7 @@ bool Viewer2D::init(Composite& rootNode) {
 	timelineSlider->setMinorTick(10);
 	timelineSlider->setLowerValue(0);
 	timelineSlider->setUpperValue(0);
-	int maxIteration=(int)std::ceil(simulation->getSimulationDuration() / simulation->getTimeStep());
+	int maxIteration = (int)std::ceil(simulation->getSimulationDuration() / simulation->getTimeStep());
 	timelineSlider->setMaxValue(maxIteration);
 	timelineSlider->setVisible(true);
 	timelineSlider->setModifiable(false);
@@ -300,17 +224,24 @@ bool Viewer2D::init(Composite& rootNode) {
 		downScale = std::min(650.0f / img.width, 580.0f / img.height);
 	}
 	resizeableRegion = AdjustableCompositePtr(
-			new AdjustableComposite("Image", CoordPerPX(0.5, 0.5, -img.width * downScale * 0.5f + offset.x, -img.height * downScale * 0.5f + offset.y),
-					CoordPX(img.width * downScale, img.height * downScale)));
+		new AdjustableComposite("Image", CoordPerPX(0.5, 0.5, -img.width * downScale * 0.5f + offset.x, -img.height * downScale * 0.5f + offset.y),
+			CoordPX(img.width * downScale, img.height * downScale)));
 	Application::addListener(resizeableRegion.get());
 	ImageGlyphPtr imageGlyph = AlloyApplicationContext()->createImageGlyph(img, false);
 	DrawPtr drawMarkers = DrawPtr(new Draw("Marker Draw", CoordPX(0.0f, 0.0f), CoordPercent(1.0f, 1.0f), [this](AlloyContext* context, const box2px& bounds) {
 		NVGcontext* nvg = context->nvgContext;
+		std::shared_ptr<CacheElement> elem = this->cache->get(timelineSlider->getTimeValue().toInteger());
+		Contour2D contour;
+		if (elem.get() != nullptr) {
+			contour = *elem->getContour();
+		}
+		else {
+			contour = simulation->getContour();
+		}
 		nvgStrokeWidth(nvg, 4.0f);
-		nvgStrokeColor(nvg, Color( 255,128,64));
+		nvgStrokeColor(nvg, Color(255, 128, 64));
 		nvgLineCap(nvg, NVG_ROUND);
 		nvgBeginPath(nvg);
-		const Contour2D& contour=simulation->getContour();
 		for (int n = 0;n < (int)contour.indexes.size();n++) {
 			std::list<uint32_t> curve = contour.indexes[n];
 			bool firstTime = true;
@@ -321,7 +252,8 @@ bool Viewer2D::init(Composite& rootNode) {
 				pt = pt*bounds.dimensions + bounds.position;
 				if (firstTime) {
 					nvgMoveTo(nvg, pt.x, pt.y);
-				} else {
+				}
+				else {
 					nvgLineTo(nvg, pt.x, pt.y);
 				}
 				firstTime = false;
@@ -333,35 +265,35 @@ bool Viewer2D::init(Composite& rootNode) {
 	glyphRegion->setAspectRule(AspectRule::Unspecified);
 	glyphRegion->foregroundColor = MakeColor(COLOR_NONE);
 	glyphRegion->backgroundColor = MakeColor(COLOR_NONE);
-	drawMarkers->onScroll = [this](AlloyContext* context,const InputEvent& event)
+	drawMarkers->onScroll = [this](AlloyContext* context, const InputEvent& event)
 	{
-		box2px bounds=resizeableRegion->getBounds(false);
-		pixel scaling=(pixel)(1-0.1f*event.scroll.y);
-		pixel2 newBounds=bounds.dimensions*scaling;
-		pixel2 cursor=context-> cursorPosition;
-		pixel2 relPos=(cursor-bounds.position)/bounds.dimensions;
-		pixel2 newPos=cursor-relPos*newBounds;
-		bounds.position=newPos;
-		bounds.dimensions=newBounds;
-		resizeableRegion->setDragOffset(pixel2(0,0));
-		resizeableRegion->position=CoordPX(bounds.position-resizeableRegion->parent->getBoundsPosition());
-		resizeableRegion->dimensions=CoordPX(bounds.dimensions);
+		box2px bounds = resizeableRegion->getBounds(false);
+		pixel scaling = (pixel)(1 - 0.1f*event.scroll.y);
+		pixel2 newBounds = bounds.dimensions*scaling;
+		pixel2 cursor = context->cursorPosition;
+		pixel2 relPos = (cursor - bounds.position) / bounds.dimensions;
+		pixel2 newPos = cursor - relPos*newBounds;
+		bounds.position = newPos;
+		bounds.dimensions = newBounds;
+		resizeableRegion->setDragOffset(pixel2(0, 0));
+		resizeableRegion->position = CoordPX(bounds.position - resizeableRegion->parent->getBoundsPosition());
+		resizeableRegion->dimensions = CoordPX(bounds.dimensions);
 
-		float2 dims=float2(img.dimensions());
-		cursor=aly::clamp(dims*(event.cursor-bounds.position)/bounds.dimensions,float2(0.0f),dims);
+		float2 dims = float2(img.dimensions());
+		cursor = aly::clamp(dims*(event.cursor - bounds.position) / bounds.dimensions, float2(0.0f), dims);
 
 		context->requestPack();
 		return true;
 	};
 	drawMarkers->onMouseOver = [this](AlloyContext* context, const InputEvent& event) {
-		box2px bbox=resizeableRegion->getBounds(true);
-		float2 dims=float2(img.dimensions());
-		float2 cursor=aly::clamp(dims*(event.cursor-bbox.position)/bbox.dimensions,float2(0.0f),dims);
+		box2px bbox = resizeableRegion->getBounds(true);
+		float2 dims = float2(img.dimensions());
+		float2 cursor = aly::clamp(dims*(event.cursor - bbox.position) / bbox.dimensions, float2(0.0f), dims);
 		return false;
 	};
 	resizeableRegion->add(glyphRegion);
 	resizeableRegion->add(drawMarkers);
-	resizeableRegion->setAspectRatio(img.width / (float) img.height);
+	resizeableRegion->setAspectRatio(img.width / (float)img.height);
 	resizeableRegion->setAspectRule(AspectRule::FixedHeight);
 	resizeableRegion->setDragEnabled(true);
 	resizeableRegion->setClampDragToParentBounds(false);

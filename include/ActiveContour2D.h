@@ -29,14 +29,11 @@
 #include <tuple>
 #include <mutex>
 #include "Simulation.h"
+#include "SpringlCache2D.h"
 namespace aly {
-	class Contour2D {
-	public:
-		std::vector<std::list<uint32_t>> indexes;
-		Vector2f vertexes;
-	};
 	class ActiveContour2D: public Simulation {
 	protected:
+		std::shared_ptr<SpringlCache2D> cache;
 		IsoContour isoContour;
 		Contour2D contour;
 		float advectionWeight;
@@ -73,7 +70,7 @@ namespace aly {
 		void applyForcesTopoRule(int i, int j, int offset, size_t index, float timeStep);
 		virtual bool stepInternal() override;
 	public:
-		ActiveContour2D();
+		ActiveContour2D(const std::shared_ptr<SpringlCache2D>& cache=nullptr);
 		void setPressure(const Image1f& img, float weight = 1.0f, float target = 0.5f) {
 			pressureWeight = weight;
 			targetPressure = target;

@@ -28,7 +28,7 @@
 #include "AlloyWorker.h"
 #include "AlloyTimeline.h"
 #include "Simulation.h"
-
+#include "SpringlCache2D.h"
 class Viewer2D: public aly::Application {
 protected:
 	aly::ImageRGBA img;
@@ -45,8 +45,8 @@ protected:
     std::shared_ptr<aly::TimelineSlider> timelineSlider;
 	aly::Image1f createCircleLevelSet(int w,int h,aly::float2 center,float r);
 	void createTextLevelSet(aly::Image1f& levelSet,aly::Image1f& gray,int w,int h,const std::string& text,float textSize,float maxDistance);
-
 public:
+	std::shared_ptr<aly::SpringlCache2D> cache;
 	Viewer2D();
 	bool init(aly::Composite& rootNode);
 

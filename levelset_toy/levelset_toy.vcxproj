@@ -86,6 +86,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>glfw3.lib;opengl32.lib;glu32.lib;glew32s.lib;alloy.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)\alloy\vs2015\third_party\lib\$(PlatformName)\;$(SolutionDir)\alloy\vs2015\alloy\build\$(Configuration)-$(Platform)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <SubSystem>Console</SubSystem>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -101,6 +102,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>glfw3.lib;opengl32.lib;glu32.lib;glew32s.lib;alloy.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)\alloy\vs2015\third_party\lib\$(PlatformName)\;$(SolutionDir)\alloy\vs2015\alloy\build\$(Configuration)-$(Platform)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <SubSystem>Console</SubSystem>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -120,6 +122,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalDependencies>glfw3.lib;opengl32.lib;glu32.lib;glew32s.lib;alloy.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)\alloy\vs2015\third_party\lib\$(PlatformName)\;$(SolutionDir)\alloy\vs2015\alloy\build\$(Configuration)-$(Platform)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <SubSystem>Console</SubSystem>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -139,18 +142,23 @@
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalDependencies>glfw3.lib;opengl32.lib;glu32.lib;glew32s.lib;alloy.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)\alloy\vs2015\third_party\lib\$(PlatformName)\;$(SolutionDir)\alloy\vs2015\alloy\build\$(Configuration)-$(Platform)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <SubSystem>Console</SubSystem>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\src\ActiveContour2D.cpp" />
+    <ClCompile Include="..\src\Contour2D.cpp" />
     <ClCompile Include="..\src\main.cpp" />
     <ClCompile Include="..\src\Simulation.cpp" />
+    <ClCompile Include="..\src\SpringlCache2D.cpp" />
     <ClCompile Include="..\src\SpringLevelSet2D.cpp" />
     <ClCompile Include="..\src\Viewer2D.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\include\ActiveContour2D.h" />
+    <ClInclude Include="..\include\Contour2D.h" />
     <ClInclude Include="..\include\Simulation.h" />
+    <ClInclude Include="..\include\SpringlCache2D.h" />
     <ClInclude Include="..\include\SpringLevelSet2D.h" />
     <ClInclude Include="..\include\Viewer2D.h" />
   </ItemGroup>
