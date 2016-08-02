@@ -78,7 +78,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>$(SolutionDir)\third_party\include\;..\include\;..\alloy\include\;..\alloy\include\core\;..\alloy\vs2015\third_party\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)\third_party\include\;$(SolutionDir)\levelset_toy\include\;$(SolutionDir)\alloy\include\;$(SolutionDir)\alloy\include\core\;$(SolutionDir)\alloy\vs2015\third_party\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_WIN32;NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
@@ -94,7 +94,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>$(SolutionDir)\third_party\include\;..\include\;..\alloy\include\;..\alloy\include\core\;..\alloy\vs2015\third_party\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)\third_party\include\;$(SolutionDir)\levelset_toy\include\;$(SolutionDir)\alloy\include\;$(SolutionDir)\alloy\include\core\;$(SolutionDir)\alloy\vs2015\third_party\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_WIN32;NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
@@ -112,7 +112,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>$(SolutionDir)\third_party\include\;..\include\;..\alloy\include\;..\alloy\include\core\;..\alloy\vs2015\third_party\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)\third_party\include\;$(SolutionDir)\levelset_toy\include\;$(SolutionDir)\alloy\include\;$(SolutionDir)\alloy\include\core\;$(SolutionDir)\alloy\vs2015\third_party\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_WIN32;NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
@@ -132,7 +132,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>$(SolutionDir)\third_party\include\;..\include\;..\alloy\include\;..\alloy\include\core\;..\alloy\vs2015\third_party\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)\third_party\include\;$(SolutionDir)\levelset_toy\include\;$(SolutionDir)\alloy\include\;$(SolutionDir)\alloy\include\core\;$(SolutionDir)\alloy\vs2015\third_party\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_WIN32;NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
@@ -146,21 +146,21 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\src\ActiveContour2D.cpp" />
-    <ClCompile Include="..\src\Contour2D.cpp" />
-    <ClCompile Include="..\src\main.cpp" />
-    <ClCompile Include="..\src\Simulation.cpp" />
-    <ClCompile Include="..\src\SpringlCache2D.cpp" />
-    <ClCompile Include="..\src\SpringLevelSet2D.cpp" />
-    <ClCompile Include="..\src\Viewer2D.cpp" />
+    <ClInclude Include="include\ActiveContour2D.h" />
+    <ClInclude Include="include\Contour2D.h" />
+    <ClInclude Include="include\Simulation.h" />
+    <ClInclude Include="include\SpringlCache2D.h" />
+    <ClInclude Include="include\SpringLevelSet2D.h" />
+    <ClInclude Include="include\Viewer2D.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\include\ActiveContour2D.h" />
-    <ClInclude Include="..\include\Contour2D.h" />
-    <ClInclude Include="..\include\Simulation.h" />
-    <ClInclude Include="..\include\SpringlCache2D.h" />
-    <ClInclude Include="..\include\SpringLevelSet2D.h" />
-    <ClInclude Include="..\include\Viewer2D.h" />
+    <ClCompile Include="src\ActiveContour2D.cpp" />
+    <ClCompile Include="src\Contour2D.cpp" />
+    <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\Simulation.cpp" />
+    <ClCompile Include="src\SpringlCache2D.cpp" />
+    <ClCompile Include="src\SpringLevelSet2D.cpp" />
+    <ClCompile Include="src\Viewer2D.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
