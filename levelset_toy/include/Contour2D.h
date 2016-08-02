@@ -25,21 +25,27 @@
 #include <cereal/types/vector.hpp>
 #include <cereal/types/list.hpp>
 namespace aly {
+	class AlloyContext;
 	class Contour2D {
 	protected:
 		std::string file;
 	public:
 		std::vector<std::list<uint32_t>> indexes;
 		Vector2f vertexes;
+		Vector2f particles;
+		Vector2f points;
+		Vector2f normals;
+		Vector2f correspondence;
 		std::string getFile() const {
 			return file;
 		}
+		void updateNormals();
 		void setFile(const std::string& file) {
 			this->file = file;
 		}
 		template<class Archive> void serialize(Archive & archive)
 		{
-			archive( CEREAL_NVP(vertexes),CEREAL_NVP(indexes));
+			archive( CEREAL_NVP(vertexes),CEREAL_NVP(indexes), CEREAL_NVP(particles), CEREAL_NVP(points), CEREAL_NVP(normals), CEREAL_NVP(correspondence));
 		}
 	};
 	void ReadContourFromFile(const std::string& file, Contour2D& contour);

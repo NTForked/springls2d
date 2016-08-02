@@ -39,6 +39,9 @@ protected:
 	aly::Number particleSize;
 	aly::Color lineColor;
 	aly::Color pointColor;
+	aly::Color particleColor;
+	aly::Color normalColor;
+	aly::Color springlColor;
 	aly::AdjustableCompositePtr resizeableRegion;
 	std::shared_ptr<aly::ActiveContour2D> simulation;
 	aly::IconButtonPtr playButton,stopButton;

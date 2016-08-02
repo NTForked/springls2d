@@ -74,6 +74,16 @@ namespace aly {
 		targetPressureParam = Float(targetPressure);
 		curvatureParam = Float(curvatureWeight);
 	}
+	ActiveContour2D::ActiveContour2D(const std::string& name,const std::shared_ptr<SpringlCache2D>& cache) : Simulation(name),
+		cache(cache), advectionWeight(1.0f), pressureWeight(1.0), curvatureWeight(0.1f), targetPressure(0.5f), preserveTopology(false), clampSpeed(false), updateIsoSurface(
+			false) {
+		advectionParam = Float(advectionWeight);
+		pressureParam = Float(pressureWeight);
+		targetPressureParam = Float(targetPressure);
+		curvatureParam = Float(curvatureWeight);
+	}
+
+
 	void ActiveContour2D::setup(const aly::ParameterPanePtr& pane){
 
 		pane->addNumberField("Target Pressure", targetPressureParam, Float(0.0f), Float(1.0f));

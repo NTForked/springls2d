@@ -76,6 +76,8 @@ namespace aly {
 		virtual bool stepInternal() override;
 	public:
 		ActiveContour2D(const std::shared_ptr<SpringlCache2D>& cache=nullptr);
+		ActiveContour2D(const std::string& name,const std::shared_ptr<SpringlCache2D>& cache = nullptr);
+
 		void setPressure(const Image1f& img, float weight = 1.0f, float target = 0.5f) {
 			pressureWeight = weight;
 			targetPressure = target;

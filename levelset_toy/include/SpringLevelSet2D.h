@@ -21,9 +21,20 @@
 
 #ifndef INCLUDE_SPRINGLEVELSET2D_H_
 #define INCLUDE_SPRINGLEVELSET2D_H_
-
-
-
-
+#include "ActiveContour2D.h"
+#include "Simulation.h"
+#include "SpringlCache2D.h"
+namespace aly {
+	class SpringLevelSet2D : public ActiveContour2D {
+	protected:
+		virtual bool stepInternal() override;
+	public:
+		SpringLevelSet2D(const std::shared_ptr<SpringlCache2D>& cache = nullptr);
+		void setSpringls(const Vector2f& particles, const Vector2f& points);
+		virtual bool init()override;
+		virtual void cleanup() override;
+		virtual void setup(const aly::ParameterPanePtr& pane) override;
+	};
+}
 
 #endif /* INCLUDE_SPRINGLEVELSET2D_H_ */

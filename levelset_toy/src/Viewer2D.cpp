@@ -125,8 +125,10 @@ bool Viewer2D::init(Composite& rootNode) {
 	particleSize = Float(0.2f);
 
 	lineColor = Color(255, 128, 64);
-	pointColor = Color(255, 255, 255, 255);
-
+	pointColor = Color(32,32,128);
+	springlColor = Color(255, 64,64);
+	particleColor = Color(64, 64, 255);
+	normalColor = Color(64, 255, 64);
 	controls->setAlwaysShowVerticalScrollBar(false);
 	controls->setScrollEnabled(false);
 	controls->backgroundColor = MakeColor(getContext()->theme.DARKER);
@@ -191,9 +193,11 @@ bool Viewer2D::init(Composite& rootNode) {
 	controls->addGroup("Visualization", true);
 	controls->addNumberField("Line Width", lineWidth, Float(1.0f), Float(10.0f), 6.0f);
 	controls->addNumberField("Particle Size", particleSize, Float(0.0f), Float(1.0f), 6.0f);
+	controls->addColorField("Element", springlColor);
+	controls->addColorField("Particle", particleColor);
 	controls->addColorField("Point", pointColor);
+	controls->addColorField("Normal", normalColor);
 	controls->addColorField("Line", lineColor);
-
 
 	timelineSlider = TimelineSliderPtr(
 		new TimelineSlider("Timeline", CoordPerPX(0.0f, 1.0f, 0.0f, -80.0f), CoordPerPX(1.0f, 0.0f, 0.0f, 80.0f), Integer(0), Integer(0), Integer(0)));
@@ -221,8 +225,7 @@ bool Viewer2D::init(Composite& rootNode) {
 			CoordPX(img.width * downScale, img.height * downScale)));
 	Application::addListener(resizeableRegion.get());
 	ImageGlyphPtr imageGlyph = AlloyApplicationContext()->createImageGlyph(img, false);
-	DrawPtr drawMarkers = DrawPtr(new Draw("Marker Draw", CoordPX(0.0f, 0.0f), CoordPercent(1.0f, 1.0f), [this](AlloyContext* context, const box2px& bounds) {
-		NVGcontext* nvg = context->nvgContext;
+	DrawPtr drawContour = DrawPtr(new Draw("Contour Draw", CoordPX(0.0f, 0.0f), CoordPercent(1.0f, 1.0f), [this](AlloyContext* context, const box2px& bounds) {
 		std::shared_ptr<CacheElement> elem = this->cache->get(timelineSlider->getTimeValue().toInteger());
 		Contour2D contour;
 		if (elem.get() != nullptr) {
@@ -231,6 +234,7 @@ bool Viewer2D::init(Composite& rootNode) {
 		else {
 			contour = simulation->getContour();
 		}
+		NVGcontext* nvg = context->nvgContext;
 		nvgStrokeWidth(nvg, lineWidth.toFloat());
 		nvgStrokeColor(nvg,lineColor);
 		nvgLineCap(nvg, NVG_ROUND);
@@ -253,12 +257,74 @@ bool Viewer2D::init(Composite& rootNode) {
 			}
 		}
 		nvgStroke(nvg);
+		float rx = bounds.dimensions.x / (float)img.width;
+		float ry = bounds.dimensions.y / (float)img.height;
+
+		nvgStrokeColor(nvg, springlColor);
+		nvgStrokeWidth(nvg, 2.0f);
+		for (int n = 0;(int)contour.points.size();n+=2) {
+			float2 pt = contour.points[n] + float2(0.5f);
+			pt.x = pt.x / (float)img.width;
+			pt.y = pt.y / (float)img.height;
+			pt = pt*bounds.dimensions + bounds.position;
+			nvgBeginPath(nvg);
+			nvgMoveTo(nvg, pt.x, pt.y);
+
+			pt = contour.points[n+1] + float2(0.5f);
+			pt.x = pt.x / (float)img.width;
+			pt.y = pt.y / (float)img.height;
+			pt = pt*bounds.dimensions + bounds.position;
+			
+			nvgLineTo(nvg, pt.x, pt.y);
+			nvgStroke(nvg);
+		}
+
+		nvgStrokeColor(nvg, normalColor);
+		for (int n = 0;(int)contour.normals.size();n ++) {
+			float2 pt = contour.particles[n] + float2(0.5f);
+			pt.x = pt.x / (float)img.width;
+			pt.y = pt.y / (float)img.height;
+			pt = pt*bounds.dimensions + bounds.position;
+			nvgBeginPath(nvg);
+			nvgMoveTo(nvg, pt.x, pt.y);
+
+			pt = contour.particles[n]+contour.normals[n] + float2(0.5f);
+			pt.x = pt.x / (float)img.width;
+			pt.y = pt.y / (float)img.height;
+			pt = pt*bounds.dimensions + bounds.position;
+
+			nvgLineTo(nvg, pt.x, pt.y);
+			nvgStroke(nvg);
+		}
+
+		nvgFillColor(nvg, pointColor);
+		for (int n = 0;(int)contour.points.size();n++) {
+			float2 pt = contour.points[n] + float2(0.5f);
+			pt.x = pt.x / (float)img.width;
+			pt.y = pt.y / (float)img.height;
+			pt = pt*bounds.dimensions + bounds.position;
+			nvgBeginPath(nvg);
+			nvgEllipse(nvg, pt.x, pt.y, 0.25f*rx, 0.25f*ry);
+			nvgFill(nvg);
+
+		}
+
+		nvgFillColor(nvg, particleColor);
+		for (int n = 0;(int)contour.points.size();n++) {
+			float2 pt = contour.points[n] + float2(0.5f);
+			pt.x = pt.x / (float)img.width;
+			pt.y = pt.y / (float)img.height;
+			pt = pt*bounds.dimensions + bounds.position;
+			nvgBeginPath(nvg);
+			nvgEllipse(nvg, pt.x, pt.y, 0.5f*rx, 0.5f*ry);
+			nvgFill(nvg);
+		}
 	}));
 	GlyphRegionPtr glyphRegion = GlyphRegionPtr(new GlyphRegion("Image Region", imageGlyph, CoordPX(0.0f, 0.0f), CoordPercent(1.0f, 1.0f)));
 	glyphRegion->setAspectRule(AspectRule::Unspecified);
 	glyphRegion->foregroundColor = MakeColor(COLOR_NONE);
 	glyphRegion->backgroundColor = MakeColor(COLOR_NONE);
-	drawMarkers->onScroll = [this](AlloyContext* context, const InputEvent& event)
+	drawContour->onScroll = [this](AlloyContext* context, const InputEvent& event)
 	{
 		box2px bounds = resizeableRegion->getBounds(false);
 		pixel scaling = (pixel)(1 - 0.1f*event.scroll.y);
@@ -278,14 +344,14 @@ bool Viewer2D::init(Composite& rootNode) {
 		context->requestPack();
 		return true;
 	};
-	drawMarkers->onMouseOver = [this](AlloyContext* context, const InputEvent& event) {
+	drawContour->onMouseOver = [this](AlloyContext* context, const InputEvent& event) {
 		box2px bbox = resizeableRegion->getBounds(true);
 		float2 dims = float2(img.dimensions());
 		float2 cursor = aly::clamp(dims*(event.cursor - bbox.position) / bbox.dimensions, float2(0.0f), dims);
 		return false;
 	};
 	resizeableRegion->add(glyphRegion);
-	resizeableRegion->add(drawMarkers);
+	resizeableRegion->add(drawContour);
 	resizeableRegion->setAspectRatio(img.width / (float)img.height);
 	resizeableRegion->setAspectRule(AspectRule::FixedHeight);
 	resizeableRegion->setDragEnabled(true);

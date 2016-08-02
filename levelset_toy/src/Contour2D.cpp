@@ -20,11 +20,21 @@
 */
 #include "Contour2D.h"
 #include "AlloyFileUtil.h"
+#include "AlloyContext.h"
 #include <cereal/archives/xml.hpp>
 #include <cereal/archives/json.hpp>
 #include <cereal/archives/portable_binary.hpp>
 
 namespace aly {
+	
+	void Contour2D::updateNormals() {
+		normals.resize(points.size() / 2);
+#pragma omp parallel for
+		for (int i = 0;i < points.size();i += 2) {
+			float2 norm = normalize(points[i] - points[i - 1]);
+			normals[i / 2] = float2(-norm.y,norm.x);
+		}
+	}
 	void ReadContourFromFile(const std::string& file, Contour2D& params) {
 		std::string ext = GetFileExtension(file);
 		if (ext == "json") {
