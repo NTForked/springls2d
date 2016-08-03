@@ -61,7 +61,7 @@ namespace aly {
 	const Contour2D& ActiveContour2D::getContour() {
 		if (updateIsoSurface) {
 			std::lock_guard<std::mutex> lockMe(contourLock);
-			isoContour.solve(levelSet, contour.vertexes, contour.indexes, 0.0f, (preserveTopology) ? TopologyRule2D::Connect4 : TopologyRule2D::Unconstrained);
+			isoContour.solve(levelSet, contour.vertexes, contour.indexes, 0.0f, (preserveTopology) ? TopologyRule2D::Connect4 : TopologyRule2D::Unconstrained,Winding::Clockwise);
 			updateIsoSurface = false;
 		}
 		return contour;
@@ -123,10 +123,8 @@ namespace aly {
 		updateIsoSurface = true;
 		if (cache.get() != nullptr) {
 			Contour2D contour = getContour();
-			//WriteContourToFile(MakeString() << GetDesktopDirectory() << ALY_PATH_SEPARATOR << "contour" << std::setw(4) << std::setfill('0') << mSimulationIteration << ".bin", contour);
 			contour.setFile(MakeString() << GetDesktopDirectory() << ALY_PATH_SEPARATOR << "contour" << std::setw(4) << std::setfill('0') << mSimulationIteration << ".bin");
-			cache->set((int)mSimulationIteration, contour);
-			
+			cache->set((int)mSimulationIteration, contour);			
 		}
 		return true;
 	}

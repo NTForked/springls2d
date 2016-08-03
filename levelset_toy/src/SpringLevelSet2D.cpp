@@ -20,7 +20,14 @@
  */
 #include "SpringLevelSet2D.h"
 namespace aly {
-	SpringLevelSet2D::SpringLevelSet2D(const std::shared_ptr<SpringlCache2D>& cache) :ActiveContour2D("Spring Level Set 2D",cache){
+	float SpringLevelSet2D::MIN_ANGLE_TOLERANCE = (float)(ALY_PI * 20 / 180.0f);
+	float SpringLevelSet2D::NEAREST_NEIGHBOR_DISTANCE = 0.6f;
+	float SpringLevelSet2D::PARTICLE_RADIUS = 0.5f;
+	float SpringLevelSet2D::REST_RADIUS = 0.05f;
+	float SpringLevelSet2D::SPRING_CONSTANT = 0.3f;
+	float SpringLevelSet2D::EXTENT = 0.5f;
+
+	SpringLevelSet2D::SpringLevelSet2D(const std::shared_ptr<SpringlCache2D>& cache) :ActiveContour2D("Spring Level Set 2D", cache) {
 	}
 	void SpringLevelSet2D::setSpringls(const Vector2f& particles, const Vector2f& points) {
 		contour.particles = particles;
@@ -34,37 +41,39 @@ namespace aly {
 			contour.points.clear();
 			for (std::list<uint32_t> curve : contour.indexes) {
 				size_t count = 0;
-				uint32_t first, prev=0;
+				uint32_t first = 0, prev = 0;
 				if (curve.size() > 1) {
 					for (uint32_t idx : curve) {
-						if (count == 0) {
-							first = idx;
-						}
-						else {
+						if (count != 0) {
 							contour.particles.push_back(0.5f*(contour.vertexes[prev] + contour.vertexes[idx]));
 							contour.points.push_back(contour.vertexes[prev]);
 							contour.points.push_back(contour.vertexes[idx]);
+							if (idx == first) break;
+						}
+						else {
+							first = idx;
 						}
 						count++;
 						prev = idx;
 					}
-					contour.particles.push_back(0.5f*(contour.vertexes[prev] + contour.vertexes[first]));
-					contour.points.push_back(contour.vertexes[prev]);
-					contour.points.push_back(contour.vertexes[first]);
 				}
 			}
 			contour.correspondence = contour.particles;
 			contour.updateNormals();
+			if (cache.get() != nullptr) {
+				Contour2D contour = getContour();
+				contour.setFile(MakeString() << GetDesktopDirectory() << ALY_PATH_SEPARATOR << "contour" << std::setw(4) << std::setfill('0') << mSimulationIteration << ".bin");
+				cache->set((int)mSimulationIteration, contour);
+			}
 		}
 	}
 	void SpringLevelSet2D::cleanup() {
 		ActiveContour2D::cleanup();
 	}
 	bool SpringLevelSet2D::stepInternal() {
-		ActiveContour2D::stepInternal();
+		return ActiveContour2D::stepInternal();
 	}
 	void SpringLevelSet2D::setup(const aly::ParameterPanePtr& pane) {
 		ActiveContour2D::setup(pane);
 	}
-
 }

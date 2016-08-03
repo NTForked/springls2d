@@ -31,7 +31,7 @@ namespace aly {
 		normals.resize(points.size() / 2);
 #pragma omp parallel for
 		for (int i = 0;i < points.size();i += 2) {
-			float2 norm = normalize(points[i] - points[i - 1]);
+			float2 norm = normalize(points[i+1] - points[i]);
 			normals[i / 2] = float2(-norm.y,norm.x);
 		}
 	}

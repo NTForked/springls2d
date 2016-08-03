@@ -44,10 +44,11 @@
 #include "Viewer2D.h"
 #include "AlloyDistanceField.h"
 #include "AlloyIsoContour.h"
+#include "SpringLevelSet2D.h"
 using namespace aly;
 
 Viewer2D::Viewer2D() :
-	Application(1200, 600, "Level Set Segmenation Toy",false), currentIso(0.0f) {
+	Application(1200, 600, "Level Set Segmenation Toy", false), currentIso(0.0f) {
 }
 void Viewer2D::createTextLevelSet(aly::Image1f& distField, aly::Image1f& gray, int w, int h, const std::string& text, float textSize, float maxDistance) {
 	GLFrameBuffer renderBuffer;
@@ -124,11 +125,11 @@ bool Viewer2D::init(Composite& rootNode) {
 	lineWidth = Float(4.0f);
 	particleSize = Float(0.2f);
 
-	lineColor = Color(255, 128, 64);
-	pointColor = Color(32,32,128);
-	springlColor = Color(255, 64,64);
-	particleColor = Color(64, 64, 255);
-	normalColor = Color(64, 255, 64);
+	lineColor = Color(0.0f, 0.5f, 0.5f, 1.0f);
+	pointColor = Color(1.0f, 0.8f, 0.0f, 1.0f);
+	springlColor = Color(0.5f, 0.5f, 0.5f, 1.0f);
+	particleColor = Color(0.6f, 0.0f, 0.0f, 1.0f);
+	normalColor = Color(0.0f, 0.8f, 0.0f, 0.5f);
 	controls->setAlwaysShowVerticalScrollBar(false);
 	controls->setScrollEnabled(false);
 	controls->backgroundColor = MakeColor(getContext()->theme.DARKER);
@@ -191,7 +192,7 @@ bool Viewer2D::init(Composite& rootNode) {
 	controls->addGroup("Simulation", true);
 	simulation->setup(controls);
 	controls->addGroup("Visualization", true);
-	controls->addNumberField("Line Width", lineWidth, Float(1.0f), Float(10.0f), 6.0f);
+	controls->addNumberField("Line Width", lineWidth, Float(1.0f), Float(20.0f), 6.0f);
 	controls->addNumberField("Particle Size", particleSize, Float(0.0f), Float(1.0f), 6.0f);
 	controls->addColorField("Element", springlColor);
 	controls->addColorField("Particle", particleColor);
@@ -219,7 +220,7 @@ bool Viewer2D::init(Composite& rootNode) {
 	renderRegion->add(viewRegion);
 	renderRegion->add(timelineSlider);
 
-	float downScale = std::min(700.0f/ img.width, 520.0f / img.height);
+	float downScale = std::min(700.0f / img.width, 520.0f / img.height);
 	resizeableRegion = AdjustableCompositePtr(
 		new AdjustableComposite("Image", CoordPerPX(0.5, 0.5, -img.width * downScale * 0.5f, -img.height * downScale * 0.5f),
 			CoordPX(img.width * downScale, img.height * downScale)));
@@ -233,11 +234,43 @@ bool Viewer2D::init(Composite& rootNode) {
 		}
 		else {
 			contour = simulation->getContour();
+
 		}
 		NVGcontext* nvg = context->nvgContext;
-		nvgStrokeWidth(nvg, lineWidth.toFloat());
-		nvgStrokeColor(nvg,lineColor);
 		nvgLineCap(nvg, NVG_ROUND);
+		float scale = bounds.dimensions.x / (float)img.width;
+		nvgStrokeColor(nvg, Color(0.8f,0.8f,0.8f,0.5f));
+		if (0.05f*scale > 0.5f) {
+			nvgStrokeWidth(nvg,0.05f*scale);
+			nvgBeginPath(nvg);
+			for (int i = 0;i < img.width;i++) {
+				float2 pt = float2(0.5f+i,0.5f);
+				pt.x = pt.x / (float)img.width;
+				pt.y = pt.y / (float)img.height;
+				pt = pt*bounds.dimensions + bounds.position;
+				nvgMoveTo(nvg, pt.x, pt.y);
+				pt = float2(0.5f + i, 0.5f + img.height-1.0f);
+				pt.x = pt.x / (float)img.width;
+				pt.y = pt.y / (float)img.height;
+				pt = pt*bounds.dimensions + bounds.position;
+				nvgLineTo(nvg, pt.x, pt.y);
+			}
+			for (int j = 0;j < img.height;j++) {
+				float2 pt = float2(0.5f, 0.5f+j);
+				pt.x = pt.x / (float)img.width;
+				pt.y = pt.y / (float)img.height;
+				pt = pt*bounds.dimensions + bounds.position;
+				nvgMoveTo(nvg, pt.x, pt.y);
+				pt = float2(0.5f + img.width-1.0f, 0.5f + j);
+				pt.x = pt.x / (float)img.width;
+				pt.y = pt.y / (float)img.height;
+				pt = pt*bounds.dimensions + bounds.position;
+				nvgLineTo(nvg, pt.x, pt.y);
+			}
+			nvgStroke(nvg);
+		}
+		nvgStrokeColor(nvg, lineColor);
+		nvgStrokeWidth(nvg, lineWidth.toFloat());
 		nvgBeginPath(nvg);
 		for (int n = 0;n < (int)contour.indexes.size();n++) {
 			std::list<uint32_t> curve = contour.indexes[n];
@@ -257,73 +290,77 @@ bool Viewer2D::init(Composite& rootNode) {
 			}
 		}
 		nvgStroke(nvg);
-		float rx = bounds.dimensions.x / (float)img.width;
-		float ry = bounds.dimensions.y / (float)img.height;
 
-		nvgStrokeColor(nvg, springlColor);
-		nvgStrokeWidth(nvg, 2.0f);
-		for (int n = 0;(int)contour.points.size();n+=2) {
-			float2 pt = contour.points[n] + float2(0.5f);
-			pt.x = pt.x / (float)img.width;
-			pt.y = pt.y / (float)img.height;
-			pt = pt*bounds.dimensions + bounds.position;
-			nvgBeginPath(nvg);
-			nvgMoveTo(nvg, pt.x, pt.y);
+		if (0.1f*scale > 0.5f) {
+			nvgStrokeColor(nvg, springlColor);
+			nvgStrokeWidth(nvg, 0.1f*scale);
+			for (int n = 0;n < (int)contour.points.size();n += 2) {
+				float2 pt = contour.points[n] + float2(0.5f);
+				pt.x = pt.x / (float)img.width;
+				pt.y = pt.y / (float)img.height;
+				pt = pt*bounds.dimensions + bounds.position;
+				nvgBeginPath(nvg);
+				nvgMoveTo(nvg, pt.x, pt.y);
 
-			pt = contour.points[n+1] + float2(0.5f);
-			pt.x = pt.x / (float)img.width;
-			pt.y = pt.y / (float)img.height;
-			pt = pt*bounds.dimensions + bounds.position;
-			
-			nvgLineTo(nvg, pt.x, pt.y);
-			nvgStroke(nvg);
+				pt = contour.points[n + 1] + float2(0.5f);
+				pt.x = pt.x / (float)img.width;
+				pt.y = pt.y / (float)img.height;
+				pt = pt*bounds.dimensions + bounds.position;
+
+				nvgLineTo(nvg, pt.x, pt.y);
+				nvgStroke(nvg);
+			}
 		}
 
-		nvgStrokeColor(nvg, normalColor);
-		for (int n = 0;(int)contour.normals.size();n ++) {
-			float2 pt = contour.particles[n] + float2(0.5f);
-			pt.x = pt.x / (float)img.width;
-			pt.y = pt.y / (float)img.height;
-			pt = pt*bounds.dimensions + bounds.position;
-			nvgBeginPath(nvg);
-			nvgMoveTo(nvg, pt.x, pt.y);
-
-			pt = contour.particles[n]+contour.normals[n] + float2(0.5f);
-			pt.x = pt.x / (float)img.width;
-			pt.y = pt.y / (float)img.height;
-			pt = pt*bounds.dimensions + bounds.position;
-
-			nvgLineTo(nvg, pt.x, pt.y);
-			nvgStroke(nvg);
+		if (0.05f*scale > 0.5f) {
+			nvgStrokeColor(nvg, normalColor);
+			nvgStrokeWidth(nvg, 0.05f*scale);
+			for (int n = 0;n < (int)contour.normals.size();n++) {
+				float2 pt = contour.particles[n] + float2(0.5f);
+				pt.x = pt.x / (float)img.width;
+				pt.y = pt.y / (float)img.height;
+				pt = pt*bounds.dimensions + bounds.position;
+				nvgBeginPath(nvg);
+				nvgMoveTo(nvg, pt.x, pt.y);
+				pt = contour.particles[n] + SpringLevelSet2D::EXTENT*contour.normals[n] + float2(0.5f);
+				pt.x = pt.x / (float)img.width;
+				pt.y = pt.y / (float)img.height;
+				pt = pt*bounds.dimensions + bounds.position;
+				nvgLineTo(nvg, pt.x, pt.y);
+				nvgStroke(nvg);
+			}
+		}
+		if (0.05f*scale > 0.5f) {
+			nvgFillColor(nvg, pointColor);
+			for (int n = 0;n < (int)contour.points.size();n++) {
+				float2 pt = contour.points[n] + float2(0.5f);
+				pt.x = pt.x / (float)img.width;
+				pt.y = pt.y / (float)img.height;
+				pt = pt*bounds.dimensions + bounds.position;
+				nvgBeginPath(nvg);
+				nvgEllipse(nvg, pt.x, pt.y, 0.05f*scale, 0.05f*scale);
+				nvgFill(nvg);
+			}
 		}
 
-		nvgFillColor(nvg, pointColor);
-		for (int n = 0;(int)contour.points.size();n++) {
-			float2 pt = contour.points[n] + float2(0.5f);
-			pt.x = pt.x / (float)img.width;
-			pt.y = pt.y / (float)img.height;
-			pt = pt*bounds.dimensions + bounds.position;
-			nvgBeginPath(nvg);
-			nvgEllipse(nvg, pt.x, pt.y, 0.25f*rx, 0.25f*ry);
-			nvgFill(nvg);
-
-		}
-
-		nvgFillColor(nvg, particleColor);
-		for (int n = 0;(int)contour.points.size();n++) {
-			float2 pt = contour.points[n] + float2(0.5f);
-			pt.x = pt.x / (float)img.width;
-			pt.y = pt.y / (float)img.height;
-			pt = pt*bounds.dimensions + bounds.position;
-			nvgBeginPath(nvg);
-			nvgEllipse(nvg, pt.x, pt.y, 0.5f*rx, 0.5f*ry);
-			nvgFill(nvg);
+		if (0.1f*scale > 0.5f) {
+			nvgFillColor(nvg, particleColor);
+			for (int n = 0;n < (int)contour.particles.size();n++) {
+				float2 pt = contour.particles[n] + float2(0.5f);
+				pt.x = pt.x / (float)img.width;
+				pt.y = pt.y / (float)img.height;
+				pt = pt*bounds.dimensions + bounds.position;
+				nvgBeginPath(nvg);
+				nvgEllipse(nvg, pt.x, pt.y, 0.1f*scale, 0.1f*scale);
+				nvgFill(nvg);
+			}
 		}
 	}));
 	GlyphRegionPtr glyphRegion = GlyphRegionPtr(new GlyphRegion("Image Region", imageGlyph, CoordPX(0.0f, 0.0f), CoordPercent(1.0f, 1.0f)));
 	glyphRegion->setAspectRule(AspectRule::Unspecified);
 	glyphRegion->foregroundColor = MakeColor(COLOR_NONE);
 	glyphRegion->backgroundColor = MakeColor(COLOR_NONE);
+	glyphRegion->borderColor = MakeColor(COLOR_NONE);
 	drawContour->onScroll = [this](AlloyContext* context, const InputEvent& event)
 	{
 		box2px bounds = resizeableRegion->getBounds(false);
@@ -356,8 +393,7 @@ bool Viewer2D::init(Composite& rootNode) {
 	resizeableRegion->setAspectRule(AspectRule::FixedHeight);
 	resizeableRegion->setDragEnabled(true);
 	resizeableRegion->setClampDragToParentBounds(false);
-	resizeableRegion->backgroundColor = MakeColor(0, 0, 220, 255);
-	resizeableRegion->borderWidth = UnitPX(1.0f);
+	resizeableRegion->borderWidth = UnitPX(2.0f);
 	resizeableRegion->borderColor = MakeColor(AlloyApplicationContext()->theme.LIGHTER);
 
 	glyphRegion->onMouseDown = [=](AlloyContext* context, const InputEvent& e) {
@@ -372,6 +408,9 @@ bool Viewer2D::init(Composite& rootNode) {
 		resizeableRegion->borderColor = MakeColor(AlloyApplicationContext()->theme.LIGHTER);
 		return false;
 	};
+	viewRegion->backgroundColor = MakeColor(getContext()->theme.DARKER);
+	viewRegion->borderColor = MakeColor(getContext()->theme.DARK);
+	viewRegion->borderWidth = UnitPX(1.0f);
 	viewRegion->add(resizeableRegion);
 	return true;
 }

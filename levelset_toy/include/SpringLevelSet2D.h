@@ -29,6 +29,12 @@ namespace aly {
 	protected:
 		virtual bool stepInternal() override;
 	public:
+		static float MIN_ANGLE_TOLERANCE;
+		static float NEAREST_NEIGHBOR_DISTANCE;
+		static float PARTICLE_RADIUS;
+		static float REST_RADIUS;
+		static float EXTENT;
+		static float SPRING_CONSTANT;
 		SpringLevelSet2D(const std::shared_ptr<SpringlCache2D>& cache = nullptr);
 		void setSpringls(const Vector2f& particles, const Vector2f& points);
 		virtual bool init()override;
