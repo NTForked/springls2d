@@ -79,7 +79,7 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>$(SolutionDir)\third_party\include\;$(SolutionDir)\levelset_toy\include\;$(SolutionDir)\alloy\include\;$(SolutionDir)\alloy\include\core\;$(SolutionDir)\alloy\vs2015\third_party\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;_WIN32;NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_WIN32;NOMINMAX;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Link>
@@ -95,7 +95,7 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>$(SolutionDir)\third_party\include\;$(SolutionDir)\levelset_toy\include\;$(SolutionDir)\alloy\include\;$(SolutionDir)\alloy\include\core\;$(SolutionDir)\alloy\vs2015\third_party\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;_WIN32;NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_WIN32;NOMINMAX;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Link>
@@ -113,7 +113,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>$(SolutionDir)\third_party\include\;$(SolutionDir)\levelset_toy\include\;$(SolutionDir)\alloy\include\;$(SolutionDir)\alloy\include\core\;$(SolutionDir)\alloy\vs2015\third_party\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;_WIN32;NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_WIN32;NOMINMAX;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Link>
@@ -133,7 +133,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>$(SolutionDir)\third_party\include\;$(SolutionDir)\levelset_toy\include\;$(SolutionDir)\alloy\include\;$(SolutionDir)\alloy\include\core\;$(SolutionDir)\alloy\vs2015\third_party\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;_WIN32;NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_WIN32;NOMINMAX;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Link>
@@ -148,6 +148,7 @@
   <ItemGroup>
     <ClInclude Include="include\ActiveContour2D.h" />
     <ClInclude Include="include\Contour2D.h" />
+    <ClInclude Include="include\ContourShaders.h" />
     <ClInclude Include="include\Simulation.h" />
     <ClInclude Include="include\SpringlCache2D.h" />
     <ClInclude Include="include\SpringLevelSet2D.h" />
@@ -156,6 +157,7 @@
   <ItemGroup>
     <ClCompile Include="src\ActiveContour2D.cpp" />
     <ClCompile Include="src\Contour2D.cpp" />
+    <ClCompile Include="src\ContourShaders.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\Simulation.cpp" />
     <ClCompile Include="src\SpringlCache2D.cpp" />

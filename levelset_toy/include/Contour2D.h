@@ -20,7 +20,9 @@
 */
 #ifndef INCLUDE_CONTOUR2D_H_
 #define INCLUDE_CONTOUR2D_H_
+#include "GLComponent.h"
 #include "AlloyVector.h"
+#include "AlloyContext.h"
 #include <cereal/cereal.hpp>
 #include <cereal/types/vector.hpp>
 #include <cereal/types/list.hpp>
@@ -29,6 +31,10 @@ namespace aly {
 	class Contour2D {
 	protected:
 		std::string file;
+		GLuint vao;
+		GLuint vertexBuffer;
+		bool dirty;
+		std::shared_ptr<AlloyContext> context;
 	public:
 		std::vector<std::list<uint32_t>> indexes;
 		Vector2f vertexes;
@@ -36,9 +42,19 @@ namespace aly {
 		Vector2f points;
 		Vector2f normals;
 		Vector2f correspondence;
+		void setDirty(bool b) {
+			dirty = b;
+		}
+		bool isDirty() const {
+			return dirty;
+		}
+		void update();
+		void draw();
 		std::string getFile() const {
 			return file;
 		}
+		~Contour2D();
+		Contour2D(const std::shared_ptr<AlloyContext>& context=AlloyDefaultContext());
 		void updateNormals();
 		void setFile(const std::string& file) {
 			this->file = file;

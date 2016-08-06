@@ -91,7 +91,7 @@ bool Viewer2D::init(Composite& rootNode) {
 	createTextLevelSet(distField, gray, w, h, "A", 200.0f, maxDistance);
 	ConvertImage(gray, img);
 	cache = std::shared_ptr<SpringlCache2D>(new SpringlCache2D());
-	simulation = std::shared_ptr<ActiveContour2D>(new ActiveContour2D(cache));
+	simulation = std::shared_ptr<ActiveContour2D>(new SpringLevelSet2D(cache));
 	simulation->onUpdate = [this](uint64_t iteration, bool lastIteration) {
 		if (lastIteration) {
 			stopButton->setVisible(false);
@@ -103,7 +103,6 @@ bool Viewer2D::init(Composite& rootNode) {
 
 		});
 	};
-
 	simulation->setInitialDistanceField(createCircleLevelSet(w, h, float2(0.5f*w, 0.5f*h), std::min(w, h)*0.25f));
 	simulation->setPressure(gray, 1.0f, 0.5f);
 	simulation->init();

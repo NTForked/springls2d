@@ -24,10 +24,14 @@
 #include "ActiveContour2D.h"
 #include "Simulation.h"
 #include "SpringlCache2D.h"
+#include "ContourShaders.h"
 namespace aly {
+
 	class SpringLevelSet2D : public ActiveContour2D {
 	protected:
 		virtual bool stepInternal() override;
+		void updateUnsignedLevelSet();
+		std::shared_ptr<UnsignedDistanceShader> unsignedShader;
 	public:
 		static float MIN_ANGLE_TOLERANCE;
 		static float NEAREST_NEIGHBOR_DISTANCE;
@@ -37,7 +41,7 @@ namespace aly {
 		static float SPRING_CONSTANT;
 		SpringLevelSet2D(const std::shared_ptr<SpringlCache2D>& cache = nullptr);
 		void setSpringls(const Vector2f& particles, const Vector2f& points);
-		virtual bool init()override;
+		virtual bool init() override;
 		virtual void cleanup() override;
 		virtual void setup(const aly::ParameterPanePtr& pane) override;
 	};

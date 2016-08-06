@@ -19,6 +19,7 @@
  * THE SOFTWARE.
  */
 #include "SpringLevelSet2D.h"
+#include "AlloyApplication.h"
 namespace aly {
 	float SpringLevelSet2D::MIN_ANGLE_TOLERANCE = (float)(ALY_PI * 20 / 180.0f);
 	float SpringLevelSet2D::NEAREST_NEIGHBOR_DISTANCE = 0.6f;
@@ -26,7 +27,6 @@ namespace aly {
 	float SpringLevelSet2D::REST_RADIUS = 0.05f;
 	float SpringLevelSet2D::SPRING_CONSTANT = 0.3f;
 	float SpringLevelSet2D::EXTENT = 0.5f;
-
 	SpringLevelSet2D::SpringLevelSet2D(const std::shared_ptr<SpringlCache2D>& cache) :ActiveContour2D("Spring Level Set 2D", cache) {
 	}
 	void SpringLevelSet2D::setSpringls(const Vector2f& particles, const Vector2f& points) {
@@ -34,6 +34,11 @@ namespace aly {
 		contour.correspondence = particles;
 		contour.points = points;
 		contour.updateNormals();
+	}
+	void SpringLevelSet2D::updateUnsignedLevelSet() {
+		unsignedShader->draw(contour);
+		ImageRGBAf field = unsignedShader->getUnsignedDistance();
+		WriteImageToFile(GetDesktopDirectory() + ALY_PATH_SEPARATOR + "unsigned.png", field);
 	}
 	bool SpringLevelSet2D::init() {
 		ActiveContour2D::init();
@@ -60,12 +65,19 @@ namespace aly {
 			}
 			contour.correspondence = contour.particles;
 			contour.updateNormals();
+			contour.setDirty(true);
 			if (cache.get() != nullptr) {
 				Contour2D contour = getContour();
 				contour.setFile(MakeString() << GetDesktopDirectory() << ALY_PATH_SEPARATOR << "contour" << std::setw(4) << std::setfill('0') << mSimulationIteration << ".bin");
 				cache->set((int)mSimulationIteration, contour);
 			}
 		}
+		if (unsignedShader.get() == nullptr) {
+			unsignedShader.reset(new UnsignedDistanceShader(true, AlloyApplicationContext()));
+			unsignedShader->init(initialLevelSet.width, initialLevelSet.height);
+			updateUnsignedLevelSet();
+		}
+		return true;
 	}
 	void SpringLevelSet2D::cleanup() {
 		ActiveContour2D::cleanup();
