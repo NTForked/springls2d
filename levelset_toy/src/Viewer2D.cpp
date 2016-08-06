@@ -83,7 +83,7 @@ aly::Image1f Viewer2D::createCircleLevelSet(int w, int h, float2 center, float r
 	return levelSet;
 }
 bool Viewer2D::init(Composite& rootNode) {
-	int w = 256;
+	int w = 512;
 	int h = 256;
 	Image1f gray;
 	Image1f distField;
@@ -103,7 +103,9 @@ bool Viewer2D::init(Composite& rootNode) {
 
 		});
 	};
-	simulation->setInitialDistanceField(createCircleLevelSet(w, h, float2(0.5f*w, 0.5f*h), std::min(w, h)*0.25f));
+	//simulation->setInitialDistanceField(createCircleLevelSet(w, h, float2(0.5f*w, 0.5f*h), std::min(w, h)*0.25f));
+	createTextLevelSet(distField, gray, w, h, "Q", 200.0f, maxDistance);
+	simulation->setInitialDistanceField(distField);
 	simulation->setPressure(gray, 1.0f, 0.5f);
 	simulation->init();
 

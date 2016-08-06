@@ -34,16 +34,35 @@ UnsignedDistanceShader::UnsignedDistanceShader(bool onScreen,
 					line.p1=vp.zw;
 				})",
 		R"(	#version 330
-				in vec3 p0,p1;
-				in vec3 normal,vert;
-				in vec4 pos;
 				uniform int width;
 				uniform int height;
 				uniform float max_distance;
 				out vec4 FragColor;
+				in vec2 p0;
+				in vec2 p1;
+				in vec2 pos;
 				void main() {
-					FragColor=vec4(1.0,1.0f,0.0f,1.0f);
-					//gl_FragDepth=d;
+					float dist=0;
+					float l2 = dot(p1-p0,p1-p0);
+					if (l2<1E-6) {
+						dist=min(distance(pos,p0), distance(pos, p1));
+					} else {
+						float t = dot(pos-p0,p1-p0) / l2;
+						if (t < 0.0) {
+							dist=distance(pos,p0);
+						} else if (t > 1.0) {
+							dist=distance(pos,p1); 
+						} else {
+							dist=distance(pos, p0 + t * (p1-p0));
+						}
+					}
+					float c=dist/max_distance;
+					if(dist<=max_distance){
+						FragColor=vec4(1.0-c,1.0-c,1.0-c,1.0);
+						gl_FragDepth=c;
+					} else {
+						discard;
+					}
 				}
 		)",
 		R"(	#version 330
@@ -56,39 +75,54 @@ UnsignedDistanceShader::UnsignedDistanceShader(bool onScreen,
 						vec2 p0;
 						vec2 p1;
 					} line[];
+					out vec2 p0;
+					out vec2 p1;
+					out vec2 pos;
 					void main() {
-					  vec4 q=vec4(0.0,0.0,0.0,1.0);
+					  vec4 q=vec4(0.0,0.0,1.0,1.0);
 					  vec2 scale=vec2(2.0/float(width),2.0/float(height));
-					  vec2 p0=line[0].p0;
-					  vec2 p1=line[0].p1;
+					  p0=line[0].p0;
+					  p1=line[0].p1;
 					  vec2 tan=normalize(p1-p0);	
 					  vec2 norm=vec2(-tan.y,tan.x);
-					  q.xy=scale*(p0+(norm-tan)*max_distance)-vec2(1.0f);
+
+					  pos=(p0+(-norm-tan)*max_distance);
+					  q.xy=scale*pos-vec2(1.0);
 					  gl_Position=q;
 					  EmitVertex();
-					  q.xy=scale*(p0+(-norm-tan)*max_distance)-vec2(1.0f);
+
+					  pos=(p0+(norm-tan)*max_distance);
+					  q.xy=scale*pos-vec2(1.0);
 					  gl_Position=q;
 					  EmitVertex();
-					  q.xy=scale*(p1+(-norm+tan)*max_distance)-vec2(1.0f); 
+
+					  pos=(p1+(-norm+tan)*max_distance); 
+					  q.xy=scale*pos-vec2(1.0);
 					  gl_Position=q;
 					  EmitVertex();
-					  q.xy=scale*(p1+(norm+tan)*max_distance)-vec2(1.0f); 
+
+					  pos=(p1+(norm+tan)*max_distance); 
+					  q.xy=scale*pos-vec2(1.0);
 					  gl_Position=q;
 					  EmitVertex();
+					
 					  EndPrimitive();
-					 })");
+		})");
 }
 void UnsignedDistanceShader::init(int width, int height) {
 	texture.initialize(width, height);
 }
 void UnsignedDistanceShader::draw(Contour2D& contour) {
 	texture.begin();
+	glEnable(GL_DEPTH_TEST);
+	glDisable(GL_BLEND);
 	begin();
 	set("width", texture.width());
 	set("height", texture.height());
-	set("max_distance", 4.0f);
+	set("max_distance", 6.0f);
 	contour.draw();
 	end();
+	glEnable(GL_BLEND);
 	texture.end();
 }
 ImageRGBAf UnsignedDistanceShader::getUnsignedDistance() {
