@@ -64,25 +64,6 @@ namespace aly {
 			}
 		}
 	}
-	float2 SpringLevelSet2D::edgeDistanceSquared(float2 pt, float2 pt1, float2 pt2) {
-		float2 dir = pt2 - pt1;
-		float len = length(dir);
-		dir = normalize(dir);
-		float2 diff = pt - pt1;
-
-		float mSegmentParameter = dot(dir, diff);
-		if (0 < mSegmentParameter) {
-			if (mSegmentParameter < len) {
-				return dir*mSegmentParameter + pt1;
-			}
-			else {
-				return pt2;
-			}
-		}
-		else {
-			return pt1;
-		}
-	}
 	void SpringLevelSet2D::relax( float timeStep) {
 		Vector2f updates(contour.points.size());
 #pragma omp parallel for

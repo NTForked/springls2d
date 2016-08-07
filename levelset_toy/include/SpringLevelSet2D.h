@@ -47,7 +47,6 @@ namespace aly {
 		void relax(float timeStep);
 		void relax();
 		std::pair<float2, float2> relax(size_t idx, float timeStep);
-		float2 edgeDistanceSquared(float2 pt, float2 pt1, float2 pt2);
 		std::shared_ptr<UnsignedDistanceShader> unsignedShader;
 	public:
 
