@@ -22,7 +22,7 @@
 #include "AlloyApplication.h"
 namespace aly {
 	float SpringLevelSet2D::MIN_ANGLE_TOLERANCE = (float)(ALY_PI * 20 / 180.0f);
-	float SpringLevelSet2D::NEAREST_NEIGHBOR_DISTANCE = 1.5f;
+	float SpringLevelSet2D::NEAREST_NEIGHBOR_DISTANCE = 0.5f;
 	float SpringLevelSet2D::PARTICLE_RADIUS = 0.05f;
 	float SpringLevelSet2D::REST_RADIUS = 0.1f;
 	float SpringLevelSet2D::SPRING_CONSTANT = 0.3f;
@@ -41,6 +41,7 @@ namespace aly {
 	}
 	void SpringLevelSet2D::updateNearestNeighbors(float maxDistance) {
 		matcher.reset(new Matcher2f(contour.points));
+		nearestNeighbors.clear();
 		nearestNeighbors.resize(contour.points.size(),std::list<uint32_t>());
 		int N = (int)contour.points.size();
 #pragma omp parallel for
@@ -64,18 +65,70 @@ namespace aly {
 			}
 		}
 	}
+	void SpringLevelSet2D::fill(){
+	}
+	void SpringLevelSet2D::compact() {
+
+	}
+	void SpringLevelSet2D::computeForce(size_t idx,float2& f1,float2& f2,float2& f) {
+		f1 = float2(0.0f);
+		f2 = float2(0.0f);
+		f = float2(0.0f);
+		float2 p = contour.particles[idx];
+		float2 p1 = contour.points[2 * idx];
+		float2 p2 = contour.points[2*idx+1];
+
+		if (pressureImage.size() > 0) {
+			float2 v1 = normalize(contour.points[2 * idx + 1] - contour.points[2 * idx]);
+			float2 norm = float2(-v1.y, v1.x);
+			float2 pres = pressureWeight*norm*pressureImage(p.x, p.y).x;
+			f = pres;
+			f1 = f;
+			f2 = f;
+		}
+		if (vecFieldImage.size() > 0) {
+			float2 vec = vecFieldImage(p.x, p.y)*advectionWeight;
+			f += vec;
+			vec = vecFieldImage(p1.x, p1.y);
+			f1 += vec;
+			vec = vecFieldImage(p2.x, p2.y);
+			f2 += vec;
+		}
+	}
+	void SpringLevelSet2D::advect() {
+		Vector2f f(contour.particles.size());
+		Vector2f f1(contour.particles.size());
+		Vector2f f2(contour.particles.size());
+#pragma omp parallel for
+		for (int i = 0;i < (int)f.size();i++) {
+			computeForce(i,f1[i],f2[i],f[i]);
+		}
+		float maxForce = 0.0f;
+		for (int i = 0;i < (int)f.size();i++) {
+			maxForce = std::max(maxForce, lengthSqr(f[i]));
+		}
+		maxForce = std::sqrt(maxForce);
+		float timeStep = (maxForce>1.0f)? 0.3333f/(maxForce):0.3333f;
+#pragma omp parallel for
+		for (int i = 0;i < (int)f.size();i++) {
+			contour.points[2*i ] += timeStep*f1[i];
+			contour.points[2*i+1] += timeStep*f2[i];
+			contour.particles[i] += timeStep*f[i];
+		}
+		contour.updateNormals();
+		contour.setDirty(true);
+	}
 	void SpringLevelSet2D::relax( float timeStep) {
 		Vector2f updates(contour.points.size());
 #pragma omp parallel for
 		for (int i = 0;i < (int)contour.particles.size();i++) {
-			auto pr = relax(i, timeStep);
-			updates[2 * i] = pr.first;
-			updates[2 * i + 1] = pr.second;
+			relax(i, timeStep, updates[2 * i], updates[2 * i+1]);
 		}
 		contour.points = updates;
+		contour.updateNormals();
 		contour.setDirty(true);
 	}
-	std::pair<float2,float2> SpringLevelSet2D::relax(size_t idx,float timeStep) {
+	void SpringLevelSet2D::relax(size_t idx,float timeStep,float2& f1,float2& f2) {
 		const float maxForce = 0.999f;
 		float2 particlePt = contour.particles[idx];
 		float2 tangets[2];
@@ -90,7 +143,7 @@ namespace aly {
 			start = contour.points[eid];
 			tangets[i] = (start - particlePt);
 			tlen = length(tangets[i]);
-			if (tlen> 1E-6f) tangets[i] *= (1.0f / tlen);
+			if (tlen> 1E-6f) tangets[i] /= tlen;
 			startVelocity = float2(0, 0);
 			for (uint32_t nbr:nearestNeighbors[eid]) {
 				dir = (contour.points[nbr] - start);
@@ -110,13 +163,12 @@ namespace aly {
 		start =contour.points[idx*2] -particlePt;
 		dotProd = std::max(length(start)+ dot(motion[0], tangets[0])+ springForce[0],0.001f);
 		start = dotProd*tangets[0];	
-		update.first = float2(start.x*cosa + start.y*sina, -start.x*sina + start.y*cosa) + particlePt;
+		f1 = float2(start.x*cosa + start.y*sina, -start.x*sina + start.y*cosa) + particlePt;
 
 		start = contour.points[idx * 2+1] - particlePt;
 		dotProd = std::max(length(start) + dot(motion[1], tangets[1]) + springForce[1], 0.001f);
 		start = dotProd*tangets[1];
-		update.second = float2(start.x*cosa + start.y*sina, -start.x*sina + start.y*cosa) + particlePt;
-		return update;
+		f2 = float2(start.x*cosa + start.y*sina, -start.x*sina + start.y*cosa) + particlePt;
 	}
 	bool SpringLevelSet2D::init() {
 		ActiveContour2D::init();
@@ -163,8 +215,8 @@ namespace aly {
 	void SpringLevelSet2D::relax() {
 		const int maxIterations = 8;
 		const float timeStep = 0.1f;
+		updateNearestNeighbors();
 		for (int i = 0;i < maxIterations ;i++) {
-			updateNearestNeighbors();
 			relax(timeStep);
 		}
 	}
@@ -172,6 +224,8 @@ namespace aly {
 		ActiveContour2D::cleanup();
 	}
 	bool SpringLevelSet2D::stepInternal() {
+		advect();
+		relax();
 		return ActiveContour2D::stepInternal();
 	}
 	void SpringLevelSet2D::setup(const aly::ParameterPanePtr& pane) {

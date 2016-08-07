@@ -87,7 +87,7 @@ namespace aly {
 			advectionWeight = f;
 			vecFieldImage = img;
 		}
-		const Contour2D& getContour();
+		Contour2D& getContour();
 
 		virtual bool init()override;
 		virtual void cleanup() override;

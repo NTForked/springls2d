@@ -58,7 +58,7 @@ namespace aly {
 			levelSet(i, j) = sgn * MAX_DISTANCE;
 		}
 	}
-	const Contour2D& ActiveContour2D::getContour() {
+	Contour2D& ActiveContour2D::getContour() {
 		if (updateIsoSurface) {
 			std::lock_guard<std::mutex> lockMe(contourLock);
 			isoContour.solve(levelSet, contour.vertexes, contour.indexes, 0.0f, (preserveTopology) ? TopologyRule2D::Connect4 : TopologyRule2D::Unconstrained,Winding::Clockwise);
@@ -567,11 +567,10 @@ namespace aly {
 		mSimulationIteration++;
 		if (cache.get() != nullptr) {
 			Contour2D contour = getContour();
-			//WriteContourToFile(, contour);
 			contour.setFile(MakeString() << GetDesktopDirectory() << ALY_PATH_SEPARATOR << "contour" << std::setw(4) << std::setfill('0') << mSimulationIteration << ".bin");
 			cache->set((int)mSimulationIteration, contour);
 		}
-		return (added+deleted != 0);
+		return (added+deleted != 0&&mSimulationIteration*timeStep<mSimulationDuration);
 	}
 	void ActiveContour2D::rescale(aly::Image1f& pressureForce) {
 		float minValue = 1E30f;

@@ -42,11 +42,15 @@ namespace aly {
 		aly::Image1f unsignedLevelSet;
 		std::vector<std::list<uint32_t>> nearestNeighbors;
 		virtual bool stepInternal() override;
-		void updateNearestNeighbors(float maxDistance= NEAREST_NEIGHBOR_DISTANCE);
+		void updateNearestNeighbors(float maxDistance = NEAREST_NEIGHBOR_DISTANCE);
 		void updateUnsignedLevelSet(float maxDistance= 2.5f*EXTENT);
 		void relax(float timeStep);
 		void relax();
-		std::pair<float2, float2> relax(size_t idx, float timeStep);
+		void fill();
+		void compact();
+		void advect();
+		void computeForce(size_t idx, float2& p1, float2& p2, float2& p);
+		void relax(size_t idx, float timeStep, float2& f1, float2& f2);
 		std::shared_ptr<UnsignedDistanceShader> unsignedShader;
 	public:
 

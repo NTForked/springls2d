@@ -48,7 +48,7 @@
 using namespace aly;
 
 Viewer2D::Viewer2D() :
-	Application(1200, 600, "Level Set Segmenation Toy", false), currentIso(0.0f) {
+	Application(1300, 1000, "Level Set Segmenation Toy", false), currentIso(0.0f) {
 }
 void Viewer2D::createTextLevelSet(aly::Image1f& distField, aly::Image1f& gray, int w, int h, const std::string& text, float textSize, float maxDistance) {
 	GLFrameBuffer renderBuffer;
@@ -83,12 +83,12 @@ aly::Image1f Viewer2D::createCircleLevelSet(int w, int h, float2 center, float r
 	return levelSet;
 }
 bool Viewer2D::init(Composite& rootNode) {
-	int w = 512;
-	int h = 256;
+	int w = 128;
+	int h = 128;
 	Image1f gray;
 	Image1f distField;
-	float maxDistance = 128;
-	createTextLevelSet(distField, gray, w, h, "A", 200.0f, maxDistance);
+	float maxDistance = 64;
+	createTextLevelSet(distField, gray, w, h, "A", 100.0f, maxDistance);
 	ConvertImage(gray, img);
 	cache = std::shared_ptr<SpringlCache2D>(new SpringlCache2D());
 	simulation = std::shared_ptr<ActiveContour2D>(new SpringLevelSet2D(cache));
@@ -220,7 +220,7 @@ bool Viewer2D::init(Composite& rootNode) {
 	renderRegion->add(viewRegion);
 	renderRegion->add(timelineSlider);
 
-	float downScale = std::min(700.0f / img.width, 520.0f / img.height);
+	float downScale = std::min((getContext()->getScreenWidth()-350.0f) / img.width, (getContext()->getScreenHeight() - 80.0f) / img.height);
 	resizeableRegion = AdjustableCompositePtr(
 		new AdjustableComposite("Image", CoordPerPX(0.5, 0.5, -img.width * downScale * 0.5f, -img.height * downScale * 0.5f),
 			CoordPX(img.width * downScale, img.height * downScale)));
