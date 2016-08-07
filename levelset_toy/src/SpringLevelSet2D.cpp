@@ -22,7 +22,7 @@
 #include "AlloyApplication.h"
 namespace aly {
 	float SpringLevelSet2D::MIN_ANGLE_TOLERANCE = (float)(ALY_PI * 20 / 180.0f);
-	float SpringLevelSet2D::NEAREST_NEIGHBOR_DISTANCE =0.5f;
+	float SpringLevelSet2D::NEAREST_NEIGHBOR_DISTANCE =0.6f;
 	float SpringLevelSet2D::PARTICLE_RADIUS = 0.05f;
 	float SpringLevelSet2D::REST_RADIUS = 0.1f;
 	float SpringLevelSet2D::SPRING_CONSTANT = 0.3f;
@@ -42,17 +42,19 @@ namespace aly {
 	float2 SpringLevelSet2D::trace(float2 pt) {
 		float disp = 0.0f;
 		int iter = 0;
-		const float timeStep = 0.1f;
+		const float timeStep = 0.5f;
 		float2 grad;
-		float v21,v12,v10,v01;
+		float v11,v21,v12,v10,v01;
 		do {
 			v21 = std::abs(initialLevelSet(pt.x + 1, pt.y).x);
 			v12 = std::abs(initialLevelSet(pt.x, pt.y + 1).x);
 			v10 = std::abs(initialLevelSet(pt.x, pt.y - 1).x);
 			v01 =std::abs(initialLevelSet(pt.x - 1, pt.y).x);
-			
+			v11 = std::abs(initialLevelSet(pt.x, pt.y).x);
+
 			grad.x = 0.5f*(v21 - v01);
 			grad.y = 0.5f*(v12 - v10);
+			grad *= v11;
 			disp = length(grad);
 			pt = pt - timeStep*grad;
 			iter++;
