@@ -70,7 +70,7 @@ namespace aly {
 		void updateDistanceField(int i, int j, int band, size_t index);
 		int deleteElements();
 		int addElements();
-
+		float evolve(float maxStep);
 		void rebuildNarrowBand();
 		void applyForcesTopoRule(int i, int j, int offset, size_t index, float timeStep);
 		virtual bool stepInternal() override;
@@ -87,7 +87,7 @@ namespace aly {
 			advectionWeight = f;
 			vecFieldImage = img;
 		}
-		Contour2D& getContour();
+		Contour2D* getContour();
 
 		virtual bool init()override;
 		virtual void cleanup() override;

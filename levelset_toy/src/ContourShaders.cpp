@@ -21,7 +21,7 @@
 #include "ContourShaders.h"
 namespace aly{
 UnsignedDistanceShader::UnsignedDistanceShader(bool onScreen,
-	const std::shared_ptr<AlloyContext>& context) :GLShader(onScreen, context), context(context),texture(true,context) {
+	const std::shared_ptr<AlloyContext>& context) :GLShader(onScreen, context), context(context),texture(onScreen,context) {
 	initialize({},
 		R"(	#version 330
 				layout(location = 0) in vec4 vp;
@@ -30,8 +30,8 @@ UnsignedDistanceShader::UnsignedDistanceShader(bool onScreen,
 					vec2 p1;
 				} line;
 				void main() {
-					line.p0=vp.xy;
-					line.p1=vp.zw;
+					line.p0=vp.xy+vec2(0.5);
+					line.p1=vp.zw+vec2(0.5);
 				})",
 		R"(	#version 330
 				uniform int width;
@@ -124,7 +124,7 @@ Image1f UnsignedDistanceShader::solve(Contour2D& contour,float maxDistance) {
 	end();
 	glEnable(GL_BLEND);
 	texture.end();
-	const ImageRGBAf& tmp= texture.getTexture().read();
+	ImageRGBAf& tmp= texture.getTexture().read();
 	int N = (int)tmp.size();
 	Image1f out(tmp.width, tmp.height);
 #pragma omp parallel for

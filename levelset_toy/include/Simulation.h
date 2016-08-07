@@ -48,6 +48,7 @@ protected:
 public:
 	std::function<void(uint64_t iteration,bool lastIteration)> onUpdate;
 	typedef std::chrono::high_resolution_clock Clock;
+	bool step();
 	virtual bool init()=0;
 	virtual void cleanup()=0;
 	virtual void setup(const aly::ParameterPanePtr& pane)=0;

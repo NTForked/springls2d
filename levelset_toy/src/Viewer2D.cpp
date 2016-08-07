@@ -93,9 +93,10 @@ bool Viewer2D::init(Composite& rootNode) {
 	cache = std::shared_ptr<SpringlCache2D>(new SpringlCache2D());
 	simulation = std::shared_ptr<ActiveContour2D>(new SpringLevelSet2D(cache));
 	simulation->onUpdate = [this](uint64_t iteration, bool lastIteration) {
-		if (lastIteration) {
+		if (lastIteration||iteration==timelineSlider->getMaxValue().toInteger()) {
 			stopButton->setVisible(false);
 			playButton->setVisible(true);
+			running = false;
 		}
 		AlloyApplicationContext()->addDeferredTask([this]() {
 			timelineSlider->setUpperValue((int)simulation->getSimulationIteration());
@@ -161,14 +162,15 @@ bool Viewer2D::init(Composite& rootNode) {
 		if (e.button == GLFW_MOUSE_BUTTON_LEFT) {
 			stopButton->setVisible(true);
 			playButton->setVisible(false);
-			simulation->cancel();
 			cache->clear();
-			simulation->init();
 			int maxIteration = (int)std::ceil(simulation->getSimulationDuration() / simulation->getTimeStep());
 			timelineSlider->setTimeValue(0);
 			timelineSlider->setMaxValue(maxIteration);
 			timelineSlider->setVisible(true);
-			simulation->execute();
+			context->addDeferredTask([this]() {
+				simulation->init();
+				running = true;
+			});
 			return true;
 		}
 		return false;
@@ -177,7 +179,7 @@ bool Viewer2D::init(Composite& rootNode) {
 		if (e.button == GLFW_MOUSE_BUTTON_LEFT) {
 			stopButton->setVisible(false);
 			playButton->setVisible(true);
-			simulation->cancel();
+			running = false;
 			return true;
 		}
 		return false;
@@ -227,9 +229,9 @@ bool Viewer2D::init(Composite& rootNode) {
 	ImageGlyphPtr imageGlyph = AlloyApplicationContext()->createImageGlyph(img, false);
 	DrawPtr drawContour = DrawPtr(new Draw("Contour Draw", CoordPX(0.0f, 0.0f), CoordPercent(1.0f, 1.0f), [this](AlloyContext* context, const box2px& bounds) {
 		std::shared_ptr<CacheElement> elem = this->cache->get(timelineSlider->getTimeValue().toInteger());
-		Contour2D contour;
+		Contour2D* contour;
 		if (elem.get() != nullptr) {
-			contour = *elem->getContour();
+			contour = elem->getContour().get();
 		}
 		else {
 			contour = simulation->getContour();
@@ -271,11 +273,11 @@ bool Viewer2D::init(Composite& rootNode) {
 		nvgStrokeColor(nvg, lineColor);
 		nvgStrokeWidth(nvg, lineWidth.toFloat());
 		nvgBeginPath(nvg);
-		for (int n = 0;n < (int)contour.indexes.size();n++) {
-			std::list<uint32_t> curve = contour.indexes[n];
+		for (int n = 0;n < (int)contour->indexes.size();n++) {
+			std::list<uint32_t> curve = contour->indexes[n];
 			bool firstTime = true;
 			for (uint32_t idx : curve) {
-				float2 pt = contour.vertexes[idx] + float2(0.5f);
+				float2 pt = contour->vertexes[idx] + float2(0.5f);
 				pt.x = pt.x / (float)img.width;
 				pt.y = pt.y / (float)img.height;
 				pt = pt*bounds.dimensions + bounds.position;
@@ -293,15 +295,15 @@ bool Viewer2D::init(Composite& rootNode) {
 		if (0.1f*scale > 0.5f) {
 			nvgStrokeColor(nvg, springlColor);
 			nvgStrokeWidth(nvg, 0.1f*scale);
-			for (int n = 0;n < (int)contour.points.size();n += 2) {
-				float2 pt = contour.points[n] + float2(0.5f);
+			for (int n = 0;n < (int)contour->points.size();n += 2) {
+				float2 pt = contour->points[n] + float2(0.5f);
 				pt.x = pt.x / (float)img.width;
 				pt.y = pt.y / (float)img.height;
 				pt = pt*bounds.dimensions + bounds.position;
 				nvgBeginPath(nvg);
 				nvgMoveTo(nvg, pt.x, pt.y);
 
-				pt = contour.points[n + 1] + float2(0.5f);
+				pt = contour->points[n + 1] + float2(0.5f);
 				pt.x = pt.x / (float)img.width;
 				pt.y = pt.y / (float)img.height;
 				pt = pt*bounds.dimensions + bounds.position;
@@ -314,25 +316,25 @@ bool Viewer2D::init(Composite& rootNode) {
 		if (0.05f*scale > 0.5f) {
 			nvgStrokeColor(nvg, normalColor);
 			nvgStrokeWidth(nvg, 0.05f*scale);
-			for (int n = 0;n < (int)contour.normals.size();n++) {
-				float2 pt = contour.particles[n] + float2(0.5f);
-				pt.x = pt.x / (float)img.width;
-				pt.y = pt.y / (float)img.height;
-				pt = pt*bounds.dimensions + bounds.position;
-				nvgBeginPath(nvg);
-				nvgMoveTo(nvg, pt.x, pt.y);
-				pt = contour.particles[n] + SpringLevelSet2D::EXTENT*contour.normals[n] + float2(0.5f);
-				pt.x = pt.x / (float)img.width;
-				pt.y = pt.y / (float)img.height;
-				pt = pt*bounds.dimensions + bounds.position;
-				nvgLineTo(nvg, pt.x, pt.y);
-				nvgStroke(nvg);
+			for (int n = 0;n < (int)contour->normals.size();n++) {
+				float2 pt = contour->particles[n] + float2(0.5f);
+pt.x = pt.x / (float)img.width;
+pt.y = pt.y / (float)img.height;
+pt = pt*bounds.dimensions + bounds.position;
+nvgBeginPath(nvg);
+nvgMoveTo(nvg, pt.x, pt.y);
+pt = contour->particles[n] + SpringLevelSet2D::EXTENT*contour->normals[n] + float2(0.5f);
+pt.x = pt.x / (float)img.width;
+pt.y = pt.y / (float)img.height;
+pt = pt*bounds.dimensions + bounds.position;
+nvgLineTo(nvg, pt.x, pt.y);
+nvgStroke(nvg);
 			}
 		}
 		if (0.05f*scale > 0.5f) {
 			nvgFillColor(nvg, pointColor);
-			for (int n = 0;n < (int)contour.points.size();n++) {
-				float2 pt = contour.points[n] + float2(0.5f);
+			for (int n = 0;n < (int)contour->points.size();n++) {
+				float2 pt = contour->points[n] + float2(0.5f);
 				pt.x = pt.x / (float)img.width;
 				pt.y = pt.y / (float)img.height;
 				pt = pt*bounds.dimensions + bounds.position;
@@ -344,8 +346,8 @@ bool Viewer2D::init(Composite& rootNode) {
 
 		if (0.1f*scale > 0.5f) {
 			nvgFillColor(nvg, particleColor);
-			for (int n = 0;n < (int)contour.particles.size();n++) {
-				float2 pt = contour.particles[n] + float2(0.5f);
+			for (int n = 0;n < (int)contour->particles.size();n++) {
+				float2 pt = contour->particles[n] + float2(0.5f);
 				pt.x = pt.x / (float)img.width;
 				pt.y = pt.y / (float)img.height;
 				pt = pt*bounds.dimensions + bounds.position;
@@ -407,10 +409,18 @@ bool Viewer2D::init(Composite& rootNode) {
 		resizeableRegion->borderColor = MakeColor(AlloyApplicationContext()->theme.LIGHTER);
 		return false;
 	};
+
 	viewRegion->backgroundColor = MakeColor(getContext()->theme.DARKER);
 	viewRegion->borderColor = MakeColor(getContext()->theme.DARK);
 	viewRegion->borderWidth = UnitPX(1.0f);
 	viewRegion->add(resizeableRegion);
 	return true;
+}
+void Viewer2D::draw(AlloyContext* context) {
+	if (running) {
+		if(!simulation->step()){
+			running = false;
+		}
+	}
 }
 

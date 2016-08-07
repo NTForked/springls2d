@@ -26,15 +26,18 @@
 SimulationListener::~SimulationListener(){
 
 }
-
+bool Simulation::step() {
+	uint64_t iter = mSimulationIteration;
+	bool ret = stepInternal();
+	if (onUpdate) {
+		onUpdate(iter, !ret);
+	}
+	return ret;
+}
 Simulation::Simulation(const std::string& name):
 RecurrentTask(
 [this](uint64_t iteration){
-	bool ret=stepInternal();
-	if(onUpdate){
-		onUpdate(iteration,!ret);
-	}
-	return ret;
+	return step();
 },5),
 		mPaused(false),
 		mComputeTimeSeconds(0.0),

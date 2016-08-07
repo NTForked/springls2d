@@ -95,7 +95,64 @@ namespace aly {
 			f2 += vec;
 		}
 	}
-	void SpringLevelSet2D::advect() {
+	float SpringLevelSet2D::updateSignedLevelSet(float maxStep) {
+#pragma omp parallel for
+		for (int i = 0; i < (int)activeList.size(); i++) {
+			int2 pos = activeList[i];
+			distanceFieldMotion(pos.x, pos.y, i);
+		}
+		float timeStep = (float)maxStep;
+		if (!clampSpeed) {
+			float maxDelta = 0.0f;
+			for (float delta : deltaLevelSet) {
+				maxDelta = std::max(std::abs(delta), maxDelta);
+			}
+			const float maxSpeed = 0.999f;
+			timeStep = (float)(maxStep * ((maxDelta > maxSpeed) ? (maxSpeed / maxDelta) : maxSpeed));
+		}
+		contourLock.lock();
+		if (preserveTopology) {
+			for (int nn = 0; nn < 4; nn++) {
+#pragma omp parallel for
+				for (int i = 0; i < (int)activeList.size(); i++) {
+					int2 pos = activeList[i];
+					applyForcesTopoRule(pos.x, pos.y, nn, i, timeStep);
+				}
+			}
+		}
+		else {
+#pragma omp parallel for
+			for (int i = 0; i < (int)activeList.size(); i++) {
+				int2 pos = activeList[i];
+				applyForces(pos.x, pos.y, i, timeStep);
+			}
+		}
+		for (int band = 1; band <= maxLayers; band++) {
+#pragma omp parallel for
+			for (int i = 0; i < (int)activeList.size(); i++) {
+				int2 pos = activeList[i];
+				updateDistanceField(pos.x, pos.y, band, i);
+			}
+		}
+#pragma omp parallel for
+		for (int i = 0; i < (int)activeList.size(); i++) {
+			int2 pos = activeList[i];
+			plugLevelSet(pos.x, pos.y, i);
+		}
+		updateIsoSurface = true;
+		contourLock.unlock();
+
+#pragma omp parallel for
+		for (int i = 0; i < (int)activeList.size(); i++) {
+			int2 pos = activeList[i];
+			swapLevelSet(pos.x, pos.y) = levelSet(pos.x, pos.y);
+		}
+		int deleted = deleteElements();
+		int added = addElements();
+		deltaLevelSet.clear();
+		deltaLevelSet.resize(activeList.size(), 0.0f);
+	}
+	float SpringLevelSet2D::advect(float maxStep) {
 		Vector2f f(contour.particles.size());
 		Vector2f f1(contour.particles.size());
 		Vector2f f2(contour.particles.size());
@@ -108,7 +165,7 @@ namespace aly {
 			maxForce = std::max(maxForce, lengthSqr(f[i]));
 		}
 		maxForce = std::sqrt(maxForce);
-		float timeStep = (maxForce > 1.0f) ? 0.3333f / (maxForce) : 0.3333f;
+		float timeStep = (maxForce > 1.0f) ? maxStep / (maxForce) : maxStep;
 #pragma omp parallel for
 		for (int i = 0;i < (int)f.size();i++) {
 			contour.points[2 * i] += timeStep*f1[i];
@@ -117,6 +174,7 @@ namespace aly {
 		}
 		contour.updateNormals();
 		contour.setDirty(true);
+		return timeStep;
 	}
 	void SpringLevelSet2D::relax(float timeStep) {
 		Vector2f updates(contour.points.size());
@@ -170,6 +228,81 @@ namespace aly {
 		start = dotProd*tangets[1];
 		f2 = float2(start.x*cosa + start.y*sina, -start.x*sina + start.y*cosa) + particlePt;
 	}
+	float2 SpringLevelSet2D::getScaledGradientValue(int i, int j) {
+		float v21 = unsignedLevelSet( i + 1, j).x;
+		float v12 = unsignedLevelSet( i, j + 1).x;
+		float v10 = unsignedLevelSet( i, j - 1).x;
+		float v01 = unsignedLevelSet( i - 1, j).x;
+		float v11 = unsignedLevelSet( i, j).x;
+		float2 grad;
+		grad.x = 0.5f*(v21 - v01);
+		grad.y = 0.5f*(v12 - v10);
+		float len = max(1E-6f, length(grad));
+		return -(v11*grad / len);
+	}
+	void SpringLevelSet2D::distanceFieldMotion(int i, int j, size_t gid) {
+			float v11 = swapLevelSet(i, j).x;
+			float2 grad;
+			if (std::abs(v11) > 0.5f) {
+				deltaLevelSet[gid] = 0;
+				return;
+			}
+			float v00 = swapLevelSet(i - 1, j - 1).x;
+			float v01 = swapLevelSet(i - 1, j).x;
+			float v10 = swapLevelSet(i, j - 1).x;
+			float v21 = swapLevelSet(i + 1, j).x;
+			float v20 = swapLevelSet(i + 1, j - 1).x;
+			float v22 = swapLevelSet(i + 1, j + 1).x;
+			float v02 = swapLevelSet(i - 1, j + 1).x;
+			float v12 = swapLevelSet(i, j + 1).x;
+
+			float DxNeg = v11 - v01;
+			float DxPos = v21 - v11;
+			float DyNeg = v11 - v10;
+			float DyPos = v12 - v11;
+
+			float DxCtr = 0.5f * (v21 - v01);
+			float DyCtr = 0.5f * (v12 - v10);
+
+			float DxxCtr = v21 - v11 - v11 + v01;
+			float DyyCtr = v12 - v11 - v11 + v10;
+			float DxyCtr = (v22 - v02 - v20 + v00) * 0.25f;
+
+			float numer = 0.5f * (DyCtr * DyCtr * DxxCtr - 2 * DxCtr * DyCtr
+				* DxyCtr + DxCtr * DxCtr * DyyCtr);
+			float denom = DxCtr * DxCtr + DyCtr * DyCtr;
+			float kappa = 0;
+
+			const float maxCurvatureForce = 10.0f;
+			if (std::abs(denom) > 1E-5f) {
+				kappa = curvatureWeight * numer / denom;
+			}
+			else {
+				kappa = curvatureWeight * numer * sign(denom) * 1E5f;
+			}
+			if (kappa < -maxCurvatureForce) {
+				kappa = -maxCurvatureForce;
+			}
+			else if (kappa > maxCurvatureForce) {
+				kappa = maxCurvatureForce;
+			}
+			grad =getScaledGradientValue( i, j);
+			float advection = 0;
+			// Dot product force with upwind gradient
+			if (grad.x > 0) {
+				advection = grad.x * DxNeg;
+			}
+			else if (grad.x < 0) {
+				advection = grad.x * DxPos;
+			}
+			if (grad.y > 0) {
+				advection += grad.y * DyNeg;
+			}
+			else if (grad.y < 0) {
+				advection += grad.y * DyPos;
+			}
+			deltaLevelSet[gid] = -advection + kappa;
+	}
 	bool SpringLevelSet2D::init() {
 		ActiveContour2D::init();
 		contour.points.clear();
@@ -197,16 +330,17 @@ namespace aly {
 		contour.updateNormals();
 		contour.setDirty(true);
 		if (cache.get() != nullptr) {
-			Contour2D& contour = getContour();
-			contour.setFile(MakeString() << GetDesktopDirectory() << ALY_PATH_SEPARATOR << "contour" << std::setw(4) << std::setfill('0') << mSimulationIteration << ".bin");
+			Contour2D* contour = getContour();
+			contour->setFile(MakeString() << GetDesktopDirectory() << ALY_PATH_SEPARATOR << "contour" << std::setw(4) << std::setfill('0') << mSimulationIteration << ".bin");
 		}
 		if (unsignedShader.get() == nullptr) {
 			unsignedShader.reset(new UnsignedDistanceShader(true, AlloyApplicationContext()));
 			unsignedShader->init(initialLevelSet.width, initialLevelSet.height);
-			updateUnsignedLevelSet();
+			
 		}
 		relax();
 		updateNearestNeighbors();
+		updateUnsignedLevelSet();
 		cache->set((int)mSimulationIteration, contour);
 		return true;
 	}
@@ -222,10 +356,29 @@ namespace aly {
 		ActiveContour2D::cleanup();
 	}
 	bool SpringLevelSet2D::stepInternal() {
-		advect();
-		relax();
-		return ActiveContour2D::stepInternal();
+		double remaining = mTimeStep;
+		double t = 0.0;
+		const int evolveIterations = 8;
+		do {
+			float timeStep = advect(std::min(0.33333f,(float)remaining));
+			t += (double)timeStep;
+			relax();
+			updateUnsignedLevelSet();
+			for (int i = 0;i < evolveIterations;i++) {
+				updateSignedLevelSet();
+			}
+			remaining = mTimeStep - t;
+		} while (remaining > 1E-5f);
+		mSimulationTime += t;
+		mSimulationIteration++;
+		if (cache.get() != nullptr) {
+			Contour2D* contour = getContour();
+			contour->setFile(MakeString() << GetDesktopDirectory() << ALY_PATH_SEPARATOR << "contour" << std::setw(4) << std::setfill('0') << mSimulationIteration << ".bin");
+			cache->set((int)mSimulationIteration, *contour);
+		}
+		return (mSimulationTime<mSimulationDuration);
 	}
+
 	void SpringLevelSet2D::setup(const aly::ParameterPanePtr& pane) {
 		ActiveContour2D::setup(pane);
 	}

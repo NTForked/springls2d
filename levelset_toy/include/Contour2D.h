@@ -33,7 +33,9 @@ namespace aly {
 		std::string file;
 		GLuint vao;
 		GLuint vertexBuffer;
+		int vertexCount;
 		bool dirty;
+		bool onScreen;
 		std::shared_ptr<AlloyContext> context;
 	public:
 		std::vector<std::list<uint32_t>> indexes;
@@ -54,7 +56,7 @@ namespace aly {
 			return file;
 		}
 		~Contour2D();
-		Contour2D(const std::shared_ptr<AlloyContext>& context=AlloyDefaultContext());
+		Contour2D(bool onScreen=true,const std::shared_ptr<AlloyContext>& context=AlloyDefaultContext());
 		void updateNormals();
 		void setFile(const std::string& file) {
 			this->file = file;
@@ -62,6 +64,26 @@ namespace aly {
 		template<class Archive> void serialize(Archive & archive)
 		{
 			archive( CEREAL_NVP(vertexes),CEREAL_NVP(indexes), CEREAL_NVP(particles), CEREAL_NVP(points), CEREAL_NVP(normals), CEREAL_NVP(correspondence));
+		}
+		void operator=(const Contour2D &c)
+		{
+			indexes = c.indexes;
+			vertexes = c.vertexes;
+			particles = c.particles;
+			points = c.points;
+			normals = c.normals;
+			correspondence = c.correspondence;
+			file = c.file;
+		}
+		Contour2D(const Contour2D& c)
+		{
+			indexes = c.indexes;
+			vertexes = c.vertexes;
+			particles = c.particles;
+			points = c.points;
+			normals = c.normals;
+			correspondence = c.correspondence;
+			file = c.file;
 		}
 	};
 	void ReadContourFromFile(const std::string& file, Contour2D& contour);

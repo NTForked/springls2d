@@ -27,10 +27,10 @@
 
 namespace aly {
 
-	Contour2D::Contour2D(const std::shared_ptr<AlloyContext>& context):context(context),vao(0),vertexBuffer(0),dirty(false) {
+	Contour2D::Contour2D(bool onScreen, const std::shared_ptr<AlloyContext>& context):onScreen(onScreen),context(context),vao(0),vertexBuffer(0),dirty(false) , vertexCount(0){
 	}
 	Contour2D::~Contour2D() {
-		context->begin(true);
+		context->begin(onScreen);
 		if (glIsBuffer(vertexBuffer) == GL_TRUE)
 			glDeleteBuffers(1, &vertexBuffer);
 		if (vao != 0)
@@ -41,33 +41,42 @@ namespace aly {
 		if (dirty) {
 			update();
 		}
-		context->begin(true);
+		context->begin(onScreen);
 		if (vao > 0)
 			glBindVertexArray(vao);
 		if (vertexBuffer > 0) {
 			glEnableVertexAttribArray(0);
 			glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
 			glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, 0);
-			glDrawArrays(GL_POINTS, 0, points.size()/2);
+			glDrawArrays(GL_POINTS, 0, (GLsizei)(points.size()/2));
 			glDisableVertexAttribArray(0);
 			glBindBuffer(GL_ARRAY_BUFFER, 0);
 		}
 		glBindVertexArray(0);
+		context->end();
 	}
 	void Contour2D::update() {
-		context->begin(true);
+		context->begin(onScreen);
 		if (vao == 0)
 			glGenVertexArrays(1, &vao);
 		if (points.size() > 0) {
-			if (glIsBuffer(vertexBuffer) == GL_TRUE)
-				glDeleteBuffers(1, &vertexBuffer);
-			glGenBuffers(1, &vertexBuffer);
+			if (vertexCount != points.size()) {
+				if (glIsBuffer(vertexBuffer) == GL_TRUE)
+					glDeleteBuffers(1, &vertexBuffer);
+				glGenBuffers(1, &vertexBuffer);
+			}
 			glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
 			if (glIsBuffer(vertexBuffer) == GL_FALSE)
 				throw std::runtime_error("Error: Unable to create vertex buffer");
 			glBufferData(GL_ARRAY_BUFFER,sizeof(GLfloat) * 2 *points.size(),
 				points.ptr(), GL_STATIC_DRAW);
 			glBindBuffer(GL_ARRAY_BUFFER, 0);
+			vertexCount =(int) points.size();
+		}
+		else {
+			if (glIsBuffer(vertexBuffer) == GL_TRUE)
+				glDeleteBuffers(1, &vertexBuffer);
+			vertexCount = 0;
 		}
 		context->end();
 		dirty = false;

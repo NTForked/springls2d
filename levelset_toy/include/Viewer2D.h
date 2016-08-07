@@ -35,6 +35,7 @@ protected:
 	bool parametersDirty;
 	bool frameBuffersDirty;
 	float currentIso;
+	bool running = false;
 	aly::Number lineWidth;
 	aly::Number particleSize;
 	aly::Color lineColor;
@@ -51,6 +52,7 @@ protected:
 public:
 	std::shared_ptr<aly::SpringlCache2D> cache;
 	Viewer2D();
+	virtual void draw(aly::AlloyContext* context) override;
 	bool init(aly::Composite& rootNode);
 
 };

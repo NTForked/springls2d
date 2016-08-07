@@ -58,16 +58,16 @@ namespace aly {
 			levelSet(i, j) = sgn * MAX_DISTANCE;
 		}
 	}
-	Contour2D& ActiveContour2D::getContour() {
+	Contour2D* ActiveContour2D::getContour() {
 		if (updateIsoSurface) {
 			std::lock_guard<std::mutex> lockMe(contourLock);
 			isoContour.solve(levelSet, contour.vertexes, contour.indexes, 0.0f, (preserveTopology) ? TopologyRule2D::Connect4 : TopologyRule2D::Unconstrained,Winding::Clockwise);
 			updateIsoSurface = false;
 		}
-		return contour;
+		return &contour;
 	}
 	ActiveContour2D::ActiveContour2D(const std::shared_ptr<SpringlCache2D>& cache) :Simulation("Active Contour 2D"),
-			cache(cache),advectionWeight(1.0f), pressureWeight(1.0), curvatureWeight(0.1f), targetPressure(0.5f),  preserveTopology(false), clampSpeed(false), updateIsoSurface(
+			cache(cache),advectionWeight(1.0f), pressureWeight(1.0), curvatureWeight(2.0f), targetPressure(0.5f),  preserveTopology(false), clampSpeed(false), updateIsoSurface(
 					false){
 		advectionParam = Float(advectionWeight);
 		pressureParam = Float(pressureWeight);
@@ -75,8 +75,8 @@ namespace aly {
 		curvatureParam = Float(curvatureWeight);
 	}
 	ActiveContour2D::ActiveContour2D(const std::string& name,const std::shared_ptr<SpringlCache2D>& cache) : Simulation(name),
-		cache(cache), advectionWeight(1.0f), pressureWeight(1.0), curvatureWeight(0.1f), targetPressure(0.5f), preserveTopology(false), clampSpeed(false), updateIsoSurface(
-			false) {
+		cache(cache), advectionWeight(1.0f), pressureWeight(1.0), curvatureWeight(2.0f), targetPressure(0.5f), preserveTopology(false), clampSpeed(false), updateIsoSurface(
+			false){
 		advectionParam = Float(advectionWeight);
 		pressureParam = Float(pressureWeight);
 		targetPressureParam = Float(targetPressure);
@@ -99,10 +99,10 @@ namespace aly {
 	bool ActiveContour2D::init() {
 		int2 dims = initialLevelSet.dimensions();
 		if (dims.x == 0 || dims.y == 0)return false;
-		mSimulationDuration=std::max(dims.x,dims.y);
+		mSimulationDuration=std::max(dims.x,dims.y)*0.5f;
 		mSimulationIteration=0;
 		mSimulationTime=0;
-		mTimeStep=0.5;
+		mTimeStep=1.0f;
 		advectionWeight = advectionParam.toFloat();
 		pressureWeight = pressureParam.toFloat();
 		curvatureWeight = curvatureParam.toFloat();
@@ -122,9 +122,9 @@ namespace aly {
 		rebuildNarrowBand();
 		updateIsoSurface = true;
 		if (cache.get() != nullptr) {
-			Contour2D contour = getContour();
-			contour.setFile(MakeString() << GetDesktopDirectory() << ALY_PATH_SEPARATOR << "contour" << std::setw(4) << std::setfill('0') << mSimulationIteration << ".bin");
-			cache->set((int)mSimulationIteration, contour);			
+			Contour2D* contour = getContour();
+			contour->setFile(MakeString() << GetDesktopDirectory() << ALY_PATH_SEPARATOR << "contour" << std::setw(4) << std::setfill('0') << mSimulationIteration << ".bin");
+			cache->set((int)mSimulationIteration, *contour);			
 		}
 		return true;
 	}
@@ -492,70 +492,73 @@ namespace aly {
 			levelSet(i, j) = oldVal;
 		}
 	}
-	bool ActiveContour2D::stepInternal() {
+	float ActiveContour2D::evolve(float maxStep) {
 		if (pressureImage.size() > 0) {
 			if (vecFieldImage.size() > 0) {
 #pragma omp parallel for
-				for (int i = 0; i < (int) activeList.size(); i++) {
+				for (int i = 0; i < (int)activeList.size(); i++) {
 					int2 pos = activeList[i];
 					pressureAndAdvectionMotion(pos.x, pos.y, i);
 				}
-			} else {
+			}
+			else {
 #pragma omp parallel for
-				for (int i = 0; i < (int) activeList.size(); i++) {
+				for (int i = 0; i < (int)activeList.size(); i++) {
 					int2 pos = activeList[i];
 					pressureMotion(pos.x, pos.y, i);
 				}
 			}
-		} else if (vecFieldImage.size() > 0) {
+		}
+		else if (vecFieldImage.size() > 0) {
 #pragma omp parallel for
-			for (int i = 0; i < (int) activeList.size(); i++) {
+			for (int i = 0; i < (int)activeList.size(); i++) {
 				int2 pos = activeList[i];
 				advectionMotion(pos.x, pos.y, i);
 			}
 		}
-		float timeStep =(float) mTimeStep;
+		float timeStep = (float)maxStep;
 		if (!clampSpeed) {
 			float maxDelta = 0.0f;
 			for (float delta : deltaLevelSet) {
 				maxDelta = std::max(std::abs(delta), maxDelta);
 			}
 			const float maxSpeed = 0.999f;
-			timeStep = (float)(mTimeStep * ((maxDelta > maxSpeed) ? (maxSpeed / maxDelta) : maxSpeed));
+			timeStep = (float)(maxStep * ((maxDelta > maxSpeed) ? (maxSpeed / maxDelta) : maxSpeed));
 		}
 		contourLock.lock();
 		if (preserveTopology) {
 			for (int nn = 0; nn < 4; nn++) {
 #pragma omp parallel for
-				for (int i = 0; i < (int) activeList.size(); i++) {
+				for (int i = 0; i < (int)activeList.size(); i++) {
 					int2 pos = activeList[i];
 					applyForcesTopoRule(pos.x, pos.y, nn, i, timeStep);
 				}
 			}
-		} else {
+		}
+		else {
 #pragma omp parallel for
-			for (int i = 0; i < (int) activeList.size(); i++) {
+			for (int i = 0; i < (int)activeList.size(); i++) {
 				int2 pos = activeList[i];
 				applyForces(pos.x, pos.y, i, timeStep);
 			}
 		}
 		for (int band = 1; band <= maxLayers; band++) {
 #pragma omp parallel for
-			for (int i = 0; i < (int) activeList.size(); i++) {
+			for (int i = 0; i < (int)activeList.size(); i++) {
 				int2 pos = activeList[i];
 				updateDistanceField(pos.x, pos.y, band, i);
 			}
 		}
 #pragma omp parallel for
-		for (int i = 0; i < (int) activeList.size(); i++) {
+		for (int i = 0; i < (int)activeList.size(); i++) {
 			int2 pos = activeList[i];
 			plugLevelSet(pos.x, pos.y, i);
 		}
-		updateIsoSurface=true;
+		updateIsoSurface = true;
 		contourLock.unlock();
 
 #pragma omp parallel for
-		for (int i = 0; i < (int) activeList.size(); i++) {
+		for (int i = 0; i < (int)activeList.size(); i++) {
 			int2 pos = activeList[i];
 			swapLevelSet(pos.x, pos.y) = levelSet(pos.x, pos.y);
 		}
@@ -563,14 +566,24 @@ namespace aly {
 		int added = addElements();
 		deltaLevelSet.clear();
 		deltaLevelSet.resize(activeList.size(), 0.0f);
-		mSimulationTime+=timeStep;
+		return timeStep;
+	}
+	bool ActiveContour2D::stepInternal() {
+		double remaining = mTimeStep;
+		double t = 0.0;
+		do {
+			float timeStep = evolve(std::min(0.5f, (float)remaining));
+			t += (double)timeStep;
+			remaining = mTimeStep - t;
+		} while (remaining > 1E-5f);
+		mSimulationTime+=t;
 		mSimulationIteration++;
 		if (cache.get() != nullptr) {
-			Contour2D contour = getContour();
-			contour.setFile(MakeString() << GetDesktopDirectory() << ALY_PATH_SEPARATOR << "contour" << std::setw(4) << std::setfill('0') << mSimulationIteration << ".bin");
-			cache->set((int)mSimulationIteration, contour);
+			Contour2D* contour = getContour();
+			contour->setFile(MakeString() << GetDesktopDirectory() << ALY_PATH_SEPARATOR << "contour" << std::setw(4) << std::setfill('0') << mSimulationIteration << ".bin");
+			cache->set((int)mSimulationIteration, *contour);
 		}
-		return (mSimulationIteration*timeStep<mSimulationDuration);
+		return (mSimulationTime<mSimulationDuration);
 	}
 	void ActiveContour2D::rescale(aly::Image1f& pressureForce) {
 		float minValue = 1E30f;
