@@ -108,7 +108,6 @@ bool Viewer2D::init(Composite& rootNode) {
 	simulation->setPressure(gray, 1.0f, 0.5f);
 	simulation->init();
 
-
 	parametersDirty = true;
 	frameBuffersDirty = true;
 

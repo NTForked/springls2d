@@ -570,7 +570,7 @@ namespace aly {
 			contour.setFile(MakeString() << GetDesktopDirectory() << ALY_PATH_SEPARATOR << "contour" << std::setw(4) << std::setfill('0') << mSimulationIteration << ".bin");
 			cache->set((int)mSimulationIteration, contour);
 		}
-		return (added+deleted != 0&&mSimulationIteration*timeStep<mSimulationDuration);
+		return (mSimulationIteration*timeStep<mSimulationDuration);
 	}
 	void ActiveContour2D::rescale(aly::Image1f& pressureForce) {
 		float minValue = 1E30f;
