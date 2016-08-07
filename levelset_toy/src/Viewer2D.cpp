@@ -67,7 +67,6 @@ void Viewer2D::createTextLevelSet(aly::Image1f& distField, aly::Image1f& gray, i
 	ImageRGBAf img = renderBuffer.getTexture().read();
 	FlipVertical(img);
 	ConvertImage(img, gray);
-	//Make boundary == 0, outside == 0.5 inside == -0.5
 	gray -= float1(0.5f);
 	DistanceField2f df;
 	df.solve(gray, distField, maxDistance);
@@ -85,7 +84,6 @@ aly::Image1f Viewer2D::createCircleLevelSet(int w, int h, float2 center, float r
 bool Viewer2D::init(Composite& rootNode) {
 	int w = 256;
 	int h = 256;
-	Image1f gray;
 	Image1f distField;
 	float maxDistance = 64;
 	createTextLevelSet(distField, gray, w, h, "A", 200.0f, maxDistance);
@@ -104,8 +102,6 @@ bool Viewer2D::init(Composite& rootNode) {
 		});
 	};
 	simulation->setInitialDistanceField(createCircleLevelSet(w, h, float2(0.5f*w, 0.5f*h), std::min(w, h)*0.25f));
-	//createTextLevelSet(distField, gray, w, h, "Q", 200.0f, maxDistance);
-	//simulation->setInitialDistanceField(distField);
 	simulation->setPressure(gray, 1.0f, 0.5f);
 	simulation->init();
 
@@ -169,6 +165,7 @@ bool Viewer2D::init(Composite& rootNode) {
 			timelineSlider->setMaxValue(maxIteration);
 			timelineSlider->setVisible(true);
 			context->addDeferredTask([this]() {
+				simulation->setPressure(gray, 1.0f);
 				simulation->init();
 				running = true;
 			});

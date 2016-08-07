@@ -31,6 +31,7 @@
 #include "SpringlCache2D.h"
 class Viewer2D: public aly::Application {
 protected:
+	aly::Image1f gray;
 	aly::ImageRGBA img;
 	bool parametersDirty;
 	bool frameBuffersDirty;

@@ -78,9 +78,13 @@ namespace aly {
 		ActiveContour2D(const std::shared_ptr<SpringlCache2D>& cache=nullptr);
 		ActiveContour2D(const std::string& name,const std::shared_ptr<SpringlCache2D>& cache = nullptr);
 
-		void setPressure(const Image1f& img, float weight = 1.0f, float target = 0.5f) {
+		void setPressure(const Image1f& img, float weight, float target) {
 			pressureWeight = weight;
 			targetPressure = target;
+			pressureImage = img;
+		}
+		void setPressure(const Image1f& img, float weight) {
+			pressureWeight = weight;
 			pressureImage = img;
 		}
 		void setVectorField(const Image2f& img, float f) {

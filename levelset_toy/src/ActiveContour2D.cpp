@@ -107,7 +107,6 @@ namespace aly {
 		pressureWeight = pressureParam.toFloat();
 		curvatureWeight = curvatureParam.toFloat();
 		targetPressure = targetPressureParam.toFloat();
-
 		levelSet.resize(dims.x, dims.y);
 		swapLevelSet.resize(dims.x, dims.y);
 #pragma omp parallel for
