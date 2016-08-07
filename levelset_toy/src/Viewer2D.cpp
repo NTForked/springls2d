@@ -83,17 +83,17 @@ aly::Image1f Viewer2D::createCircleLevelSet(int w, int h, float2 center, float r
 	return levelSet;
 }
 bool Viewer2D::init(Composite& rootNode) {
-	int w = 128;
-	int h = 128;
+	int w = 256;
+	int h = 256;
 	Image1f gray;
 	Image1f distField;
 	float maxDistance = 64;
-	createTextLevelSet(distField, gray, w, h, "A", 100.0f, maxDistance);
+	createTextLevelSet(distField, gray, w, h, "A", 200.0f, maxDistance);
 	ConvertImage(gray, img);
 	cache = std::shared_ptr<SpringlCache2D>(new SpringlCache2D());
 	simulation = std::shared_ptr<ActiveContour2D>(new SpringLevelSet2D(cache));
 	simulation->onUpdate = [this](uint64_t iteration, bool lastIteration) {
-		if (lastIteration||iteration==timelineSlider->getMaxValue().toInteger()) {
+		if (lastIteration || iteration == timelineSlider->getMaxValue().toInteger()) {
 			stopButton->setVisible(false);
 			playButton->setVisible(true);
 			running = false;
@@ -221,7 +221,7 @@ bool Viewer2D::init(Composite& rootNode) {
 	renderRegion->add(viewRegion);
 	renderRegion->add(timelineSlider);
 
-	float downScale = std::min((getContext()->getScreenWidth()-350.0f) / img.width, (getContext()->getScreenHeight() - 80.0f) / img.height);
+	float downScale = std::min((getContext()->getScreenWidth() - 350.0f) / img.width, (getContext()->getScreenHeight() - 80.0f) / img.height);
 	resizeableRegion = AdjustableCompositePtr(
 		new AdjustableComposite("Image", CoordPerPX(0.5, 0.5, -img.width * downScale * 0.5f, -img.height * downScale * 0.5f),
 			CoordPX(img.width * downScale, img.height * downScale)));
@@ -240,35 +240,63 @@ bool Viewer2D::init(Composite& rootNode) {
 		NVGcontext* nvg = context->nvgContext;
 		nvgLineCap(nvg, NVG_ROUND);
 		float scale = bounds.dimensions.x / (float)img.width;
-		nvgStrokeColor(nvg, Color(0.8f,0.8f,0.8f,0.5f));
+		nvgStrokeColor(nvg, Color(0.4f, 0.4f, 0.4f, 0.5f));
 		if (0.05f*scale > 0.5f) {
-			nvgStrokeWidth(nvg,0.05f*scale);
+			nvgStrokeWidth(nvg, 0.05f*scale);
 			nvgBeginPath(nvg);
 			for (int i = 0;i < img.width;i++) {
-				float2 pt = float2(0.5f+i,0.5f);
+				float2 pt = float2(0.5f + i, 0.5f);
 				pt.x = pt.x / (float)img.width;
 				pt.y = pt.y / (float)img.height;
 				pt = pt*bounds.dimensions + bounds.position;
 				nvgMoveTo(nvg, pt.x, pt.y);
-				pt = float2(0.5f + i, 0.5f + img.height-1.0f);
+				pt = float2(0.5f + i, 0.5f + img.height - 1.0f);
 				pt.x = pt.x / (float)img.width;
 				pt.y = pt.y / (float)img.height;
 				pt = pt*bounds.dimensions + bounds.position;
 				nvgLineTo(nvg, pt.x, pt.y);
 			}
 			for (int j = 0;j < img.height;j++) {
-				float2 pt = float2(0.5f, 0.5f+j);
+				float2 pt = float2(0.5f, 0.5f + j);
 				pt.x = pt.x / (float)img.width;
 				pt.y = pt.y / (float)img.height;
 				pt = pt*bounds.dimensions + bounds.position;
 				nvgMoveTo(nvg, pt.x, pt.y);
-				pt = float2(0.5f + img.width-1.0f, 0.5f + j);
+				pt = float2(0.5f + img.width - 1.0f, 0.5f + j);
 				pt.x = pt.x / (float)img.width;
 				pt.y = pt.y / (float)img.height;
 				pt = pt*bounds.dimensions + bounds.position;
 				nvgLineTo(nvg, pt.x, pt.y);
 			}
 			nvgStroke(nvg);
+		}
+		if (0.04f*scale > 0.5f) {
+			nvgStrokeColor(nvg, Color(1.0f,1.0f,1.0f,0.5f));
+			nvgStrokeWidth(nvg, 0.04f*scale);
+			for (int n = 0;n < (int)contour->particles.size();n++) {
+				float2 pt = contour->particles[n] + float2(0.5f);
+				pt.x = pt.x / (float)img.width;
+				pt.y = pt.y / (float)img.height;
+				pt = pt*bounds.dimensions + bounds.position;
+				nvgBeginPath(nvg);
+				nvgMoveTo(nvg, pt.x, pt.y);
+				pt = contour->correspondence[n] + float2(0.5f);
+				pt.x = pt.x / (float)img.width;
+				pt.y = pt.y / (float)img.height;
+				pt = pt*bounds.dimensions + bounds.position;
+				nvgLineTo(nvg, pt.x, pt.y);
+				nvgStroke(nvg);
+			}
+			nvgFillColor(nvg, Color(1.0f, 1.0f, 1.0f, 1.0f));
+			for (int n = 0;n < (int)contour->correspondence.size();n++) {
+				float2 pt = contour->correspondence[n] + float2(0.5f);
+				pt.x = pt.x / (float)img.width;
+				pt.y = pt.y / (float)img.height;
+				pt = pt*bounds.dimensions + bounds.position;
+				nvgBeginPath(nvg);
+				nvgEllipse(nvg, pt.x, pt.y, 0.05f*scale, 0.05f*scale);
+				nvgFill(nvg);
+			}
 		}
 		nvgStrokeColor(nvg, lineColor);
 		nvgStrokeWidth(nvg, lineWidth.toFloat());
@@ -318,17 +346,17 @@ bool Viewer2D::init(Composite& rootNode) {
 			nvgStrokeWidth(nvg, 0.05f*scale);
 			for (int n = 0;n < (int)contour->normals.size();n++) {
 				float2 pt = contour->particles[n] + float2(0.5f);
-pt.x = pt.x / (float)img.width;
-pt.y = pt.y / (float)img.height;
-pt = pt*bounds.dimensions + bounds.position;
-nvgBeginPath(nvg);
-nvgMoveTo(nvg, pt.x, pt.y);
-pt = contour->particles[n] + SpringLevelSet2D::EXTENT*contour->normals[n] + float2(0.5f);
-pt.x = pt.x / (float)img.width;
-pt.y = pt.y / (float)img.height;
-pt = pt*bounds.dimensions + bounds.position;
-nvgLineTo(nvg, pt.x, pt.y);
-nvgStroke(nvg);
+				pt.x = pt.x / (float)img.width;
+				pt.y = pt.y / (float)img.height;
+				pt = pt*bounds.dimensions + bounds.position;
+				nvgBeginPath(nvg);
+				nvgMoveTo(nvg, pt.x, pt.y);
+				pt = contour->particles[n] + SpringLevelSet2D::EXTENT*contour->normals[n] + float2(0.5f);
+				pt.x = pt.x / (float)img.width;
+				pt.y = pt.y / (float)img.height;
+				pt = pt*bounds.dimensions + bounds.position;
+				nvgLineTo(nvg, pt.x, pt.y);
+				nvgStroke(nvg);
 			}
 		}
 		if (0.05f*scale > 0.5f) {
@@ -418,7 +446,7 @@ nvgStroke(nvg);
 }
 void Viewer2D::draw(AlloyContext* context) {
 	if (running) {
-		if(!simulation->step()){
+		if (!simulation->step()) {
 			running = false;
 		}
 	}

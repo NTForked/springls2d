@@ -42,12 +42,14 @@ namespace aly {
 		aly::Image1f unsignedLevelSet;
 		std::vector<std::list<uint32_t>> nearestNeighbors;
 		virtual bool stepInternal() override;
+		float2 trace(float2 pt);
 		void updateNearestNeighbors(float maxDistance = NEAREST_NEIGHBOR_DISTANCE);
 		void updateUnsignedLevelSet(float maxDistance= 4.0f*EXTENT);
 		void relax(float timeStep);
 		void relax();
 		int fill();
-		void contract();
+		int contract();
+		void updateTracking(float maxDistance = 2*NEAREST_NEIGHBOR_DISTANCE);
 		float advect(float maxStep=0.33333f);
 		float updateSignedLevelSet(float maxStep=0.5f);
 		float2 getScaledGradientValue(int i, int j);

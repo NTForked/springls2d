@@ -22,7 +22,7 @@
 #include "AlloyApplication.h"
 namespace aly {
 	float SpringLevelSet2D::MIN_ANGLE_TOLERANCE = (float)(ALY_PI * 20 / 180.0f);
-	float SpringLevelSet2D::NEAREST_NEIGHBOR_DISTANCE =0.6f;
+	float SpringLevelSet2D::NEAREST_NEIGHBOR_DISTANCE =0.5f;
 	float SpringLevelSet2D::PARTICLE_RADIUS = 0.05f;
 	float SpringLevelSet2D::REST_RADIUS = 0.1f;
 	float SpringLevelSet2D::SPRING_CONSTANT = 0.3f;
@@ -38,6 +38,26 @@ namespace aly {
 	}
 	void SpringLevelSet2D::updateUnsignedLevelSet(float maxDistance) {
 		unsignedLevelSet = unsignedShader->solve(contour, maxDistance);
+	}
+	float2 SpringLevelSet2D::trace(float2 pt) {
+		float disp = 0.0f;
+		int iter = 0;
+		const float timeStep = 0.1f;
+		float2 grad;
+		float v21,v12,v10,v01;
+		do {
+			v21 = std::abs(initialLevelSet(pt.x + 1, pt.y).x);
+			v12 = std::abs(initialLevelSet(pt.x, pt.y + 1).x);
+			v10 = std::abs(initialLevelSet(pt.x, pt.y - 1).x);
+			v01 =std::abs(initialLevelSet(pt.x - 1, pt.y).x);
+			
+			grad.x = 0.5f*(v21 - v01);
+			grad.y = 0.5f*(v12 - v10);
+			disp = length(grad);
+			pt = pt - timeStep*grad;
+			iter++;
+		} while (disp > 1E-5f&&iter<30);
+		return pt;
 	}
 	void SpringLevelSet2D::updateNearestNeighbors(float maxDistance) {
 		matcher.reset(new Matcher2f(contour.points));
@@ -83,6 +103,7 @@ namespace aly {
 							contour.particles.push_back(pt);
 							contour.points.push_back(contour.vertexes[prev]);
 							contour.points.push_back(contour.vertexes[idx]);
+							contour.correspondence.push_back(float2(std::numeric_limits<float>::infinity()));
 							fillCount++;
 						}
 						if (idx == first) break;
@@ -98,11 +119,96 @@ namespace aly {
 		if (fillCount > 0) {
 			contour.updateNormals();
 			contour.setDirty(true);
+			updateTracking();
 		}
 		return fillCount;
 	}
-	void SpringLevelSet2D::contract() {
-
+	void SpringLevelSet2D::updateTracking(float maxDistance) {
+		int tries = 0;
+		int invalid = 0;
+		matcher.reset(new Matcher2f(contour.points));
+		do {
+			invalid = 0;
+			std::vector<int> retrack;
+			for (size_t i = 0;i < contour.particles.size();i++) {
+				if (std::isinf(contour.correspondence[i].x)) {
+					retrack.push_back((int)i);
+				}
+			}
+			int N = (int)retrack.size();
+#pragma omp parallel for
+			for (int i = 0;i < N;i++) {
+				int pid = retrack[i];
+				int eid1 = pid * 2;
+				int eid2 = pid * 2 + 1;
+				float2 pt0 = contour.points[eid1];
+				float2 pt1 = contour.points[eid2];
+				std::vector<std::pair<size_t, float>> result;
+				float2 q1(std::numeric_limits<float>::infinity());
+				float2 q2(std::numeric_limits<float>::infinity());
+				matcher->closest(pt0, maxDistance, result);
+				for (auto pr : result) {
+					if (pr.first != eid1&&pr.first != eid2) {
+						q1 = contour.correspondence[pr.first / 2];
+						break;
+					}
+				}
+				matcher->closest(pt1, maxDistance, result);
+				for (auto pr : result) {
+					if (pr.first != eid1&&pr.first != eid2) {
+						q2 = contour.correspondence[pr.first / 2];
+						break;
+					}
+				}
+				if (!std::isinf(q1.x)) {
+					if (!std::isinf(q2.x)) {
+						contour.correspondence[pid] =trace(0.5f*(q1 + q2));
+						
+					}
+					else {
+						contour.correspondence[pid] = q1;
+					}
+				}
+				else if (!std::isinf(q2.x)) {
+					contour.correspondence[pid] = q2;
+				}
+				else {
+					invalid++;
+				}
+			}
+			tries++;
+		} while (invalid > 0&&tries<4);
+	}
+	int SpringLevelSet2D::contract() {
+		int contractCount = 0;
+		Vector2f particles;
+		Vector2f points;
+		Vector2f normals;
+		Vector2f correspondence;
+		particles.data.reserve(contour.particles.size());
+		points.data.reserve(contour.points.size());
+		normals.data.reserve(contour.normals.size());
+		for (int i = 0;i<(int)contour.particles.size();i++){
+			float2 pt = contour.particles[i];
+			if (std::abs(levelSet(pt.x, pt.y).x) <=1.25f*EXTENT) {
+				particles.push_back(pt);
+				points.push_back(contour.points[2 * i]);
+				points.push_back(contour.points[2 * i+1]);
+				normals.push_back(contour.normals[i]);
+				correspondence.push_back(contour.correspondence[i]);
+			}
+			else {
+				contractCount++;
+			}
+		}
+		if (contractCount > 0) {
+			contour.points = points;
+			contour.normals = normals;
+			contour.particles = particles;
+			contour.correspondence= correspondence;
+			contour.setDirty(true);
+		}
+		return contractCount;
 	}
 	void SpringLevelSet2D::computeForce(size_t idx, float2& f1, float2& f2, float2& f) {
 		f1 = float2(0.0f);
@@ -401,10 +507,12 @@ namespace aly {
 			for (int i = 0;i < evolveIterations;i++) {
 				updateSignedLevelSet();
 			}
-			if (fill()>0) {
-				relax();
+			if (contract() > 0) {
+				updateUnsignedLevelSet();
 			}
-			contract();
+			updateNearestNeighbors();
+			fill();
+			relax();
 			remaining = mTimeStep - t;
 		} while (remaining > 1E-5f);
 		mSimulationTime += t;
