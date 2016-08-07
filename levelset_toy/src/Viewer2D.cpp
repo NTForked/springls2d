@@ -100,12 +100,11 @@ bool Viewer2D::init(Composite& rootNode) {
 		AlloyApplicationContext()->addDeferredTask([this]() {
 			timelineSlider->setUpperValue((int)simulation->getSimulationIteration());
 			timelineSlider->setTimeValue((int)simulation->getSimulationIteration());
-
 		});
 	};
-	//simulation->setInitialDistanceField(createCircleLevelSet(w, h, float2(0.5f*w, 0.5f*h), std::min(w, h)*0.25f));
-	createTextLevelSet(distField, gray, w, h, "Q", 200.0f, maxDistance);
-	simulation->setInitialDistanceField(distField);
+	simulation->setInitialDistanceField(createCircleLevelSet(w, h, float2(0.5f*w, 0.5f*h), std::min(w, h)*0.25f));
+	//createTextLevelSet(distField, gray, w, h, "Q", 200.0f, maxDistance);
+	//simulation->setInitialDistanceField(distField);
 	simulation->setPressure(gray, 1.0f, 0.5f);
 	simulation->init();
 

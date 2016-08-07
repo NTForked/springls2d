@@ -25,13 +25,10 @@
 #include "Simulation.h"
 #include "SpringlCache2D.h"
 #include "ContourShaders.h"
+#include "AlloyLocator.h"
 namespace aly {
 
 	class SpringLevelSet2D : public ActiveContour2D {
-	protected:
-		virtual bool stepInternal() override;
-		void updateUnsignedLevelSet();
-		std::shared_ptr<UnsignedDistanceShader> unsignedShader;
 	public:
 		static float MIN_ANGLE_TOLERANCE;
 		static float NEAREST_NEIGHBOR_DISTANCE;
@@ -39,6 +36,21 @@ namespace aly {
 		static float REST_RADIUS;
 		static float EXTENT;
 		static float SPRING_CONSTANT;
+		static float SHARPNESS;
+	protected:
+		std::shared_ptr<Matcher2f> matcher;
+		aly::Image1f unsignedLevelSet;
+		std::vector<std::list<uint32_t>> nearestNeighbors;
+		virtual bool stepInternal() override;
+		void updateNearestNeighbors(float maxDistance= NEAREST_NEIGHBOR_DISTANCE);
+		void updateUnsignedLevelSet(float maxDistance= 2.5f*EXTENT);
+		void relax(float timeStep);
+		void relax();
+		std::pair<float2, float2> relax(size_t idx, float timeStep);
+		float2 edgeDistanceSquared(float2 pt, float2 pt1, float2 pt2);
+		std::shared_ptr<UnsignedDistanceShader> unsignedShader;
+	public:
+
 		SpringLevelSet2D(const std::shared_ptr<SpringlCache2D>& cache = nullptr);
 		void setSpringls(const Vector2f& particles, const Vector2f& points);
 		virtual bool init() override;

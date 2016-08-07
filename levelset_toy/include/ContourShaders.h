@@ -33,8 +33,7 @@ namespace aly {
 			const std::shared_ptr<AlloyContext>& context =
 			AlloyDefaultContext());
 		void init(int width, int height);
-		void draw(Contour2D& contour);
-		ImageRGBAf getUnsignedDistance();
+		Image1f solve(Contour2D& contour,float maxDistance);
 	};
 }
 #endif 

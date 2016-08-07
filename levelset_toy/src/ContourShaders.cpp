@@ -112,20 +112,26 @@ UnsignedDistanceShader::UnsignedDistanceShader(bool onScreen,
 void UnsignedDistanceShader::init(int width, int height) {
 	texture.initialize(width, height);
 }
-void UnsignedDistanceShader::draw(Contour2D& contour) {
+Image1f UnsignedDistanceShader::solve(Contour2D& contour,float maxDistance) {
 	texture.begin();
 	glEnable(GL_DEPTH_TEST);
 	glDisable(GL_BLEND);
 	begin();
 	set("width", texture.width());
 	set("height", texture.height());
-	set("max_distance", 6.0f);
+	set("max_distance", maxDistance);
 	contour.draw();
 	end();
 	glEnable(GL_BLEND);
 	texture.end();
-}
-ImageRGBAf UnsignedDistanceShader::getUnsignedDistance() {
-	return texture.getTexture().read();
+	const ImageRGBAf& tmp= texture.getTexture().read();
+	int N = (int)tmp.size();
+	Image1f out(tmp.width, tmp.height);
+#pragma omp parallel for
+	for (int n = 0;n < N;n++) {
+		RGBAf c = tmp[n];
+		out[n] = (c.w==0.0f)?maxDistance:(1.0f - c.z)*maxDistance;
+	}
+	return out;
 }
 }
