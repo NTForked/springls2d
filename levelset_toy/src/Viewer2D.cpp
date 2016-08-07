@@ -299,6 +299,7 @@ bool Viewer2D::init(Composite& rootNode) {
 				nvgFill(nvg);
 			}
 		}
+		nvgFillColor(nvg, lineColor.toSemiTransparent(0.5f));
 		nvgStrokeColor(nvg, lineColor);
 		nvgStrokeWidth(nvg, lineWidth.toFloat());
 		nvgBeginPath(nvg);
@@ -319,6 +320,7 @@ bool Viewer2D::init(Composite& rootNode) {
 				firstTime = false;
 			}
 		}
+		nvgFill(nvg);
 		nvgStroke(nvg);
 
 		if (0.1f*scale > 0.5f) {
