@@ -128,6 +128,7 @@ bool Viewer2D::init(Composite& rootNode) {
 	lineColor = Color(0.0f, 0.5f, 0.5f, 1.0f);
 	pointColor = Color(1.0f, 0.8f, 0.0f, 1.0f);
 	springlColor = Color(0.5f, 0.5f, 0.5f, 1.0f);
+	matchColor = Color(0.5f, 0.5f, 1.0f, 0.75f);
 	particleColor = Color(0.6f, 0.0f, 0.0f, 1.0f);
 	normalColor = Color(0.0f, 0.8f, 0.0f, 0.5f);
 	controls->setAlwaysShowVerticalScrollBar(false);
@@ -200,7 +201,7 @@ bool Viewer2D::init(Composite& rootNode) {
 	controls->addColorField("Point", pointColor);
 	controls->addColorField("Normal", normalColor);
 	controls->addColorField("Line", lineColor);
-
+	controls->addColorField("Correspondence", matchColor);
 	timelineSlider = TimelineSliderPtr(
 		new TimelineSlider("Timeline", CoordPerPX(0.0f, 1.0f, 0.0f, -80.0f), CoordPerPX(1.0f, 0.0f, 0.0f, 80.0f), Integer(0), Integer(0), Integer(0)));
 	CompositePtr viewRegion = CompositePtr(new Composite("View", CoordPX(0.0f, 0.0f), CoordPerPX(1.0f, 1.0f, 0.0f, -80.0f)));
@@ -271,7 +272,7 @@ bool Viewer2D::init(Composite& rootNode) {
 			nvgStroke(nvg);
 		}
 		if (0.04f*scale > 0.5f) {
-			nvgStrokeColor(nvg, Color(1.0f,1.0f,1.0f,0.5f));
+			nvgStrokeColor(nvg, matchColor);
 			nvgStrokeWidth(nvg, 0.04f*scale);
 			for (int n = 0;n < (int)contour->particles.size();n++) {
 				float2 pt = contour->particles[n] + float2(0.5f);
@@ -287,7 +288,7 @@ bool Viewer2D::init(Composite& rootNode) {
 				nvgLineTo(nvg, pt.x, pt.y);
 				nvgStroke(nvg);
 			}
-			nvgFillColor(nvg, Color(1.0f, 1.0f, 1.0f, 1.0f));
+			nvgFillColor(nvg, matchColor.toSemiTransparent(1.0f));
 			for (int n = 0;n < (int)contour->correspondence.size();n++) {
 				float2 pt = contour->correspondence[n] + float2(0.5f);
 				pt.x = pt.x / (float)img.width;
