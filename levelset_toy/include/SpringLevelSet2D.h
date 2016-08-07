@@ -43,11 +43,11 @@ namespace aly {
 		std::vector<std::list<uint32_t>> nearestNeighbors;
 		virtual bool stepInternal() override;
 		void updateNearestNeighbors(float maxDistance = NEAREST_NEIGHBOR_DISTANCE);
-		void updateUnsignedLevelSet(float maxDistance= 2.5f);
+		void updateUnsignedLevelSet(float maxDistance= 4.0f*EXTENT);
 		void relax(float timeStep);
 		void relax();
-		void fill();
-		void compact();
+		int fill();
+		void contract();
 		float advect(float maxStep=0.33333f);
 		float updateSignedLevelSet(float maxStep=0.5f);
 		float2 getScaledGradientValue(int i, int j);

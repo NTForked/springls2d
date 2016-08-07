@@ -22,7 +22,7 @@
 #include "AlloyApplication.h"
 namespace aly {
 	float SpringLevelSet2D::MIN_ANGLE_TOLERANCE = (float)(ALY_PI * 20 / 180.0f);
-	float SpringLevelSet2D::NEAREST_NEIGHBOR_DISTANCE = 0.5f;
+	float SpringLevelSet2D::NEAREST_NEIGHBOR_DISTANCE = 1.0f;
 	float SpringLevelSet2D::PARTICLE_RADIUS = 0.05f;
 	float SpringLevelSet2D::REST_RADIUS = 0.1f;
 	float SpringLevelSet2D::SPRING_CONSTANT = 0.3f;
@@ -65,9 +65,43 @@ namespace aly {
 			}
 		}
 	}
-	void SpringLevelSet2D::fill() {
+	int SpringLevelSet2D::fill() {
+		{
+			std::lock_guard<std::mutex> lockMe(contourLock);
+			isoContour.solve(levelSet, contour.vertexes, contour.indexes, 0.0f, (preserveTopology) ? TopologyRule2D::Connect4 : TopologyRule2D::Unconstrained, Winding::Clockwise);
+			updateIsoSurface = false;
+		}
+		int fillCount = 0;
+		for (std::list<uint32_t> curve : contour.indexes) {
+			size_t count = 0;
+			uint32_t first = 0, prev = 0;
+			if (curve.size() > 1) {
+				for (uint32_t idx : curve) {
+					if (count != 0) {
+						float2 pt = 0.5f*(contour.vertexes[prev] + contour.vertexes[idx]);
+						if (unsignedLevelSet(pt.x, pt.y).x >1.25f*EXTENT) {
+							contour.particles.push_back(pt);
+							contour.points.push_back(contour.vertexes[prev]);
+							contour.points.push_back(contour.vertexes[idx]);
+							fillCount++;
+						}
+						if (idx == first) break;
+					}
+					else {
+						first = idx;
+					}
+					count++;
+					prev = idx;
+				}
+			}
+		}
+		if (fillCount > 0) {
+			contour.updateNormals();
+			contour.setDirty(true);
+		}
+		return fillCount;
 	}
-	void SpringLevelSet2D::compact() {
+	void SpringLevelSet2D::contract() {
 
 	}
 	void SpringLevelSet2D::computeForce(size_t idx, float2& f1, float2& f2, float2& f) {
@@ -367,6 +401,10 @@ namespace aly {
 			for (int i = 0;i < evolveIterations;i++) {
 				updateSignedLevelSet();
 			}
+			if (fill()>0) {
+				relax();
+			}
+			contract();
 			remaining = mTimeStep - t;
 		} while (remaining > 1E-5f);
 		mSimulationTime += t;

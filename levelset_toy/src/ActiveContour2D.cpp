@@ -67,7 +67,7 @@ namespace aly {
 		return &contour;
 	}
 	ActiveContour2D::ActiveContour2D(const std::shared_ptr<SpringlCache2D>& cache) :Simulation("Active Contour 2D"),
-			cache(cache),advectionWeight(1.0f), pressureWeight(1.0), curvatureWeight(2.0f), targetPressure(0.5f),  preserveTopology(false), clampSpeed(false), updateIsoSurface(
+			cache(cache),advectionWeight(1.0f), pressureWeight(1.0), curvatureWeight(0.3f), targetPressure(0.5f),  preserveTopology(false), clampSpeed(false), updateIsoSurface(
 					false){
 		advectionParam = Float(advectionWeight);
 		pressureParam = Float(pressureWeight);
@@ -75,7 +75,7 @@ namespace aly {
 		curvatureParam = Float(curvatureWeight);
 	}
 	ActiveContour2D::ActiveContour2D(const std::string& name,const std::shared_ptr<SpringlCache2D>& cache) : Simulation(name),
-		cache(cache), advectionWeight(1.0f), pressureWeight(1.0), curvatureWeight(2.0f), targetPressure(0.5f), preserveTopology(false), clampSpeed(false), updateIsoSurface(
+		cache(cache), advectionWeight(1.0f), pressureWeight(1.0), curvatureWeight(0.3f), targetPressure(0.5f), preserveTopology(false), clampSpeed(false), updateIsoSurface(
 			false){
 		advectionParam = Float(advectionWeight);
 		pressureParam = Float(pressureWeight);
