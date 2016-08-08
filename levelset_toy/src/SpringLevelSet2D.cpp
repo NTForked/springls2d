@@ -257,9 +257,13 @@ namespace aly {
 		normals.data.reserve(contour.normals.size());
 		for (int i = 0;i<(int)contour.particles.size();i++){
 			float2 pt = contour.particles[i];
+			float d1 = distance(contour.points[2 * i + 1], pt);
+			float d2 = distance(contour.points[2 * i], pt);
 			if (std::abs(levelSet(pt.x, pt.y).x) <=1.25f*EXTENT
-				//&&distance(contour.points[2*i+1],pt)>2.0f*PARTICLE_RADIUS
-				//&&distance(contour.points[2 * i], pt)>2.0f*PARTICLE_RADIUS
+				&&d1>2.0f*PARTICLE_RADIUS
+				&&d2>2.0f*PARTICLE_RADIUS
+				&&d1<1.5f
+				&&d2<1.5f
 				) {
 				particles.push_back(pt);
 				points.push_back(contour.points[2 * i]);
