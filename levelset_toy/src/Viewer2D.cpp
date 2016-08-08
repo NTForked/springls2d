@@ -299,9 +299,9 @@ bool Viewer2D::init(Composite& rootNode) {
 		nvgFillColor(nvg, lineColor.toSemiTransparent(0.5f));
 		nvgStrokeColor(nvg, lineColor);
 		nvgStrokeWidth(nvg, lineWidth.toFloat());
-		nvgBeginPath(nvg);
 		for (int n = 0;n < (int)contour->indexes.size();n++) {
 			std::list<uint32_t> curve = contour->indexes[n];
+			nvgBeginPath(nvg);
 			bool firstTime = true;
 			for (uint32_t idx : curve) {
 				float2 pt = contour->vertexes[idx] + float2(0.5f);
@@ -316,9 +316,9 @@ bool Viewer2D::init(Composite& rootNode) {
 				}
 				firstTime = false;
 			}
+			nvgFill(nvg);
+			nvgStroke(nvg);
 		}
-		nvgFill(nvg);
-		nvgStroke(nvg);
 
 		if (0.1f*scale > 0.5f) {
 			nvgStrokeColor(nvg, springlColor);

@@ -39,7 +39,71 @@ namespace aly {
 	void SpringLevelSet2D::updateUnsignedLevelSet(float maxDistance) {
 		unsignedLevelSet = unsignedShader->solve(contour, maxDistance);
 	}
-	float2 SpringLevelSet2D::trace(float2 pt) {
+	void SpringLevelSet2D::refineContour() {
+		//Optimize location of level set to remove jitter and improve spacing of iso-vertexes.
+		int N = (int)contour.vertexes.size();
+		Vector2f delta(N);
+		float maxDelta;
+		int iter = 0;
+		do {
+			maxDelta = 0.0f;
+			for (std::list<uint32_t> curve : contour.indexes) {
+				size_t count = 0;
+				uint32_t cur = 0, prev = 0, next = 0;
+				if (curve.size() > 1) {
+					auto prevIter = curve.begin();
+					auto curIter = prevIter;
+					curIter++;
+					auto nextIter = curIter;
+					nextIter++;
+					for (; nextIter != curve.end();curIter++, nextIter++, prevIter++) {
+						cur = *curIter;
+						prev = *prevIter;
+						next = *nextIter;
+						float2 curPt = contour.vertexes[cur];
+						float2 nextPt = contour.vertexes[next];
+						float2 prevPt = contour.vertexes[prev];
+						float2 tan1 = (nextPt - curPt);
+						float d1 = length(tan1);
+						float2 tan2 = (curPt - prevPt);
+						float d2 = length(tan2);
+						float2 tan = normalize(tan1 + tan2);
+						float2 norm(-tan.y, tan.x);
+						float2 d= 0.1f*dot(norm, getScaledGradientValue(curPt.x, curPt.y))*norm + 0.5f*tan*(d1 - d2) / (d1 + d2);
+						maxDelta = std::max(lengthSqr(d), maxDelta);
+						delta[cur] = d;
+					}
+				}
+			}
+			maxDelta = std::sqrt(maxDelta);
+			contour.vertexes += delta;
+			iter++;
+		} while (iter < 10);
+	}
+	float2 SpringLevelSet2D::traceUnsigned(float2 pt) {
+		float disp = 0.0f;
+		int iter = 0;
+		const float timeStep = 0.5f;
+		float2 grad;
+		float v11, v21, v12, v10, v01;
+		do {
+			v21 = unsignedLevelSet(pt.x + 1, pt.y).x;
+			v12 = unsignedLevelSet(pt.x, pt.y + 1).x;
+			v10 = unsignedLevelSet(pt.x, pt.y - 1).x;
+			v01 = unsignedLevelSet(pt.x - 1, pt.y).x;
+			v11 = unsignedLevelSet(pt.x, pt.y).x;
+
+			grad.x = 0.5f*(v21 - v01);
+			grad.y = 0.5f*(v12 - v10);
+			grad *= v11;
+			disp = length(grad);
+			pt = pt - timeStep*grad;
+			iter++;
+		} while (disp > 1E-5f&&iter<30);
+		return pt;
+	}
+
+	float2 SpringLevelSet2D::traceInitial(float2 pt) {
 		float disp = 0.0f;
 		int iter = 0;
 		const float timeStep = 0.5f;
@@ -91,6 +155,7 @@ namespace aly {
 		{
 			std::lock_guard<std::mutex> lockMe(contourLock);
 			isoContour.solve(levelSet, contour.vertexes, contour.indexes, 0.0f, (preserveTopology) ? TopologyRule2D::Connect4 : TopologyRule2D::Unconstrained, Winding::Clockwise);
+			refineContour();
 			updateIsoSurface = false;
 		}
 		int fillCount = 0;
@@ -101,7 +166,7 @@ namespace aly {
 				for (uint32_t idx : curve) {
 					if (count != 0) {
 						float2 pt = 0.5f*(contour.vertexes[prev] + contour.vertexes[idx]);
-						if (unsignedLevelSet(pt.x, pt.y).x >1.25f*EXTENT) {
+						if (unsignedLevelSet(pt.x, pt.y).x >EXTENT) {
 							contour.particles.push_back(pt);
 							contour.points.push_back(contour.vertexes[prev]);
 							contour.points.push_back(contour.vertexes[idx]);
@@ -164,7 +229,7 @@ namespace aly {
 				}
 				if (!std::isinf(q1.x)) {
 					if (!std::isinf(q2.x)) {
-						contour.correspondence[pid] =trace(0.5f*(q1 + q2));
+						contour.correspondence[pid] =traceInitial(0.5f*(q1 + q2));
 						
 					}
 					else {
@@ -192,7 +257,10 @@ namespace aly {
 		normals.data.reserve(contour.normals.size());
 		for (int i = 0;i<(int)contour.particles.size();i++){
 			float2 pt = contour.particles[i];
-			if (std::abs(levelSet(pt.x, pt.y).x) <=1.25f*EXTENT) {
+			if (std::abs(levelSet(pt.x, pt.y).x) <=1.25f*EXTENT
+				//&&distance(contour.points[2*i+1],pt)>2.0f*PARTICLE_RADIUS
+				//&&distance(contour.points[2 * i], pt)>2.0f*PARTICLE_RADIUS
+				) {
 				particles.push_back(pt);
 				points.push_back(contour.points[2 * i]);
 				points.push_back(contour.points[2 * i+1]);
@@ -382,6 +450,18 @@ namespace aly {
 		float len = max(1E-6f, length(grad));
 		return -(v11*grad / len);
 	}
+	float2 SpringLevelSet2D::getScaledGradientValue(float i,float j) {
+		float v21 = unsignedLevelSet(i + 1, j).x;
+		float v12 = unsignedLevelSet(i, j + 1).x;
+		float v10 = unsignedLevelSet(i, j - 1).x;
+		float v01 = unsignedLevelSet(i - 1, j).x;
+		float v11 = unsignedLevelSet(i, j).x;
+		float2 grad;
+		grad.x = 0.5f*(v21 - v01);
+		grad.y = 0.5f*(v12 - v10);
+		float len = max(1E-6f, length(grad));
+		return -(v11*grad / len);
+	}
 	void SpringLevelSet2D::distanceFieldMotion(int i, int j, size_t gid) {
 			float v11 = swapLevelSet(i, j).x;
 			float2 grad;
@@ -521,6 +601,7 @@ namespace aly {
 		mSimulationIteration++;
 		if (cache.get() != nullptr) {
 			Contour2D* contour = getContour();
+			refineContour();
 			contour->setFile(MakeString() << GetDesktopDirectory() << ALY_PATH_SEPARATOR << "contour" << std::setw(4) << std::setfill('0') << mSimulationIteration << ".bin");
 			cache->set((int)mSimulationIteration, *contour);
 		}
