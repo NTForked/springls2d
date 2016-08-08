@@ -166,7 +166,7 @@ namespace aly {
 				for (uint32_t idx : curve) {
 					if (count != 0) {
 						float2 pt = 0.5f*(contour.vertexes[prev] + contour.vertexes[idx]);
-						if (unsignedLevelSet(pt.x, pt.y).x >EXTENT) {
+						if (unsignedLevelSet(pt.x, pt.y).x >1.25f*EXTENT) {
 							contour.particles.push_back(pt);
 							contour.points.push_back(contour.vertexes[prev]);
 							contour.points.push_back(contour.vertexes[idx]);
@@ -260,8 +260,8 @@ namespace aly {
 			float d1 = distance(contour.points[2 * i + 1], pt);
 			float d2 = distance(contour.points[2 * i], pt);
 			if (std::abs(levelSet(pt.x, pt.y).x) <=1.25f*EXTENT
-				&&d1>2.0f*PARTICLE_RADIUS
-				&&d2>2.0f*PARTICLE_RADIUS
+				&&d1>3.0f*PARTICLE_RADIUS
+				&&d2>3.0f*PARTICLE_RADIUS
 				&&d1<1.5f
 				&&d2<1.5f
 				) {
