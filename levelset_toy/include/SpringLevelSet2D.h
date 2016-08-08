@@ -45,7 +45,7 @@ namespace aly {
 		float2 traceInitial(float2 pt);
 		float2 traceUnsigned(float2 pt);
 
-		void refineContour();
+		void refineContour(bool signedIso);
 		void updateNearestNeighbors(float maxDistance = NEAREST_NEIGHBOR_DISTANCE);
 		void updateUnsignedLevelSet(float maxDistance= 4.0f*EXTENT);
 		void relax(float timeStep);
@@ -56,7 +56,7 @@ namespace aly {
 		float advect(float maxStep=0.33333f);
 		float updateSignedLevelSet(float maxStep=0.5f);
 		float2 getScaledGradientValue(int i, int j);
-		float2 getScaledGradientValue(float i, float j);
+		float2 getScaledGradientValue(float i, float j,bool signedIso);
 		void distanceFieldMotion(int i, int j, size_t index);
 		void computeForce(size_t idx, float2& p1, float2& p2, float2& p);
 		void relax(size_t idx, float timeStep, float2& f1, float2& f2);

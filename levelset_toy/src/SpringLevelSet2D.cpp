@@ -39,7 +39,7 @@ namespace aly {
 	void SpringLevelSet2D::updateUnsignedLevelSet(float maxDistance) {
 		unsignedLevelSet = unsignedShader->solve(contour, maxDistance);
 	}
-	void SpringLevelSet2D::refineContour() {
+	void SpringLevelSet2D::refineContour(bool signedIso) {
 		//Optimize location of level set to remove jitter and improve spacing of iso-vertexes.
 		int N = (int)contour.vertexes.size();
 		Vector2f delta(N);
@@ -69,7 +69,7 @@ namespace aly {
 						float d2 = length(tan2);
 						float2 tan = normalize(tan1 + tan2);
 						float2 norm(-tan.y, tan.x);
-						float2 d= 0.1f*dot(norm, getScaledGradientValue(curPt.x, curPt.y))*norm + 0.5f*tan*(d1 - d2) / (d1 + d2);
+						float2 d= 0.1f*dot(norm, getScaledGradientValue(curPt.x, curPt.y,signedIso))*norm + 0.5f*tan*(d1 - d2) / (d1 + d2);
 						maxDelta = std::max(lengthSqr(d), maxDelta);
 						delta[cur] = d;
 					}
@@ -155,7 +155,7 @@ namespace aly {
 		{
 			std::lock_guard<std::mutex> lockMe(contourLock);
 			isoContour.solve(levelSet, contour.vertexes, contour.indexes, 0.0f, (preserveTopology) ? TopologyRule2D::Connect4 : TopologyRule2D::Unconstrained, Winding::Clockwise);
-			refineContour();
+			refineContour(false);
 			updateIsoSurface = false;
 		}
 		int fillCount = 0;
@@ -454,13 +454,27 @@ namespace aly {
 		float len = max(1E-6f, length(grad));
 		return -(v11*grad / len);
 	}
-	float2 SpringLevelSet2D::getScaledGradientValue(float i,float j) {
-		float v21 = unsignedLevelSet(i + 1, j).x;
-		float v12 = unsignedLevelSet(i, j + 1).x;
-		float v10 = unsignedLevelSet(i, j - 1).x;
-		float v01 = unsignedLevelSet(i - 1, j).x;
-		float v11 = unsignedLevelSet(i, j).x;
+	float2 SpringLevelSet2D::getScaledGradientValue(float i,float j, bool signedIso) {
 		float2 grad;
+		float v21;
+		float v12;
+		float v10;
+		float v01;
+		float v11;
+		if (signedIso) {
+			v21 =std::abs(levelSet(i + 1, j).x);
+			v12 =std::abs(levelSet(i, j + 1).x);
+			v10 =std::abs(levelSet(i, j - 1).x);
+			v01 =std::abs(levelSet(i - 1, j).x);
+			v11 =std::abs(levelSet(i, j).x);
+		}
+		else {
+			v21 = unsignedLevelSet(i + 1, j).x;
+			v12 = unsignedLevelSet(i, j + 1).x;
+			v10 = unsignedLevelSet(i, j - 1).x;
+			v01 = unsignedLevelSet(i - 1, j).x;
+			v11 = unsignedLevelSet(i, j).x;
+		}
 		grad.x = 0.5f*(v21 - v01);
 		grad.y = 0.5f*(v12 - v10);
 		float len = max(1E-6f, length(grad));
@@ -531,6 +545,7 @@ namespace aly {
 	}
 	bool SpringLevelSet2D::init() {
 		ActiveContour2D::init();
+		refineContour(true);
 		contour.points.clear();
 		contour.particles.clear();
 		for (std::list<uint32_t> curve : contour.indexes) {
@@ -605,7 +620,7 @@ namespace aly {
 		mSimulationIteration++;
 		if (cache.get() != nullptr) {
 			Contour2D* contour = getContour();
-			refineContour();
+			refineContour(false);
 			contour->setFile(MakeString() << GetDesktopDirectory() << ALY_PATH_SEPARATOR << "contour" << std::setw(4) << std::setfill('0') << mSimulationIteration << ".bin");
 			cache->set((int)mSimulationIteration, *contour);
 		}
