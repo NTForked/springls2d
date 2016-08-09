@@ -76,7 +76,8 @@ aly::Image1f Viewer2D::createCircleLevelSet(int w, int h, float2 center, float r
 	aly::Image1f levelSet(w, h);
 	for (int j = 0; j < h; j++) {
 		for (int i = 0; i < w; i++) {
-			levelSet(i, j).x = distance(float2((float)i, (float)j), center) - r;
+			float l = distance(float2((float)i, (float)j), center) - r;
+			levelSet(i, j).x =l;
 		}
 	}
 	return levelSet;
@@ -301,6 +302,7 @@ bool Viewer2D::init(Composite& rootNode) {
 		nvgStrokeWidth(nvg, lineWidth.toFloat());
 		for (int n = 0;n < (int)contour->indexes.size();n++) {
 			std::list<uint32_t> curve = contour->indexes[n];
+			nvgPathWinding(nvg, NVG_CW);
 			nvgBeginPath(nvg);
 			bool firstTime = true;
 			for (uint32_t idx : curve) {
@@ -316,6 +318,7 @@ bool Viewer2D::init(Composite& rootNode) {
 				}
 				firstTime = false;
 			}
+			nvgClosePath(nvg);
 			nvgFill(nvg);
 			nvgStroke(nvg);
 		}

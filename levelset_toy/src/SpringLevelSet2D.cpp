@@ -79,6 +79,7 @@ namespace aly {
 			contour.vertexes += delta;
 			iter++;
 		} while (iter < 10);
+		//Add line search to find zero crossing.
 	}
 	float2 SpringLevelSet2D::traceUnsigned(float2 pt) {
 		float disp = 0.0f;

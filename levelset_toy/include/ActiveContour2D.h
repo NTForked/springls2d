@@ -72,6 +72,7 @@ namespace aly {
 		int addElements();
 		float evolve(float maxStep);
 		void rebuildNarrowBand();
+
 		void applyForcesTopoRule(int i, int j, int offset, size_t index, float timeStep);
 		virtual bool stepInternal() override;
 	public:

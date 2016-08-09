@@ -299,6 +299,7 @@ namespace aly {
 				-52, -69, -52, -128, -13, -128, -13, -69, -52, -69, -52 };
 		return ((((uint8_t)lut4_8[63 - (i >> 3)]) & (1 << (i % 8))) > 0);
 	}
+
 	int ActiveContour2D::deleteElements() {
 		std::vector<int2> newList;
 		for (int i = 0; i < activeList.size(); i++) {
