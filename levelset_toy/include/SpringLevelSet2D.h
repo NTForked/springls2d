@@ -39,6 +39,8 @@ namespace aly {
 		static float SHARPNESS;
 	protected:
 		std::shared_ptr<Matcher2f> matcher;
+		aly::Vector2f oldCorrespondences;
+		aly::Vector2f oldPoints;
 		aly::Image1f unsignedLevelSet;
 		std::vector<std::list<uint32_t>> nearestNeighbors;
 		virtual bool stepInternal() override;
@@ -52,7 +54,7 @@ namespace aly {
 		void relax();
 		int fill();
 		int contract();
-		void updateTracking(float maxDistance = 2*NEAREST_NEIGHBOR_DISTANCE);
+		void updateTracking(float maxDistance = 4.0f*NEAREST_NEIGHBOR_DISTANCE);
 		float advect(float maxStep=0.33333f);
 		float updateSignedLevelSet(float maxStep=0.5f);
 		float2 getScaledGradientValue(int i, int j);

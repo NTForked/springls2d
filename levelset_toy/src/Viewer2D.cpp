@@ -269,32 +269,39 @@ bool Viewer2D::init(Composite& rootNode) {
 			}
 			nvgStroke(nvg);
 		}
-		if (0.04f*scale > 0.5f) {
+		if (0.04f*scale > 0.5f&&contour->particles.size()== contour->correspondence.size()) {
+			
 			nvgStrokeColor(nvg, matchColor);
 			nvgStrokeWidth(nvg, 0.04f*scale);
 			for (int n = 0;n < (int)contour->particles.size();n++) {
-				float2 pt = contour->particles[n] + float2(0.5f);
-				pt.x = pt.x / (float)img.width;
-				pt.y = pt.y / (float)img.height;
-				pt = pt*bounds.dimensions + bounds.position;
-				nvgBeginPath(nvg);
-				nvgMoveTo(nvg, pt.x, pt.y);
-				pt = contour->correspondence[n] + float2(0.5f);
-				pt.x = pt.x / (float)img.width;
-				pt.y = pt.y / (float)img.height;
-				pt = pt*bounds.dimensions + bounds.position;
-				nvgLineTo(nvg, pt.x, pt.y);
-				nvgStroke(nvg);
+				float2 qt = contour->correspondence[n];
+				if (!std::isinf(qt.x)) {
+					float2 pt = contour->particles[n] + float2(0.5f);
+					pt.x = pt.x / (float)img.width;
+					pt.y = pt.y / (float)img.height;
+					pt = pt*bounds.dimensions + bounds.position;
+					nvgBeginPath(nvg);
+					nvgMoveTo(nvg, pt.x, pt.y);
+					pt = qt + float2(0.5f);
+					pt.x = pt.x / (float)img.width;
+					pt.y = pt.y / (float)img.height;
+					pt = pt*bounds.dimensions + bounds.position;
+					nvgLineTo(nvg, pt.x, pt.y);
+					nvgStroke(nvg);
+				}
 			}
 			nvgFillColor(nvg, matchColor.toSemiTransparent(1.0f));
 			for (int n = 0;n < (int)contour->correspondence.size();n++) {
-				float2 pt = contour->correspondence[n] + float2(0.5f);
-				pt.x = pt.x / (float)img.width;
-				pt.y = pt.y / (float)img.height;
-				pt = pt*bounds.dimensions + bounds.position;
-				nvgBeginPath(nvg);
-				nvgEllipse(nvg, pt.x, pt.y, 0.05f*scale, 0.05f*scale);
-				nvgFill(nvg);
+				float2 qt = contour->correspondence[n];
+				if (!std::isinf(qt.x)) {
+					float2 pt = qt + float2(0.5f);
+					pt.x = pt.x / (float)img.width;
+					pt.y = pt.y / (float)img.height;
+					pt = pt*bounds.dimensions + bounds.position;
+					nvgBeginPath(nvg);
+					nvgEllipse(nvg, pt.x, pt.y, 0.05f*scale, 0.05f*scale);
+					nvgFill(nvg);
+				}
 			}
 		}
 		nvgFillColor(nvg, lineColor.toSemiTransparent(0.5f));

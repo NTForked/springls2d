@@ -26,7 +26,7 @@ int main(int argc, char *argv[]) {
 		app.run();
 		return 0;
 	} catch (std::exception& e) {
-		std::cout << "Error: " << e.what() << std::endl;
+		std::cout << "Main Error: " << e.what() << std::endl;
 		std::getchar();
 		return 1;
 	}
