@@ -192,52 +192,69 @@ namespace aly {
 		return fillCount;
 	}
 	void SpringLevelSet2D::updateTracking(float maxDistance) {
-		matcher.reset(new Matcher2f(oldPoints));
-		std::vector<int> retrack;
-		for (size_t i = 0;i < contour.particles.size();i++) {
-			if (std::isinf(contour.correspondence[i].x)) {
-				retrack.push_back((int)i);
+		int tries = 0;
+		int invalid = 0;
+		do {
+			invalid = 0;
+			matcher.reset(new Matcher2f(oldPoints));
+			std::vector<int> retrack;
+			for (size_t i = 0;i < contour.particles.size();i++) {
+				if (std::isinf(contour.correspondence[i].x)) {
+					retrack.push_back((int)i);
+				}
 			}
-		}
-		int N = (int)retrack.size();
-#pragma omp parallel for
-		for (int i = 0;i < N;i++) {
-			int pid = retrack[i];
-			int eid1 = pid * 2;
-			int eid2 = pid * 2 + 1;
-			float2 pt0 = contour.points[eid1];
-			float2 pt1 = contour.points[eid2];
-			std::vector<std::pair<size_t, float>> result;
-			float2 q1(std::numeric_limits<float>::infinity());
-			float2 q2(std::numeric_limits<float>::infinity());
-			matcher->closest(pt0, maxDistance, result);
-			for (auto pr : result) {
-				q1 = oldCorrespondences[pr.first / 2];
+			int N = (int)retrack.size();
+			for (int i = 0;i < N;i++) {
+				int pid = retrack[i];
+				int eid1 = pid * 2;
+				int eid2 = pid * 2 + 1;
+				float2 pt0 = contour.points[eid1];
+				float2 pt1 = contour.points[eid2];
+				std::vector<std::pair<size_t, float>> result;
+				float2 q1(std::numeric_limits<float>::infinity());
+				float2 q2(std::numeric_limits<float>::infinity());
+				matcher->closest(pt0, maxDistance, result);
+				for (auto pr : result) {
+					q1 = oldCorrespondences[pr.first / 2];
+					if (!std::isinf(q1.x)) {
+						break;
+					}
+				}
+				result.clear();
+				matcher->closest(pt1, maxDistance, result);
+				for (auto pr : result) {
+					q2 = oldCorrespondences[pr.first / 2];
+					if (!std::isinf(q2.x)) {
+						break;
+					}
+				}
 				if (!std::isinf(q1.x)) {
-					break;
+					if (!std::isinf(q2.x)) {
+						q1 = traceInitial(0.5f*(q1 + q2));
+						contour.correspondence[pid] = q1;
+						oldCorrespondences.push_back(q1);
+						oldPoints.push_back(pt0);
+						oldPoints.push_back(pt1);
+					}
+					else {
+						contour.correspondence[pid] = q1;
+						oldCorrespondences.push_back(q1);
+						oldPoints.push_back(pt0);
+						oldPoints.push_back(pt1);
+					}
 				}
-			}
-			result.clear();
-			matcher->closest(pt1, maxDistance, result);
-			for (auto pr : result) {
-				q2 = oldCorrespondences[pr.first / 2];
-				if (!std::isinf(q2.x)) {
-					break;
-				}
-			}
-			if (!std::isinf(q1.x)) {
-				if (!std::isinf(q2.x)) {
-					contour.correspondence[pid] = traceInitial(0.5f*(q1 + q2));
-
+				else if (!std::isinf(q2.x)) {
+					contour.correspondence[pid] = q2;
+					oldCorrespondences.push_back(q2);
+					oldPoints.push_back(pt0);
+					oldPoints.push_back(pt1);
 				}
 				else {
-					contour.correspondence[pid] = q1;
+					invalid++;
 				}
 			}
-			else if (!std::isinf(q2.x)) {
-				contour.correspondence[pid] = q2;
-			}
-		}
+			tries++;
+		} while (invalid > 0 && tries<4);
 	}
 	int SpringLevelSet2D::contract() {
 		int contractCount = 0;
