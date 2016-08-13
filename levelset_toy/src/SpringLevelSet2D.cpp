@@ -22,7 +22,7 @@
 #include "AlloyApplication.h"
 namespace aly {
 	float SpringLevelSet2D::MIN_ANGLE_TOLERANCE = (float)(ALY_PI * 20 / 180.0f);
-	float SpringLevelSet2D::NEAREST_NEIGHBOR_DISTANCE = 0.6f;
+	float SpringLevelSet2D::NEAREST_NEIGHBOR_DISTANCE = std::sqrt(2.0f)*0.5f;
 	float SpringLevelSet2D::PARTICLE_RADIUS = 0.05f;
 	float SpringLevelSet2D::REST_RADIUS = 0.1f;
 	float SpringLevelSet2D::SPRING_CONSTANT = 0.3f;
@@ -167,7 +167,7 @@ namespace aly {
 				for (uint32_t idx : curve) {
 					if (count != 0) {
 						float2 pt = 0.5f*(contour.vertexes[prev] + contour.vertexes[idx]);
-						if (unsignedLevelSet(pt.x, pt.y).x > 1.25f*EXTENT) {
+						if (unsignedLevelSet(pt.x, pt.y).x > 0.5f*(NEAREST_NEIGHBOR_DISTANCE+EXTENT)) {
 							contour.particles.push_back(pt);
 							contour.points.push_back(contour.vertexes[prev]);
 							contour.points.push_back(contour.vertexes[idx]);
@@ -184,11 +184,7 @@ namespace aly {
 				}
 			}
 		}
-		if (fillCount > 0) {
-			contour.updateNormals();
-			contour.setDirty(true);
-			updateTracking();
-		}
+
 		return fillCount;
 	}
 	void SpringLevelSet2D::updateTracking(float maxDistance) {
@@ -618,15 +614,19 @@ namespace aly {
 			for (int i = 0;i < evolveIterations;i++) {
 				updateSignedLevelSet();
 			}
-
 			oldPoints = contour.points;
 			oldCorrespondences = contour.correspondence;
-			if (contract() > 0) {
-				updateUnsignedLevelSet();
-			}
+			contract();
 			updateNearestNeighbors();
-			fill();
-			relax();
+			int fillCount = 0;
+			do {
+				updateUnsignedLevelSet();
+				fillCount=fill();
+				relax();
+			} while (fillCount > 0); //Continue filling until all gaps are closed
+			contour.updateNormals();
+			contour.setDirty(true);
+			updateTracking();
 			remaining = mTimeStep - t;
 		} while (remaining > 1E-5f);
 		mSimulationTime += t;
