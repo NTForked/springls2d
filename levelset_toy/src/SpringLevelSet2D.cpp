@@ -307,11 +307,15 @@ namespace aly {
 			f2 = f;
 		}
 		if (vecFieldImage.size() > 0) {
+			/*
+			float2 vec1 = vecFieldImage(p1.x, p1.y)*advectionWeight;
+			f1 += vec1;
+			float2 vec2 = vecFieldImage(p2.x, p2.y)*advectionWeight;
+			f2 += vec2;
+			*/
 			float2 vec = vecFieldImage(p.x, p.y)*advectionWeight;
-			f += vec;
-			vec = vecFieldImage(p1.x, p1.y);
+			f +=vec;
 			f1 += vec;
-			vec = vecFieldImage(p2.x, p2.y);
 			f2 += vec;
 		}
 	}
