@@ -45,6 +45,7 @@
 #include "AlloyDistanceField.h"
 #include "AlloyIsoContour.h"
 #include "SpringLevelSet2D.h"
+#include "MappingField.h"
 using namespace aly;
 
 Viewer2D::Viewer2D() :
@@ -83,11 +84,11 @@ aly::Image1f Viewer2D::createCircleLevelSet(int w, int h, float2 center, float r
 	return levelSet;
 }
 bool Viewer2D::init(Composite& rootNode) {
-	int w = 256;
-	int h = 256;
+	int w = 64;
+	int h = 64;
 	Image1f distField;
-	float maxDistance = 64;
-	createTextLevelSet(distField, gray, w, h, "A", 200.0f, maxDistance);
+	float maxDistance = 32;
+	createTextLevelSet(distField, gray, w, h, "A",100.0f*w/128.0f, maxDistance);
 	ConvertImage(gray, img);
 	cache = std::shared_ptr<SpringlCache2D>(new SpringlCache2D());
 	simulation = std::shared_ptr<ActiveContour2D>(new SpringLevelSet2D(cache));
@@ -102,7 +103,11 @@ bool Viewer2D::init(Composite& rootNode) {
 			timelineSlider->setTimeValue((int)simulation->getSimulationIteration());
 		});
 	};
-	simulation->setInitialDistanceField(createCircleLevelSet(w, h, float2(0.5f*w, 0.5f*h), std::min(w, h)*0.25f));
+	Image1f init = createCircleLevelSet(w, h, float2(0.5f*w, 0.5f*h), std::min(w, h)*0.3f);
+
+	SolveLaplacianMapping(init, distField, vecField);
+	simulation->setInitialDistanceField(init);
+	simulation->setVectorField(vecField,1.0f);
 	simulation->setPressure(gray, 1.0f, 0.5f);
 	simulation->init();
 
@@ -239,9 +244,40 @@ bool Viewer2D::init(Composite& rootNode) {
 		NVGcontext* nvg = context->nvgContext;
 		nvgLineCap(nvg, NVG_ROUND);
 		float scale = bounds.dimensions.x / (float)img.width;
-		nvgStrokeColor(nvg, Color(0.4f, 0.4f, 0.4f, 0.5f));
 		if (0.05f*scale > 0.5f) {
+
+			nvgFillColor(nvg, Color(0.8f, 0.4f, 0.8f, 0.5f));
 			nvgStrokeWidth(nvg, 0.05f*scale);
+			const float aH=0.5f*std::sqrt(2.0f);
+			const float aW= 0.25f*std::sqrt(2.0f);
+			for (int i = 0;i < vecField.width;i++) {
+				for (int j = 0;j < vecField.height;j++) {
+					float2 v = vecField(i, j);
+					float2 pt1 = float2(i + 0.5f + 0.7f*aH*v.x, j + 0.5f + 0.7f*aH*v.y);
+					float2 pt2 = float2(i + 0.5f - 0.5f*aW*v.y - 0.3f*aH*v.x, j + 0.5f + 0.5f*aW*v.x- 0.3f*aH*v.y);
+					float2 pt3 = float2(i + 0.5f + 0.5f*aW*v.y - 0.3f*aH*v.x, j + 0.5f - 0.5f*aW*v.x - 0.3f*aH*v.y);
+
+					pt1.x = pt1.x / (float)img.width;
+					pt1.y = pt1.y / (float)img.height;
+					pt1 = pt1*bounds.dimensions + bounds.position;
+
+					pt2.x = pt2.x / (float)img.width;
+					pt2.y = pt2.y / (float)img.height;
+					pt2 = pt2*bounds.dimensions + bounds.position;
+
+					pt3.x = pt3.x / (float)img.width;
+					pt3.y = pt3.y / (float)img.height;
+					pt3 = pt3*bounds.dimensions + bounds.position;
+					
+					nvgBeginPath(nvg);
+					nvgMoveTo(nvg, pt1.x, pt1.y);
+					nvgLineTo(nvg, pt2.x, pt2.y);
+					nvgLineTo(nvg, pt3.x, pt3.y);
+					nvgClosePath(nvg);
+					nvgFill(nvg);
+				}
+			}
+			nvgStrokeColor(nvg, Color(0.4f, 0.4f, 0.4f, 0.5f));
 			nvgBeginPath(nvg);
 			for (int i = 0;i < img.width;i++) {
 				float2 pt = float2(0.5f + i, 0.5f);

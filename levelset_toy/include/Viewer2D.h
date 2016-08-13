@@ -37,6 +37,7 @@ protected:
 	bool frameBuffersDirty;
 	float currentIso;
 	bool running = false;
+	aly::Image2f vecField;
 	aly::Number lineWidth;
 	aly::Number particleSize;
 	aly::Color lineColor;
