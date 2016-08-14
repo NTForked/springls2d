@@ -84,8 +84,8 @@ aly::Image1f Viewer2D::createCircleLevelSet(int w, int h, float2 center, float r
 	return levelSet;
 }
 bool Viewer2D::init(Composite& rootNode) {
-	int w = 64;
-	int h = 64;
+	int w = 128;
+	int h = 128;
 	Image1f distField;
 	float maxDistance = 32;
 	createTextLevelSet(distField, gray, w, h, "A",100.0f*w/128.0f, maxDistance);

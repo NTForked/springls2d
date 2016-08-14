@@ -21,6 +21,7 @@
 #include "SpringLevelSet2D.h"
 #include "AlloyApplication.h"
 namespace aly {
+
 	float SpringLevelSet2D::MIN_ANGLE_TOLERANCE = (float)(ALY_PI * 20 / 180.0f);
 	float SpringLevelSet2D::NEAREST_NEIGHBOR_DISTANCE = std::sqrt(2.0f)*0.5f;
 	float SpringLevelSet2D::PARTICLE_RADIUS = 0.05f;
@@ -28,6 +29,78 @@ namespace aly {
 	float SpringLevelSet2D::SPRING_CONSTANT = 0.3f;
 	float SpringLevelSet2D::EXTENT = 0.5f;
 	float SpringLevelSet2D::SHARPNESS = 5.0f;
+	void Decompose(const float2x2& m, float& theta, float& phi, float& sx, float& sy)
+	{
+		float E = 0.5f*(m(0, 0) + m(1, 1));
+		float F = 0.5f*(m(0, 0) - m(1, 1));
+		float G = 0.5f*(m(1, 0) + m(0, 1));
+		float H = 0.5f*(m(1, 0) - m(0, 1));
+		float Q = std::sqrt(E*E + H*H);
+		float R = std::sqrt(F*F + G*G);
+		sx = Q + R;
+		sy = Q - R;
+		float a1 = std::atan2(G, F);
+		float a2 = std::atan2(H, E);
+		theta = 0.5f*(a2 - a1);
+		phi = 0.5f*(a2 + a1);
+	}
+	float2x2 MakeRigid(const float2x2& m)
+	{
+		float E = 0.5f*(m(0, 0) + m(1, 1));
+		float F = 0.5f*(m(0, 0) - m(1, 1));
+		float G = 0.5f*(m(1, 0) + m(0, 1));
+		float H = 0.5f*(m(1, 0) - m(0, 1));
+		float Q = std::sqrt(E*E + H*H);
+		float R = std::sqrt(F*F + G*G);
+		float sx = Q + R;
+		float sy = Q - R;
+		float a1 = std::atan2(G, F);
+		float a2 = std::atan2(H, E);
+		float theta = 0.5f*(a2 - a1);
+		float phi = 0.5f*(a2 + a1);
+
+		float st = std::sin(theta);
+		float ct = std::cos(theta);
+		float sp = std::sin(phi);
+		float cp = std::cos(phi);
+		float2x2 Vt(float2(ct, st), float2(-st, ct));
+		float2x2 U(float2(cp, sp), float2(-sp, cp));
+		return U*Vt;
+	}
+	float2x2 MakeSimilarity(const float2x2& m)
+	{
+		float E = 0.5f*(m(0, 0) + m(1, 1));
+		float F = 0.5f*(m(0, 0) - m(1, 1));
+		float G = 0.5f*(m(1, 0) + m(0, 1));
+		float H = 0.5f*(m(1, 0) - m(0, 1));
+		float Q = std::sqrt(E*E + H*H);
+		float R = std::sqrt(F*F + G*G);
+		float sx = Q + R;
+		float sy = Q - R;
+		float a1 = std::atan2(G, F);
+		float a2 = std::atan2(H, E);
+		float theta = 0.5f*(a2 - a1);
+		float phi = 0.5f*(a2 + a1);
+
+		float st = std::sin(theta);
+		float ct = std::cos(theta);
+		float sp = std::sin(phi);
+		float cp = std::cos(phi);
+		float2x2 Vt(float2(ct, st), float2(-st, ct));
+		float2x2 U(float2(cp, sp), float2(-sp, cp));
+		float2x2 S(float2(0.5f*(sx+sy), 0.0f), float2(0.0f, 0.5f*(sx + sy)));
+		return U*S*Vt;
+	}
+	float2x2 Compose(const float& theta, const float& phi,const float& sx, const float& sy) {
+		float st = std::sin(theta);
+		float ct = std::cos(theta);
+		float sp = std::sin(phi);
+		float cp = std::cos(phi);
+		float2x2 Vt(float2(ct, st),float2(-st, ct));
+		float2x2 U(float2(cp, sp),float2(-sp, cp));
+		float2x2 S(float2(sx,0.0f),float2(0.0f,sy));
+		return U*S*Vt;
+	}
 	SpringLevelSet2D::SpringLevelSet2D(const std::shared_ptr<SpringlCache2D>& cache) :ActiveContour2D("Spring Level Set 2D", cache) {
 	}
 	void SpringLevelSet2D::setSpringls(const Vector2f& particles, const Vector2f& points) {
@@ -306,17 +379,21 @@ namespace aly {
 			f1 = f;
 			f2 = f;
 		}
+		float2x2 M;
 		if (vecFieldImage.size() > 0) {
-			/*
 			float2 vec1 = vecFieldImage(p1.x, p1.y)*advectionWeight;
 			f1 += vec1;
 			float2 vec2 = vecFieldImage(p2.x, p2.y)*advectionWeight;
 			f2 += vec2;
-			*/
 			float2 vec = vecFieldImage(p.x, p.y)*advectionWeight;
 			f +=vec;
-			f1 += vec;
-			f2 += vec;
+			M(0, 0) = (f1.x - f.x) / (p1.x - p.x);
+			M(0, 1) = (f1.y - f.y) / (p1.y - p.y);
+			M(1, 0) = (f2.x - f.x) / (p2.x - p.x);
+			M(1, 1) = (f2.y - f.y) / (p2.y - p.y);
+			M = MakeSimilarity(M);
+			f1 = M*(p1 - p) + f;
+			f2 = M*(p2 - p) + f;
 		}
 	}
 	float SpringLevelSet2D::updateSignedLevelSet(float maxStep) {
