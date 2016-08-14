@@ -46,6 +46,7 @@ protected:
 	aly::Color normalColor;
 	aly::Color springlColor;
 	aly::Color matchColor;
+	aly::Color vecfieldColor;
 	aly::AdjustableCompositePtr resizeableRegion;
 	std::shared_ptr<aly::ActiveContour2D> simulation;
 	aly::IconButtonPtr playButton,stopButton;

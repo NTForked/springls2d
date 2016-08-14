@@ -133,6 +133,7 @@ bool Viewer2D::init(Composite& rootNode) {
 	matchColor = Color(0.5f, 0.5f, 1.0f, 0.75f);
 	particleColor = Color(0.6f, 0.0f, 0.0f, 1.0f);
 	normalColor = Color(0.0f, 0.8f, 0.0f, 0.5f);
+	vecfieldColor = Color(0.8f, 0.4f, 0.8f, 0.8f);
 	controls->setAlwaysShowVerticalScrollBar(false);
 	controls->setScrollEnabled(false);
 	controls->backgroundColor = MakeColor(getContext()->theme.DARKER);
@@ -205,6 +206,7 @@ bool Viewer2D::init(Composite& rootNode) {
 	controls->addColorField("Normal", normalColor);
 	controls->addColorField("Line", lineColor);
 	controls->addColorField("Correspondence", matchColor);
+	controls->addColorField("Vector Field", vecfieldColor);
 	timelineSlider = TimelineSliderPtr(
 		new TimelineSlider("Timeline", CoordPerPX(0.0f, 1.0f, 0.0f, -80.0f), CoordPerPX(1.0f, 0.0f, 0.0f, 80.0f), Integer(0), Integer(0), Integer(0)));
 	CompositePtr viewRegion = CompositePtr(new Composite("View", CoordPX(0.0f, 0.0f), CoordPerPX(1.0f, 1.0f, 0.0f, -80.0f)));
@@ -246,7 +248,7 @@ bool Viewer2D::init(Composite& rootNode) {
 		float scale = bounds.dimensions.x / (float)img.width;
 		if (0.05f*scale > 0.5f) {
 
-			nvgFillColor(nvg, Color(0.8f, 0.4f, 0.8f, 0.5f));
+			nvgFillColor(nvg, vecfieldColor);
 			nvgStrokeWidth(nvg, 0.05f*scale);
 			const float aH=0.5f*std::sqrt(2.0f);
 			const float aW= 0.25f*std::sqrt(2.0f);
