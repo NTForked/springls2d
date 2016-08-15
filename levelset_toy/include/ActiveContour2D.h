@@ -82,14 +82,18 @@ namespace aly {
 		void setPressure(const Image1f& img, float weight, float target) {
 			pressureWeight = weight;
 			targetPressure = target;
+			pressureParam.setValue(pressureWeight);
+			targetPressureParam.setValue(targetPressure);
 			pressureImage = img;
 		}
 		void setPressure(const Image1f& img, float weight) {
 			pressureWeight = weight;
+			pressureParam.setValue(pressureWeight);
 			pressureImage = img;
 		}
 		void setVectorField(const Image2f& img, float f) {
 			advectionWeight = f;
+			advectionParam.setValue(advectionWeight);
 			vecFieldImage = img;
 		}
 		Contour2D* getContour();

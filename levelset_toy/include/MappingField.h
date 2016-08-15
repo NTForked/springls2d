@@ -24,6 +24,6 @@
 #include <AlloyImage.h>
 #include <AlloyMath.h>
 namespace aly {
-	void SolveLaplacianMapping(const Image1f& src, const Image1f& tar, Image2f& vectorField,int iterations=100);
+	void SolveGradientVectorFlow(const Image1f& src, Image2f& vectorField,bool normalize);
 }
 #endif

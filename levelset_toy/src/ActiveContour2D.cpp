@@ -85,7 +85,10 @@ namespace aly {
 
 
 	void ActiveContour2D::setup(const aly::ParameterPanePtr& pane){
-
+		advectionParam = Float(advectionWeight);
+		pressureParam = Float(pressureWeight);
+		targetPressureParam = Float(targetPressure);
+		curvatureParam = Float(curvatureWeight);
 		pane->addNumberField("Target Pressure", targetPressureParam, Float(0.0f), Float(1.0f));
 		pane->addNumberField("Advection Weight", advectionParam, Float(-4.0f), Float(4.0f));
 		pane->addNumberField("Pressure Weight", pressureParam, Float(-4.0f), Float(4.0f));

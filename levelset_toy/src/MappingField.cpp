@@ -21,104 +21,85 @@
 #include "MappingField.h"
 #include <AlloySparseSolve.h>
 namespace aly {
-	void SolveLaplacianMapping(const Image1f& src, const Image1f& tar, Image2f& vectorField, int iterations) {
+	void SolveGradientVectorFlow(const Image1f& src, Image2f& vectorField,bool normalize) {
 		const int nbrX[] = { 0,0,-1,1 };
 		const int nbrY[] = { 1,-1,0,0 };
-		std::vector<int2> entries;
-		std::map<size_t, size_t> lookup;
 		vectorField.resize(src.width, src.height);
-		SparseMatrix1f A;
-		Vector1f b;
-		Vector1f x;
+		SparseMatrix2f A;
+		Vector2f b;
+		Vector2f x;
 		size_t N = 0;
-		Image1f out(src.width,src.height);
+		Image1b mask(src.width,src.height);
+		mask.set(bool1(false));
 		for (int i = 0;i < src.width;i++) {
 			for (int j = 0;j < src.height;j++) {
 				float sVal = src(i, j).x;
-				float tVal = tar(i, j).x;
-				float val = std::min(sVal, tVal);
-				if (sVal <= 0.0f&&tVal >= 0.0f) {
-					size_t n = j*src.width + i;
-					lookup[n] = entries.size();
-					entries.push_back(int2(i,j));
+				bool masked = false;
+				for (int nn = 0;nn < 4;nn++) {
+					int ii = i + nbrX[nn];
+					int jj = j + nbrY[nn];
+					if (src(ii, jj).x*sVal < 0.0f) {
+						mask(i,j) = bool1(true);
+						masked = true;
+						break;
+					}
 				}
-				else if(sVal>0.0){
-					out(i, j) = float1(-1.0f);
-				}
-				else if (tVal<0.0) {
-					out(i, j) = float1(1.0f);
+				if (!masked) {
+					N++;
 				}
 			}
 		}
-		N = entries.size();
-		for (int n = 0;n < N;n++) {
-			int2 pos = entries[n];
-			float sVal = src(pos).x;
-			float tVal = tar(pos).x;
-			float val = std::min(sVal, tVal);
-			bool add = false;
-			for (int nn = 0;nn < 4;nn++) {
-				int ii = pos.x + nbrX[nn];
-				int jj = pos.y + nbrY[nn];
-				if (src(ii, jj).x*sVal < 0.0f|| tar(ii, jj).x*tVal < 0.0f) {
-					size_t m = ii + src.width*jj;
-					if (lookup.find(m) == lookup.end()) {
-						lookup[m] = entries.size();
-						entries.push_back(int2(ii, jj));
+		size_t M = src.width*src.height;
+		A.resize(M, M);
+		b.resize(M, float2(0.0f));
+		x.resize(M, float2(0.0f));
+		for (int i = 0;i < src.width;i++) {
+			for (int j = 0;j < src.height;j++) {
+				int idx = i+j*src.width;
+				if (mask(i, j).x) {
+					float v21 = src(i + 1, j).x;
+					float v12 = src(i, j + 1).x;
+					float v10 = src(i, j - 1).x;
+					float v01 = src(i - 1, j).x;
+					float v11 = src(i, j).x;
+					float2 grad;
+					if (v11 < 0.0f) {
+						grad.x = std::max(v11 - v01,0.0f)+ std::min(v21 - v11,0.0f);
+						grad.y = std::max(v11 - v10,0.0f)+ std::min(v12 - v11,0.0f);
+					}
+					else {
+						grad.x = std::min(v11 - v01, 0.0f) + std::max(v21 - v11, 0.0f);
+						grad.y = std::min(v11 - v10, 0.0f) + std::max(v12 - v11, 0.0f);
+					}
+					float len = max(1E-6f, length(grad));
+					grad = -sign(v11)*(grad / std::max(1E-6f, len));
+					x[idx] = grad;
+					b[idx] = grad;
+					A(idx, idx) = float2(1.0f);
+				}
+				else {
+					for (int nn = 0; nn < 4; nn++) {
+						int ii = i + nbrX[nn];
+						int jj = j + nbrY[nn];
+						if (ii >= 0 && ii < src.width&&jj>=0 && jj < src.height) {
+							A(idx, ii + src.width*jj) += float2(1.0f);
+							A(idx, idx) += float2(-1.0f);
+						}
 					}
 				}
 			}
 		}
-		size_t M = entries.size();
-		A.resize(M,M);
-		b.resize(M,float1(0.0f));
-		x.resize(M, float1(0.0f));
-		for (int n = 0;n < M;n++) {
-			int2 pos = entries[n];
-			float sVal = src(pos).x;
-			float tVal = tar(pos).x;
-			float val = std::min(sVal, tVal);
-			if (n < N) {
-				for (int nn = 0;nn < 4;nn++) {
-					int ii = pos.x + nbrX[nn];
-					int jj = pos.y + nbrY[nn];
-					size_t m = ii + src.width*jj;
-					size_t j = lookup[m];
-					A(n, j) += float1(1.0f);
-					A(n, n) += float1(-1.0f);
+		SolveVecBICGStab(b, A, x, src.width, 1E-10f);
+		vectorField.set(x.data);
+		const float minSpeed = 1E-6f;
+		const float captureDist = 1.5f;
+		if (normalize) {
+			for (int i = 0;i < src.width;i++) {
+				for (int j = 0;j < src.height;j++) {
+					float d = std::abs(src(i, j).x);
+					vectorField(i,j) = aly::normalize(vectorField(i,j))*(minSpeed +(1.0f- minSpeed)*clamp(d,0.0f, captureDist)/ captureDist);
 				}
-			} else {
-				float sg = -sign(tVal);
-				x[n] = sg;
-				b[n] = sg;
-				A(n, n) = float1(1.0f);
 			}
 		}
-		SolveBICGStab(b, A, x, src.width*2, 0.0f, [=](int iter, double err) {
-			std::cout << "Laplace Solve " << iter << ") " << err << std::endl;
-			return true;
-		});
-		for (int n = 0;n < M;n++) {
-			int2 pos = entries[n];
-			out(pos) = float1(x[n]);
-		}
-		for (int n = 0;n < N;n++) {
-			int2 pos = entries[n];
-			float v21 = out(pos.x + 1, pos.y).x;
-			float v12 = out(pos.x, pos.y + 1).x;
-			float v10 = out(pos.x, pos.y - 1).x;
-			float v01 = out(pos.x - 1, pos.y).x;
-			float2 grad;
-			grad.x = 0.5f*(v21 - v01);
-			grad.y = 0.5f*(v12 - v10);
-			float len = max(1E-6f, length(grad));
-			vectorField(pos) = (grad / std::max(1E-6f, len));
-		}
-		/*
-		WriteImageToRawFile(GetDesktopDirectory() + ALY_PATH_SEPARATOR + "out.xml", out);
-		WriteImageToRawFile(GetDesktopDirectory() + ALY_PATH_SEPARATOR + "src.xml", src);
-		WriteImageToRawFile(GetDesktopDirectory() + ALY_PATH_SEPARATOR + "tar.xml", tar);
-		WriteImageToRawFile(GetDesktopDirectory() + ALY_PATH_SEPARATOR + "vecfield.xml",vectorField);
-		*/
 	}
 }

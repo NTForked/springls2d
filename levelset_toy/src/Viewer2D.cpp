@@ -103,14 +103,12 @@ bool Viewer2D::init(Composite& rootNode) {
 			timelineSlider->setTimeValue((int)simulation->getSimulationIteration());
 		});
 	};
-	Image1f init = createCircleLevelSet(w, h, float2(0.5f*w, 0.5f*h), std::min(w, h)*0.3f);
-
-	SolveLaplacianMapping(init, distField, vecField);
+	Image1f init = createCircleLevelSet(w, h, float2(0.5f*w, 0.5f*h), std::min(w, h)*0.25f);
+	SolveGradientVectorFlow(distField, vecField,true);
 	simulation->setInitialDistanceField(init);
 	simulation->setVectorField(vecField,1.0f);
-	simulation->setPressure(gray, 1.0f, 0.5f);
+	simulation->setPressure(gray, 0.1f, 0.5f);
 	simulation->init();
-
 	parametersDirty = true;
 	frameBuffersDirty = true;
 
@@ -133,7 +131,7 @@ bool Viewer2D::init(Composite& rootNode) {
 	matchColor = Color(0.5f, 0.5f, 1.0f, 0.75f);
 	particleColor = Color(0.6f, 0.0f, 0.0f, 1.0f);
 	normalColor = Color(0.0f, 0.8f, 0.0f, 0.5f);
-	vecfieldColor = Color(0.8f, 0.4f, 0.8f, 0.8f);
+	vecfieldColor = Color(0.8f, 0.4f, 0.8f, 0.5f);
 	controls->setAlwaysShowVerticalScrollBar(false);
 	controls->setScrollEnabled(false);
 	controls->backgroundColor = MakeColor(getContext()->theme.DARKER);
