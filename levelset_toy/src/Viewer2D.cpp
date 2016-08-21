@@ -83,6 +83,17 @@ aly::Image1f Viewer2D::createCircleLevelSet(int w, int h, float2 center, float r
 	}
 	return levelSet;
 }
+void Viewer2D::createRotationField(aly::Image2f& vecField, int w, int h) {
+	vecField.resize(w, h);
+	float2 center = float2(0.5f*w, 0.5f*h);
+	float r = std::max(0.5f*w, 0.5f*h);
+	for (int i = 0;i < w;i++) {
+		for (int j = 0;j < h;j++) {
+			float2 diff = (float2(i, j) - center)/r;
+			vecField(i, j) = float2(-diff.y, diff.x);
+		}
+	}
+}
 bool Viewer2D::init(Composite& rootNode) {
 	int w = 128;
 	int h = 128;
@@ -105,6 +116,7 @@ bool Viewer2D::init(Composite& rootNode) {
 	};
 	Image1f init = createCircleLevelSet(w, h, float2(0.5f*w, 0.5f*h), std::min(w, h)*0.25f);
 	SolveGradientVectorFlow(distField, vecField,true);
+	//createRotationField(vecField, w, h);
 	simulation->setInitialDistanceField(init);
 	simulation->setVectorField(vecField,1.0f);
 	simulation->setPressure(gray, 0.1f, 0.5f);

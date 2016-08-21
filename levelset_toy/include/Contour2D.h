@@ -26,6 +26,7 @@
 #include <cereal/cereal.hpp>
 #include <cereal/types/vector.hpp>
 #include <cereal/types/list.hpp>
+#include <array>
 namespace aly {
 	class AlloyContext;
 	class Contour2D {
@@ -43,6 +44,7 @@ namespace aly {
 		Vector2f particles;
 		Vector2f points;
 		Vector2f normals;
+		std::array<Vector2f,4> velocities;
 		Vector2f correspondence;
 		void setDirty(bool b) {
 			dirty = b;
@@ -72,6 +74,7 @@ namespace aly {
 			particles = c.particles;
 			points = c.points;
 			normals = c.normals;
+			velocities = c.velocities;
 			correspondence = c.correspondence;
 			file = c.file;
 		}
@@ -82,6 +85,7 @@ namespace aly {
 			particles = c.particles;
 			points = c.points;
 			normals = c.normals;
+			velocities = c.velocities;
 			correspondence = c.correspondence;
 			file = c.file;
 		}

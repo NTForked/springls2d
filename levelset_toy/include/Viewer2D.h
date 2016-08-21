@@ -52,6 +52,7 @@ protected:
 	aly::IconButtonPtr playButton,stopButton;
     std::shared_ptr<aly::TimelineSlider> timelineSlider;
 	aly::Image1f createCircleLevelSet(int w,int h,aly::float2 center,float r);
+	void createRotationField(aly::Image2f& vecField, int w, int h);
 	void createTextLevelSet(aly::Image1f& levelSet,aly::Image1f& gray,int w,int h,const std::string& text,float textSize,float maxDistance);
 public:
 	std::shared_ptr<aly::SpringlCache2D> cache;

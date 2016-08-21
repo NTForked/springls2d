@@ -67,28 +67,25 @@ namespace aly {
 		return &contour;
 	}
 	ActiveContour2D::ActiveContour2D(const std::shared_ptr<SpringlCache2D>& cache) :Simulation("Active Contour 2D"),
-			cache(cache),advectionWeight(1.0f), pressureWeight(1.0), curvatureWeight(0.3f), targetPressure(0.5f),  preserveTopology(false), clampSpeed(false), updateIsoSurface(
+			cache(cache),  preserveTopology(false), clampSpeed(false), updateIsoSurface(
 					false){
-		advectionParam = Float(advectionWeight);
-		pressureParam = Float(pressureWeight);
-		targetPressureParam = Float(targetPressure);
-		curvatureParam = Float(curvatureWeight);
+		advectionParam = Float(1.0f);
+		pressureParam = Float(0.0f);
+		targetPressureParam = Float(0.5f);
+		curvatureParam = Float(0.3f);
 	}
 	ActiveContour2D::ActiveContour2D(const std::string& name,const std::shared_ptr<SpringlCache2D>& cache) : Simulation(name),
-		cache(cache), advectionWeight(1.0f), pressureWeight(1.0), curvatureWeight(0.3f), targetPressure(0.5f), preserveTopology(false), clampSpeed(false), updateIsoSurface(
+		cache(cache),  preserveTopology(false), clampSpeed(false), updateIsoSurface(
 			false){
-		advectionParam = Float(advectionWeight);
-		pressureParam = Float(pressureWeight);
-		targetPressureParam = Float(targetPressure);
-		curvatureParam = Float(curvatureWeight);
+		advectionParam = Float(1.0f);
+		pressureParam = Float(0.0f);
+		targetPressureParam = Float(0.5f);
+		curvatureParam = Float(0.3f);
 	}
 
 
 	void ActiveContour2D::setup(const aly::ParameterPanePtr& pane){
-		advectionParam = Float(advectionWeight);
-		pressureParam = Float(pressureWeight);
-		targetPressureParam = Float(targetPressure);
-		curvatureParam = Float(curvatureWeight);
+
 		pane->addNumberField("Target Pressure", targetPressureParam, Float(0.0f), Float(1.0f));
 		pane->addNumberField("Advection Weight", advectionParam, Float(-4.0f), Float(4.0f));
 		pane->addNumberField("Pressure Weight", pressureParam, Float(-4.0f), Float(4.0f));
@@ -106,10 +103,7 @@ namespace aly {
 		mSimulationIteration=0;
 		mSimulationTime=0;
 		mTimeStep=1.0f;
-		advectionWeight = advectionParam.toFloat();
-		pressureWeight = pressureParam.toFloat();
-		curvatureWeight = curvatureParam.toFloat();
-		targetPressure = targetPressureParam.toFloat();
+		
 		levelSet.resize(dims.x, dims.y);
 		swapLevelSet.resize(dims.x, dims.y);
 #pragma omp parallel for
@@ -176,16 +170,16 @@ namespace aly {
 
 		const float maxCurvatureForce = 10.0f;
 		if (fabs(denom) > 1E-5f) {
-			kappa = curvatureWeight * numer / denom;
+			kappa = curvatureParam.toFloat() * numer / denom;
 		} else {
-			kappa = curvatureWeight * numer * sign(denom) * 1E5f;
+			kappa = curvatureParam.toFloat() * numer * sign(denom) * 1E5f;
 		}
 		if (kappa < -maxCurvatureForce) {
 			kappa = -maxCurvatureForce;
 		} else if (kappa > maxCurvatureForce) {
 			kappa = maxCurvatureForce;
 		}
-		float force = pressureWeight * pressureImage(i, j).x;
+		float force = pressureParam.toFloat() * pressureImage(i, j).x;
 		float pressure = 0;
 		if (force > 0) {
 			pressure = -force * std::sqrt(GradientSqrPos);
@@ -197,8 +191,8 @@ namespace aly {
 		// moves in the direction of the force.
 
 		float2 vec = vecFieldImage(i, j);
-		float forceX = advectionWeight * vec.x;
-		float forceY = advectionWeight * vec.y;
+		float forceX = advectionParam.toFloat() * vec.x;
+		float forceY = advectionParam.toFloat() * vec.y;
 		float advection = 0;
 
 		// Dot product force with upwind gradient
@@ -249,9 +243,9 @@ namespace aly {
 
 		const float maxCurvatureForce = 10.0f;
 		if (fabs(denom) > 1E-5f) {
-			kappa = curvatureWeight * numer / denom;
+			kappa = curvatureParam.toFloat() * numer / denom;
 		} else {
-			kappa = curvatureWeight * numer * sign(denom) * 1E5f;
+			kappa = curvatureParam.toFloat() * numer * sign(denom) * 1E5f;
 		}
 		if (kappa < -maxCurvatureForce) {
 			kappa = -maxCurvatureForce;
@@ -263,8 +257,8 @@ namespace aly {
 		// moves in the direction of the force.
 
 		float2 vec = vecFieldImage(i, j);
-		float forceX = advectionWeight * vec.x;
-		float forceY = advectionWeight * vec.y;
+		float forceX = advectionParam.toFloat() * vec.x;
+		float forceY = advectionParam.toFloat() * vec.y;
 		float advection = 0;
 
 		// Dot product force with upwind gradient
@@ -437,16 +431,16 @@ namespace aly {
 		float kappa = 0;
 		const float maxCurvatureForce = 10.0f;
 		if (std::abs(denom) > 1E-5f) {
-			kappa = curvatureWeight * numer / denom;
+			kappa = curvatureParam.toFloat() * numer / denom;
 		} else {
-			kappa = curvatureWeight * numer * sign(denom) * 1E5f;
+			kappa = curvatureParam.toFloat() * numer * sign(denom) * 1E5f;
 		}
 		if (kappa < -maxCurvatureForce) {
 			kappa = -maxCurvatureForce;
 		} else if (kappa > maxCurvatureForce) {
 			kappa = maxCurvatureForce;
 		}
-		float force = pressureWeight * pressureImage(i, j).x;
+		float force = pressureParam.toFloat() * pressureImage(i, j).x;
 		float pressure = 0;
 		if (force > 0) {
 			float GradientSqrPos = DxNegMax * DxNegMax + DxPosMin * DxPosMin + DyNegMax * DyNegMax + DyPosMin * DyPosMin;
@@ -591,9 +585,9 @@ namespace aly {
 	void ActiveContour2D::rescale(aly::Image1f& pressureForce) {
 		float minValue = 1E30f;
 		float maxValue = -1E30f;
-		if (!std::isnan(targetPressure)) {
+		if (!std::isnan(targetPressureParam.toFloat())) {
 			for (int i = 0; i < pressureForce.size(); i++) {
-				float val = pressureForce[i] - targetPressure;
+				float val = pressureForce[i] - targetPressureParam.toFloat();
 				minValue = std::min(val, minValue);
 				maxValue = std::max(val, maxValue);
 			}
@@ -602,7 +596,7 @@ namespace aly {
 		float normMax = (std::abs(maxValue) > 1E-4) ? 1 / std::abs(maxValue) : 1;
 #pragma omp parallel for
 		for (int i = 0; i < pressureForce.size(); i++) {
-			float val = pressureForce[i] - targetPressure;
+			float val = pressureForce[i] - targetPressureParam.toFloat();
 			if (val < 0) {
 				pressureForce[i] = (float) (val * normMin);
 			} else {

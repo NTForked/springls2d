@@ -242,6 +242,9 @@ namespace aly {
 						float2 pt = 0.5f*(contour.vertexes[prev] + contour.vertexes[idx]);
 						if (unsignedLevelSet(pt.x, pt.y).x > 0.5f*(NEAREST_NEIGHBOR_DISTANCE+EXTENT)) {
 							contour.particles.push_back(pt);
+							for (Vector2f& vel : contour.velocities) {
+								vel.push_back(float2(0.0f));
+							}
 							contour.points.push_back(contour.vertexes[prev]);
 							contour.points.push_back(contour.vertexes[idx]);
 							contour.correspondence.push_back(float2(std::numeric_limits<float>::infinity()));
@@ -283,9 +286,13 @@ namespace aly {
 				float2 q1(std::numeric_limits<float>::infinity());
 				float2 q2(std::numeric_limits<float>::infinity());
 				matcher->closest(pt0, maxDistance, result);
+				std::array<float2, 4> velocities;
 				for (auto pr : result) {
 					q1 = oldCorrespondences[pr.first / 2];
 					if (!std::isinf(q1.x)) {
+						for (int nn = 0;nn < 4;nn++) {
+							velocities[nn] = oldVelocities[nn][pr.first / 2];
+						}
 						break;
 					}
 				}
@@ -294,18 +301,32 @@ namespace aly {
 				for (auto pr : result) {
 					q2 = oldCorrespondences[pr.first / 2];
 					if (!std::isinf(q2.x)) {
+						for (int nn = 0;nn < 4;nn++) {
+							velocities[nn] += oldVelocities[nn][pr.first / 2];
+						}
 						break;
 					}
 				}
+
 				if (!std::isinf(q1.x)) {
 					if (!std::isinf(q2.x)) {
+						for (int nn = 0;nn < 4;nn++) {
+							contour.velocities[nn][pid] = 0.5f*velocities[nn];
+							oldVelocities[nn].push_back(0.5f*velocities[nn]);
+						}
+
 						q1 = traceInitial(0.5f*(q1 + q2));
 						contour.correspondence[pid] = q1;
 						oldCorrespondences.push_back(q1);
+						
 						oldPoints.push_back(pt0);
 						oldPoints.push_back(pt1);
 					}
 					else {
+						for (int nn = 0;nn < 4;nn++) {
+							contour.velocities[nn][pid] = velocities[nn];
+							oldVelocities[nn].push_back(velocities[nn]);
+						}
 						contour.correspondence[pid] = q1;
 						oldCorrespondences.push_back(q1);
 						oldPoints.push_back(pt0);
@@ -313,6 +334,10 @@ namespace aly {
 					}
 				}
 				else if (!std::isinf(q2.x)) {
+					for (int nn = 0;nn < 4;nn++) {
+						contour.velocities[nn][pid] = velocities[nn];
+						oldVelocities[nn].push_back(velocities[nn]);
+					}
 					contour.correspondence[pid] = q2;
 					oldCorrespondences.push_back(q2);
 					oldPoints.push_back(pt0);
@@ -331,6 +356,7 @@ namespace aly {
 		Vector2f points;
 		Vector2f normals;
 		Vector2f correspondence;
+		std::array<Vector2f, 4> velocities;
 		particles.data.reserve(contour.particles.size());
 		points.data.reserve(contour.points.size());
 		normals.data.reserve(contour.normals.size());
@@ -348,6 +374,9 @@ namespace aly {
 				points.push_back(contour.points[2 * i]);
 				points.push_back(contour.points[2 * i + 1]);
 				normals.push_back(contour.normals[i]);
+				for (int nn = 0;nn < 4;nn++){
+					velocities[nn].push_back(contour.velocities[nn][i]);
+				}
 				correspondence.push_back(contour.correspondence[i]);
 			}
 			else {
@@ -358,6 +387,7 @@ namespace aly {
 			contour.points = points;
 			contour.normals = normals;
 			contour.particles = particles;
+			contour.velocities = velocities;
 			contour.correspondence = correspondence;
 			contour.setDirty(true);
 		}
@@ -370,24 +400,43 @@ namespace aly {
 		float2 p = contour.particles[idx];
 		float2 p1 = contour.points[2 * idx];
 		float2 p2 = contour.points[2 * idx + 1];
-
-		if (pressureImage.size() > 0) {
+		if (pressureImage.size() > 0&& pressureParam.toFloat()!=0.0f) {
 			float2 v1 = normalize(contour.points[2 * idx + 1] - contour.points[2 * idx]);
 			float2 norm = float2(-v1.y, v1.x);
-			float2 pres = pressureWeight*norm*pressureImage(p.x, p.y).x;
+			float2 pres = pressureParam.toFloat()*norm*pressureImage(p.x, p.y).x;
 			f = pres;
 			f1 = f;
 			f2 = f;
 		}
+		
 		float2x2 M,A;
-		if (vecFieldImage.size() > 0) {
-			f1 += vecFieldImage(p1.x, p1.y)*advectionWeight;
-			f2 += vecFieldImage(p2.x, p2.y)*advectionWeight;
-			f  += vecFieldImage(p.x , p.y )*advectionWeight;
+		if (vecFieldImage.size() > 0&& advectionParam.toFloat()!=0.0f) {
+			float w = advectionParam.toFloat();
+			f1 += vecFieldImage(p1.x, p1.y)*w;
+			f2 += vecFieldImage(p2.x, p2.y)*w;
+			f  += vecFieldImage(p.x , p.y )*w;
+		}
+		float2 k1, k2, k3, k4;
+		k4 = contour.velocities[2][idx];
+		k3 = contour.velocities[1][idx];
+		k2 = contour.velocities[0][idx];
+		k1 = f;
+
+		contour.velocities[3][idx] = k4;
+		contour.velocities[2][idx] = k3;
+		contour.velocities[1][idx] = k2;
+		contour.velocities[0][idx] = k1;
+		if (mSimulationIteration>=4) {
+			f = (1.0f / 6.0f)*(k1 + 2.0f * k2 + 2.0f * k3 + k4);
+		} else if (mSimulationIteration == 3) {
+			f = (1.0f / 4.0f)*(k1 + 2.0f * k2 + k3);
+		} if (mSimulationIteration == 2) {
+			f = (1.0f / 2.0f)*(k1 + k2);
 		}
 		float2 v1 = p1 +f1;
 		float2 v2 = p2 +f2;
 		float2 v = p + f;
+		//Correction keeps particle and points on same line segment
 		float2 t = normalize(v2 - v1);
 		float2 correction=v-(v1+dot(t,v-v1)*t);
 		f1 += correction;
@@ -532,11 +581,11 @@ namespace aly {
 		float v10 = unsignedLevelSet(i, j - 1).x;
 		float v01 = unsignedLevelSet(i - 1, j).x;
 		float v11 = unsignedLevelSet(i, j).x;
-		float2 grad;
-		grad.x = 0.5f*(v21 - v01);
-		grad.y = 0.5f*(v12 - v10);
-		float len = max(1E-6f, length(grad));
-		return -(v11*grad / len);
+float2 grad;
+grad.x = 0.5f*(v21 - v01);
+grad.y = 0.5f*(v12 - v10);
+float len = max(1E-6f, length(grad));
+return -(v11*grad / len);
 	}
 	float2 SpringLevelSet2D::getScaledGradientValue(float i, float j, bool signedIso) {
 		float2 grad;
@@ -599,10 +648,10 @@ namespace aly {
 
 		const float maxCurvatureForce = 10.0f;
 		if (std::abs(denom) > 1E-5f) {
-			kappa = curvatureWeight * numer / denom;
+			kappa = curvatureParam.toFloat() * numer / denom;
 		}
 		else {
-			kappa = curvatureWeight * numer * sign(denom) * 1E5f;
+			kappa = curvatureParam.toFloat() * numer * sign(denom) * 1E5f;
 		}
 		if (kappa < -maxCurvatureForce) {
 			kappa = -maxCurvatureForce;
@@ -629,9 +678,13 @@ namespace aly {
 	}
 	bool SpringLevelSet2D::init() {
 		ActiveContour2D::init();
+
 		refineContour(true);
 		contour.points.clear();
 		contour.particles.clear();
+		for(Vector2f& vel:contour.velocities){
+			vel.clear();
+		}
 		for (std::list<uint32_t> curve : contour.indexes) {
 			size_t count = 0;
 			uint32_t first = 0, prev = 0;
@@ -650,6 +703,9 @@ namespace aly {
 					prev = idx;
 				}
 			}
+		}
+		for (Vector2f& vel : contour.velocities) {
+			vel.resize(contour.particles.size());
 		}
 		contour.correspondence = contour.particles;
 		contour.updateNormals();
@@ -697,6 +753,7 @@ namespace aly {
 			if (resampleEnabled) {
 				oldPoints = contour.points;
 				oldCorrespondences = contour.correspondence;
+				oldVelocities = contour.velocities;
 				contract();
 				updateNearestNeighbors();	
 				int fillCount = 0;

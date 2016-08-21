@@ -36,10 +36,6 @@ namespace aly {
 		std::shared_ptr<SpringlCache2D> cache;
 		IsoContour isoContour;
 		Contour2D contour;
-		float advectionWeight;
-		float pressureWeight;
-		float curvatureWeight;
-		float targetPressure;
 		bool preserveTopology;
 		bool clampSpeed;
 
@@ -80,20 +76,17 @@ namespace aly {
 		ActiveContour2D(const std::string& name,const std::shared_ptr<SpringlCache2D>& cache = nullptr);
 
 		void setPressure(const Image1f& img, float weight, float target) {
-			pressureWeight = weight;
-			targetPressure = target;
-			pressureParam.setValue(pressureWeight);
-			targetPressureParam.setValue(targetPressure);
+			pressureParam.setValue(weight);
+			targetPressureParam.setValue(target);
 			pressureImage = img;
 		}
 		void setPressure(const Image1f& img, float weight) {
-			pressureWeight = weight;
-			pressureParam.setValue(pressureWeight);
+
+			pressureParam.setValue(weight);
 			pressureImage = img;
 		}
 		void setVectorField(const Image2f& img, float f) {
-			advectionWeight = f;
-			advectionParam.setValue(advectionWeight);
+			advectionParam.setValue(f);
 			vecFieldImage = img;
 		}
 		Contour2D* getContour();
