@@ -66,6 +66,8 @@ namespace aly {
 		void computeForce(size_t idx, float2& p1, float2& p2, float2& p);
 		void relax(size_t idx, float timeStep, float2& f1, float2& f2);
 		std::shared_ptr<UnsignedDistanceShader> unsignedShader;
+		bool resampleEnabled;
+
 	public:
 
 		SpringLevelSet2D(const std::shared_ptr<SpringlCache2D>& cache = nullptr);

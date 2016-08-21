@@ -101,7 +101,7 @@ namespace aly {
 		float2x2 S(float2(sx,0.0f),float2(0.0f,sy));
 		return U*S*Vt;
 	}
-	SpringLevelSet2D::SpringLevelSet2D(const std::shared_ptr<SpringlCache2D>& cache) :ActiveContour2D("Spring Level Set 2D", cache) {
+	SpringLevelSet2D::SpringLevelSet2D(const std::shared_ptr<SpringlCache2D>& cache) :ActiveContour2D("Spring Level Set 2D", cache), resampleEnabled(false){
 	}
 	void SpringLevelSet2D::setSpringls(const Vector2f& particles, const Vector2f& points) {
 		contour.particles = particles;
@@ -379,22 +379,19 @@ namespace aly {
 			f1 = f;
 			f2 = f;
 		}
-		float2x2 M;
+		float2x2 M,A;
 		if (vecFieldImage.size() > 0) {
-			float2 vec1 = vecFieldImage(p1.x, p1.y)*advectionWeight;
-			f1 += vec1;
-			float2 vec2 = vecFieldImage(p2.x, p2.y)*advectionWeight;
-			f2 += vec2;
-			float2 vec = vecFieldImage(p.x, p.y)*advectionWeight;
-			f +=vec;
-			M(0, 0) = (f1.x - f.x) / (p1.x - p.x);
-			M(0, 1) = (f1.y - f.y) / (p1.y - p.y);
-			M(1, 0) = (f2.x - f.x) / (p2.x - p.x);
-			M(1, 1) = (f2.y - f.y) / (p2.y - p.y);
-			M = MakeSimilarity(M);
-			f1 = M*(p1 - p) + f;
-			f2 = M*(p2 - p) + f;
+			f1 += vecFieldImage(p1.x, p1.y)*advectionWeight;
+			f2 += vecFieldImage(p2.x, p2.y)*advectionWeight;
+			f  += vecFieldImage(p.x , p.y )*advectionWeight;
 		}
+		float2 v1 = p1 +f1;
+		float2 v2 = p2 +f2;
+		float2 v = p + f;
+		float2 t = normalize(v2 - v1);
+		float2 correction=v-(v1+dot(t,v-v1)*t);
+		f1 += correction;
+		f2 += correction;
 	}
 	float SpringLevelSet2D::updateSignedLevelSet(float maxStep) {
 #pragma omp parallel for
@@ -690,24 +687,35 @@ namespace aly {
 		do {
 			float timeStep = advect(std::min(0.33333f, (float)remaining));
 			t += (double)timeStep;
-			relax();
+			if (resampleEnabled) {
+				relax();
+			}
 			updateUnsignedLevelSet();
 			for (int i = 0;i < evolveIterations;i++) {
 				updateSignedLevelSet();
 			}
-			oldPoints = contour.points;
-			oldCorrespondences = contour.correspondence;
-			contract();
-			updateNearestNeighbors();
-			int fillCount = 0;
-			do {
-				updateUnsignedLevelSet();
-				fillCount=fill();
-				relax();
-			} while (fillCount > 0); //Continue filling until all gaps are closed
-			contour.updateNormals();
-			contour.setDirty(true);
-			updateTracking();
+			if (resampleEnabled) {
+				oldPoints = contour.points;
+				oldCorrespondences = contour.correspondence;
+				contract();
+				updateNearestNeighbors();	
+				int fillCount = 0;
+				do {
+					updateUnsignedLevelSet();
+					fillCount=fill();
+					relax();
+				} while (fillCount > 0); //Continue filling until all gaps are closed
+				contour.updateNormals();
+				contour.setDirty(true);
+				updateTracking();
+			}else {
+				std::lock_guard<std::mutex> lockMe(contourLock);
+				isoContour.solve(levelSet, contour.vertexes, contour.indexes, 0.0f, (preserveTopology) ? TopologyRule2D::Connect4 : TopologyRule2D::Unconstrained, Winding::Clockwise);
+				refineContour(false);
+				contour.updateNormals();
+				contour.setDirty(true);
+				updateIsoSurface = false;
+			}
 			remaining = mTimeStep - t;
 		} while (remaining > 1E-5f);
 		mSimulationTime += t;
@@ -723,5 +731,6 @@ namespace aly {
 
 	void SpringLevelSet2D::setup(const aly::ParameterPanePtr& pane) {
 		ActiveContour2D::setup(pane);
+		pane->addCheckBox("Re-sampling", resampleEnabled);
 	}
 }
