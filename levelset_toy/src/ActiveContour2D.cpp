@@ -85,10 +85,9 @@ namespace aly {
 
 
 	void ActiveContour2D::setup(const aly::ParameterPanePtr& pane){
-
 		pane->addNumberField("Target Pressure", targetPressureParam, Float(0.0f), Float(1.0f));
-		pane->addNumberField("Advection Weight", advectionParam, Float(-4.0f), Float(4.0f));
-		pane->addNumberField("Pressure Weight", pressureParam, Float(-4.0f), Float(4.0f));
+		pane->addNumberField("Pressure Weight", pressureParam, Float(-2.0f), Float(2.0f));
+		pane->addNumberField("Advection Weight", advectionParam, Float(-1.0f), Float(1.0f));
 		pane->addNumberField("Curvature Weight", curvatureParam, Float(0.0f), Float(4.0f));
 		pane->addCheckBox("Preserve Topology", preserveTopology);
 		pane->addCheckBox("Clamp Speed",clampSpeed);
@@ -103,7 +102,6 @@ namespace aly {
 		mSimulationIteration=0;
 		mSimulationTime=0;
 		mTimeStep=1.0f;
-		
 		levelSet.resize(dims.x, dims.y);
 		swapLevelSet.resize(dims.x, dims.y);
 #pragma omp parallel for
@@ -112,9 +110,7 @@ namespace aly {
 			levelSet[i] = val;
 			swapLevelSet[i] = val;
 		}
-		if (pressureImage.size() != 0) {
-			rescale(pressureImage);
-		}
+
 		rebuildNarrowBand();
 		updateIsoSurface = true;
 		if (cache.get() != nullptr) {

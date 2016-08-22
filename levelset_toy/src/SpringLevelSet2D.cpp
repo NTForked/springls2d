@@ -101,7 +101,7 @@ namespace aly {
 		float2x2 S(float2(sx,0.0f),float2(0.0f,sy));
 		return U*S*Vt;
 	}
-	SpringLevelSet2D::SpringLevelSet2D(const std::shared_ptr<SpringlCache2D>& cache) :ActiveContour2D("Spring Level Set 2D", cache), resampleEnabled(false){
+	SpringLevelSet2D::SpringLevelSet2D(const std::shared_ptr<SpringlCache2D>& cache) :ActiveContour2D("Spring Level Set 2D", cache), resampleEnabled(true){
 	}
 	void SpringLevelSet2D::setSpringls(const Vector2f& particles, const Vector2f& points) {
 		contour.particles = particles;
@@ -678,7 +678,6 @@ return -(v11*grad / len);
 	}
 	bool SpringLevelSet2D::init() {
 		ActiveContour2D::init();
-
 		refineContour(true);
 		contour.points.clear();
 		contour.particles.clear();
@@ -726,7 +725,7 @@ return -(v11*grad / len);
 		return true;
 	}
 	void SpringLevelSet2D::relax() {
-		const int maxIterations = 8;
+		const int maxIterations = 4;
 		const float timeStep = 0.1f;
 		updateNearestNeighbors();
 		for (int i = 0;i < maxIterations;i++) {

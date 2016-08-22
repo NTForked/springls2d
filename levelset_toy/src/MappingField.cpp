@@ -91,13 +91,13 @@ namespace aly {
 		}
 		SolveVecBICGStab(b, A, x, src.width, 1E-10f);
 		vectorField.set(x.data);
-		const float minSpeed = 1E-6f;
+		const float minSpeed = 0.1f;
 		const float captureDist = 1.5f;
 		if (normalize) {
 			for (int i = 0;i < src.width;i++) {
 				for (int j = 0;j < src.height;j++) {
 					float d = std::abs(src(i, j).x);
-					vectorField(i,j) = aly::normalize(vectorField(i,j))*(minSpeed +(1.0f- minSpeed)*clamp(d,0.0f, captureDist)/ captureDist);
+					vectorField(i, j) = aly::normalize(vectorField(i, j))*(minSpeed + (1.0f - minSpeed)*clamp(d, 0.0f, captureDist) / captureDist);
 				}
 			}
 		}

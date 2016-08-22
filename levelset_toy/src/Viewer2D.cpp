@@ -89,7 +89,7 @@ void Viewer2D::createRotationField(aly::Image2f& vecField, int w, int h) {
 	float r = std::max(0.5f*w, 0.5f*h);
 	for (int i = 0;i < w;i++) {
 		for (int j = 0;j < h;j++) {
-			float2 diff = (float2(i, j) - center)/r;
+			float2 diff = (float2((float)i, (float)j) - center)/r;
 			vecField(i, j) = float2(-diff.y, diff.x);
 		}
 	}
@@ -99,7 +99,7 @@ bool Viewer2D::init(Composite& rootNode) {
 	int h = 128;
 	Image1f distField;
 	float maxDistance = 32;
-	createTextLevelSet(distField, gray, w, h, "A",100.0f*w/128.0f, maxDistance);
+	createTextLevelSet(distField, gray, w, h, "A",100.0f, maxDistance);
 	ConvertImage(gray, img);
 	cache = std::shared_ptr<SpringlCache2D>(new SpringlCache2D());
 	simulation = std::shared_ptr<ActiveContour2D>(new SpringLevelSet2D(cache));
@@ -118,7 +118,7 @@ bool Viewer2D::init(Composite& rootNode) {
 	SolveGradientVectorFlow(distField, vecField,true);
 	//createRotationField(vecField, w, h);
 	simulation->setInitialDistanceField(init);
-	simulation->setVectorField(vecField,1.0f);
+	simulation->setVectorField(vecField,0.9f);
 	simulation->setPressure(gray, 0.1f, 0.5f);
 	simulation->init();
 	parametersDirty = true;
@@ -182,7 +182,6 @@ bool Viewer2D::init(Composite& rootNode) {
 			timelineSlider->setMaxValue(maxIteration);
 			timelineSlider->setVisible(true);
 			context->addDeferredTask([this]() {
-				simulation->setPressure(gray, 1.0f);
 				simulation->init();
 				running = true;
 			});
