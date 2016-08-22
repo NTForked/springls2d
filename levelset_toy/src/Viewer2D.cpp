@@ -99,7 +99,7 @@ bool Viewer2D::init(Composite& rootNode) {
 	int h = 128;
 	Image1f distField;
 	float maxDistance = 32;
-	createTextLevelSet(distField, gray, w, h, "A",100.0f, maxDistance);
+	createTextLevelSet(distField, gray, w, h, "A",196.0f, maxDistance);
 	ConvertImage(gray, img);
 	cache = std::shared_ptr<SpringlCache2D>(new SpringlCache2D());
 	simulation = std::shared_ptr<ActiveContour2D>(new SpringLevelSet2D(cache));
@@ -114,7 +114,7 @@ bool Viewer2D::init(Composite& rootNode) {
 			timelineSlider->setTimeValue((int)simulation->getSimulationIteration());
 		});
 	};
-	Image1f init = createCircleLevelSet(w, h, float2(0.5f*w, 0.5f*h), std::min(w, h)*0.25f);
+	Image1f init = createCircleLevelSet(w, h, float2(0.5f*w, 0.5f*h), std::min(w, h)*0.35f);
 	SolveGradientVectorFlow(distField, vecField,true);
 	//createRotationField(vecField, w, h);
 	simulation->setInitialDistanceField(init);
