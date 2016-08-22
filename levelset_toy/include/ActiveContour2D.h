@@ -74,7 +74,9 @@ namespace aly {
 	public:
 		ActiveContour2D(const std::shared_ptr<SpringlCache2D>& cache=nullptr);
 		ActiveContour2D(const std::string& name,const std::shared_ptr<SpringlCache2D>& cache = nullptr);
-
+		void setCurvature(float c) {
+			curvatureParam.setValue(c);
+		}
 		void setPressure(const Image1f& img, float weight, float target) {
 			pressureParam.setValue(weight);
 			targetPressureParam.setValue(target);

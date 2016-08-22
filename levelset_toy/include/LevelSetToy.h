@@ -19,8 +19,8 @@
  * THE SOFTWARE.
  */
 
-#ifndef VIEWER2D_H_
-#define VIEWER2D_H_
+#ifndef LevelSetToy_H_
+#define LevelSetToy_H_
 
 #include "AlloyApplication.h"
 #include "AlloyVector.h"
@@ -29,8 +29,9 @@
 #include "AlloyTimeline.h"
 #include "Simulation.h"
 #include "SpringlCache2D.h"
-class Viewer2D: public aly::Application {
+class LevelSetToy: public aly::Application {
 protected:
+	int example;
 	aly::Image1f gray;
 	aly::ImageRGBA img;
 	bool parametersDirty;
@@ -56,7 +57,7 @@ protected:
 	void createTextLevelSet(aly::Image1f& levelSet,aly::Image1f& gray,int w,int h,const std::string& text,float textSize,float maxDistance);
 public:
 	std::shared_ptr<aly::SpringlCache2D> cache;
-	Viewer2D();
+	LevelSetToy(int example);
 	virtual void draw(aly::AlloyContext* context) override;
 	bool init(aly::Composite& rootNode);
 

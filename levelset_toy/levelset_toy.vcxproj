@@ -153,7 +153,7 @@
     <ClInclude Include="include\Simulation.h" />
     <ClInclude Include="include\SpringlCache2D.h" />
     <ClInclude Include="include\SpringLevelSet2D.h" />
-    <ClInclude Include="include\Viewer2D.h" />
+    <ClInclude Include="include\LevelSetToy.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\ActiveContour2D.cpp" />
@@ -164,7 +164,7 @@
     <ClCompile Include="src\Simulation.cpp" />
     <ClCompile Include="src\SpringlCache2D.cpp" />
     <ClCompile Include="src\SpringLevelSet2D.cpp" />
-    <ClCompile Include="src\Viewer2D.cpp" />
+    <ClCompile Include="src\LevelSetToy.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

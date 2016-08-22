@@ -18,40 +18,18 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#include "Viewer2D.h"
- /*
-  * Copyright(C) 2015, Blake C. Lucas, Ph.D. (img.science@gmail.com)
-  *
-  * Permission is hereby granted, free of charge, to any person obtaining a copy
-  * of this software and associated documentation files (the "Software"), to deal
-  * in the Software without restriction, including without limitation the rights
-  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-  * copies of the Software, and to permit persons to whom the Software is
-  * furnished to do so, subject to the following conditions:
-  * The above copyright notice and this permission notice shall be included in
-  * all copies or substantial portions of the Software.
-  *
-  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-  * THE SOFTWARE.
-  */
-
 #include "Alloy.h"
-#include "Viewer2D.h"
+#include "LevelSetToy.h"
 #include "AlloyDistanceField.h"
 #include "AlloyIsoContour.h"
 #include "SpringLevelSet2D.h"
 #include "MappingField.h"
 using namespace aly;
 
-Viewer2D::Viewer2D() :
-	Application(1300, 1000, "Level Set Segmenation Toy", false), currentIso(0.0f) {
+LevelSetToy::LevelSetToy(int example) :
+	Application(1300, 1000, "Level Set Segmenation Toy", false), currentIso(0.0f),example(example) {
 }
-void Viewer2D::createTextLevelSet(aly::Image1f& distField, aly::Image1f& gray, int w, int h, const std::string& text, float textSize, float maxDistance) {
+void LevelSetToy::createTextLevelSet(aly::Image1f& distField, aly::Image1f& gray, int w, int h, const std::string& text, float textSize, float maxDistance) {
 	GLFrameBuffer renderBuffer;
 	//Render text to image
 	NVGcontext* nvg = getContext()->nvgContext;
@@ -73,7 +51,7 @@ void Viewer2D::createTextLevelSet(aly::Image1f& distField, aly::Image1f& gray, i
 	df.solve(gray, distField, maxDistance);
 	gray = (-gray + float1(0.5f));
 }
-aly::Image1f Viewer2D::createCircleLevelSet(int w, int h, float2 center, float r) {
+aly::Image1f LevelSetToy::createCircleLevelSet(int w, int h, float2 center, float r) {
 	aly::Image1f levelSet(w, h);
 	for (int j = 0; j < h; j++) {
 		for (int i = 0; i < w; i++) {
@@ -83,7 +61,7 @@ aly::Image1f Viewer2D::createCircleLevelSet(int w, int h, float2 center, float r
 	}
 	return levelSet;
 }
-void Viewer2D::createRotationField(aly::Image2f& vecField, int w, int h) {
+void LevelSetToy::createRotationField(aly::Image2f& vecField, int w, int h) {
 	vecField.resize(w, h);
 	float2 center = float2(0.5f*w, 0.5f*h);
 	float r = std::max(0.5f*w, 0.5f*h);
@@ -94,7 +72,7 @@ void Viewer2D::createRotationField(aly::Image2f& vecField, int w, int h) {
 		}
 	}
 }
-bool Viewer2D::init(Composite& rootNode) {
+bool LevelSetToy::init(Composite& rootNode) {
 	int w = 128;
 	int h = 128;
 	Image1f distField;
@@ -102,7 +80,14 @@ bool Viewer2D::init(Composite& rootNode) {
 	createTextLevelSet(distField, gray, w, h, "A",196.0f, maxDistance);
 	ConvertImage(gray, img);
 	cache = std::shared_ptr<SpringlCache2D>(new SpringlCache2D());
-	simulation = std::shared_ptr<ActiveContour2D>(new SpringLevelSet2D(cache));
+	if (example == 0) {
+		simulation = std::shared_ptr<ActiveContour2D>(new ActiveContour2D(cache));
+		simulation->setCurvature(2.0f);
+	}
+	else {
+		simulation = std::shared_ptr<ActiveContour2D>(new SpringLevelSet2D(cache));
+		simulation->setCurvature(0.1f);
+	}
 	simulation->onUpdate = [this](uint64_t iteration, bool lastIteration) {
 		if (lastIteration || iteration == timelineSlider->getMaxValue().toInteger()) {
 			stopButton->setVisible(false);
@@ -119,7 +104,7 @@ bool Viewer2D::init(Composite& rootNode) {
 	//createRotationField(vecField, w, h);
 	simulation->setInitialDistanceField(init);
 	simulation->setVectorField(vecField,0.9f);
-	simulation->setPressure(gray, 0.1f, 0.5f);
+	simulation->setPressure(gray, 0.01f, 0.5f);
 	simulation->init();
 	parametersDirty = true;
 	frameBuffersDirty = true;
@@ -501,7 +486,7 @@ bool Viewer2D::init(Composite& rootNode) {
 	viewRegion->add(resizeableRegion);
 	return true;
 }
-void Viewer2D::draw(AlloyContext* context) {
+void LevelSetToy::draw(AlloyContext* context) {
 	if (running) {
 		if (!simulation->step()) {
 			running = false;

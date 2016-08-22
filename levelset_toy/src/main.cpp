@@ -18,12 +18,24 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#include "Viewer2D.h"
+#include "LevelSetToy.h"
 int main(int argc, char *argv[]) {
 	std::string filePath;
 	try {
-		Viewer2D app;
-		app.run();
+		if(argc==1){
+			std::cout << "Usage: " << argv[0]<< " [example index]\nToy Examples:"<< std::endl;
+			std::cout << "[0] Original Level Set" << std::endl;
+			std::cout << "[1] Spring Level Set" << std::endl;
+			std::cout << ">> Enter Example Number: ";
+			int index = -1;
+			std::cin >> index;
+			LevelSetToy app(index);
+			app.run();
+		}
+		else {
+			LevelSetToy app(std::atoi(argv[1]));
+			app.run();
+		}
 		return 0;
 	} catch (std::exception& e) {
 		std::cout << "Main Error: " << e.what() << std::endl;
