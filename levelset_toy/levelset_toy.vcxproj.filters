@@ -33,13 +33,13 @@
     <ClInclude Include="include\ContourShaders.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\MappingField.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="include\LevelSetToy.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\SpringlsSecondOrder.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\GradientVectorFlow.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -65,13 +65,13 @@
     <ClCompile Include="src\ContourShaders.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\MappingField.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\LevelSetToy.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\SpringlsSecondOrder.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\GradientVectorFlow.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

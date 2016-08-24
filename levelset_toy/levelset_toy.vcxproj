@@ -149,7 +149,7 @@
     <ClInclude Include="include\ActiveContour2D.h" />
     <ClInclude Include="include\Contour2D.h" />
     <ClInclude Include="include\ContourShaders.h" />
-    <ClInclude Include="include\MappingField.h" />
+    <ClInclude Include="include\GradientVectorFlow.h" />
     <ClInclude Include="include\Simulation.h" />
     <ClInclude Include="include\SpringlCache2D.h" />
     <ClInclude Include="include\SpringLevelSet2D.h" />
@@ -161,7 +161,7 @@
     <ClCompile Include="src\Contour2D.cpp" />
     <ClCompile Include="src\ContourShaders.cpp" />
     <ClCompile Include="src\main.cpp" />
-    <ClCompile Include="src\MappingField.cpp" />
+    <ClCompile Include="src\GradientVectorFlow.cpp" />
     <ClCompile Include="src\Simulation.cpp" />
     <ClCompile Include="src\SpringlCache2D.cpp" />
     <ClCompile Include="src\SpringLevelSet2D.cpp" />

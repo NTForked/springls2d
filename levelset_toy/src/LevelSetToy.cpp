@@ -24,7 +24,7 @@
 #include "AlloyIsoContour.h"
 #include "SpringLevelSet2D.h"
 #include "SpringlsSecondOrder.h"
-#include "MappingField.h"
+#include "GradientVectorFlow.h"
 using namespace aly;
 
 LevelSetToy::LevelSetToy(int example) :

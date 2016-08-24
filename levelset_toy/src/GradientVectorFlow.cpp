@@ -18,7 +18,7 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 * THE SOFTWARE.
 */
-#include "MappingField.h"
+#include "GradientVectorFlow.h"
 #include <AlloySparseSolve.h>
 namespace aly {
 	void SolveGradientVectorFlow(const Image1f& src, Image2f& vectorField,bool normalize) {
