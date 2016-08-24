@@ -18,31 +18,27 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#include "LevelSetToy.h"
-int main(int argc, char *argv[]) {
-	std::string filePath;
-	try {
-		if(argc==1){
-			std::cout << "Usage: " << argv[0]<< " [example index]\nToy Examples:"<< std::endl;
-			std::cout << "[0] Original Level Set" << std::endl;
-			std::cout << "[1] Spring Level Set" << std::endl;
-			std::cout << "[2] Second Order Spring Level Set" << std::endl;
-			std::cout << ">> Enter Example Number: ";
-			int index = -1;
-			std::cin >> index;
-			LevelSetToy app(index);
-			app.run();
-		}
-		else {
-			LevelSetToy app(std::atoi(argv[1]));
-			app.run();
-		}
-		return 0;
-	} catch (std::exception& e) {
-		std::cout << "Main Error: " << e.what() << std::endl;
-		std::getchar();
-		return 1;
-	}
 
+#ifndef INCLUDE_SPRINGLSSECONDORDER_H_
+#define INCLUDE_SPRINGLSSECONDORDER_H_
+#include "ActiveContour2D.h"
+#include "Simulation.h"
+#include "SpringlCache2D.h"
+#include "ContourShaders.h"
+#include "AlloyLocator.h"
+#include "SpringLevelSet2D.h"
+namespace aly {
+	class SpringlsSecondOrder : public SpringLevelSet2D{
+
+	protected:
+		virtual void computeForce(size_t idx, float2& p1, float2& p2, float2& p) override;
+
+
+	public:
+
+		SpringlsSecondOrder(const std::shared_ptr<SpringlCache2D>& cache = nullptr);
+
+	};
 }
 
+#endif /* INCLUDE_SpringlsSecondOrder_H_ */

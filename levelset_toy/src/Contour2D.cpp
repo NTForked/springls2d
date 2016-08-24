@@ -27,12 +27,15 @@
 
 namespace aly {
 
-	Contour2D::Contour2D(bool onScreen, const std::shared_ptr<AlloyContext>& context):onScreen(onScreen),context(context),vao(0),vertexBuffer(0),dirty(false) , vertexCount(0){
+	Contour2D::Contour2D(bool onScreen, const std::shared_ptr<AlloyContext>& context) :onScreen(onScreen), context(context), vao(0), vertexBuffer(0), particleBuffer(0),dirty(false), vertexCount(0) {
 	}
 	Contour2D::~Contour2D() {
 		context->begin(onScreen);
 		if (glIsBuffer(vertexBuffer) == GL_TRUE)
 			glDeleteBuffers(1, &vertexBuffer);
+		if (glIsBuffer(particleBuffer) == GL_TRUE)
+			glDeleteBuffers(1, &particleBuffer);
+
 		if (vao != 0)
 			glDeleteVertexArrays(1, &vao);
 		context->end();
@@ -48,7 +51,13 @@ namespace aly {
 			glEnableVertexAttribArray(0);
 			glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
 			glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, 0);
+
+			glEnableVertexAttribArray(1);
+			glBindBuffer(GL_ARRAY_BUFFER, particleBuffer);
+			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, 0);
+
 			glDrawArrays(GL_POINTS, 0, (GLsizei)(points.size()/2));
+			glDisableVertexAttribArray(1);
 			glDisableVertexAttribArray(0);
 			glBindBuffer(GL_ARRAY_BUFFER, 0);
 		}
@@ -77,6 +86,23 @@ namespace aly {
 			if (glIsBuffer(vertexBuffer) == GL_TRUE)
 				glDeleteBuffers(1, &vertexBuffer);
 			vertexCount = 0;
+		}
+		if (particles.size() > 0) {
+			if (vertexCount != particles.size()) {
+				if (glIsBuffer(particleBuffer) == GL_TRUE)
+					glDeleteBuffers(1, &particleBuffer);
+				glGenBuffers(1, &particleBuffer);
+			}
+			glBindBuffer(GL_ARRAY_BUFFER, particleBuffer);
+			if (glIsBuffer(particleBuffer) == GL_FALSE)
+				throw std::runtime_error("Error: Unable to create vertex buffer");
+			glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 2* particles.size(),
+				particles.ptr(), GL_STATIC_DRAW);
+			glBindBuffer(GL_ARRAY_BUFFER, 0);
+		}
+		else {
+			if (glIsBuffer(particleBuffer) == GL_TRUE)
+				glDeleteBuffers(1, &particleBuffer);
 		}
 		context->end();
 		dirty = false;

@@ -34,6 +34,7 @@ namespace aly {
 		std::string file;
 		GLuint vao;
 		GLuint vertexBuffer;
+		GLuint particleBuffer;
 		int vertexCount;
 		bool dirty;
 		bool onScreen;

@@ -25,13 +25,16 @@ UnsignedDistanceShader::UnsignedDistanceShader(bool onScreen,
 	initialize({},
 		R"(	#version 330
 				layout(location = 0) in vec4 vp;
+				layout(location = 1) in vec2 pp;
 				out LINE {
 					vec2 p0;
 					vec2 p1;
+					vec2 pt;
 				} line;
 				void main() {
 					line.p0=vp.xy+vec2(0.5);
 					line.p1=vp.zw+vec2(0.5);
+					line.pt=pp+vec2(0.5);
 				})",
 		R"(	#version 330
 				uniform int width;
@@ -74,6 +77,7 @@ UnsignedDistanceShader::UnsignedDistanceShader(bool onScreen,
 					in LINE {
 						vec2 p0;
 						vec2 p1;
+						vec2 pt;
 					} line[];
 					out vec2 p0;
 					out vec2 p1;
@@ -81,10 +85,13 @@ UnsignedDistanceShader::UnsignedDistanceShader(bool onScreen,
 					void main() {
 					  vec4 q=vec4(0.0,0.0,1.0,1.0);
 					  vec2 scale=vec2(2.0/float(width),2.0/float(height));
+					  vec2 tan;
+					  vec2 norm;
 					  p0=line[0].p0;
-					  p1=line[0].p1;
-					  vec2 tan=normalize(p1-p0);	
-					  vec2 norm=vec2(-tan.y,tan.x);
+					  p1=line[0].pt;
+
+					  tan=normalize(p1-p0);	
+					  norm=vec2(-tan.y,tan.x);
 
 					  pos=(p0+(-norm-tan)*max_distance);
 					  q.xy=scale*pos-vec2(1.0);
@@ -107,6 +114,33 @@ UnsignedDistanceShader::UnsignedDistanceShader(bool onScreen,
 					  EmitVertex();
 					
 					  EndPrimitive();
+
+					  p0=line[0].pt;
+					  p1=line[0].p1;
+					  tan=normalize(p1-p0);	
+					  norm=vec2(-tan.y,tan.x);
+					  pos=(p0+(-norm-tan)*max_distance);
+					  q.xy=scale*pos-vec2(1.0);
+					  gl_Position=q;
+					  EmitVertex();
+
+					  pos=(p0+(norm-tan)*max_distance);
+					  q.xy=scale*pos-vec2(1.0);
+					  gl_Position=q;
+					  EmitVertex();
+
+				      pos=(p1+(-norm+tan)*max_distance); 
+					  q.xy=scale*pos-vec2(1.0);
+					  gl_Position=q;
+					  EmitVertex();
+
+					  pos=(p1+(norm+tan)*max_distance); 
+					  q.xy=scale*pos-vec2(1.0);
+					  gl_Position=q;
+					  EmitVertex();
+					
+					  EndPrimitive();
+
 		})");
 }
 void UnsignedDistanceShader::init(int width, int height) {

@@ -64,7 +64,7 @@ namespace aly {
 		float2 getScaledGradientValue(int i, int j);
 		float2 getScaledGradientValue(float i, float j,bool signedIso);
 		void distanceFieldMotion(int i, int j, size_t index);
-		void computeForce(size_t idx, float2& p1, float2& p2, float2& p);
+		virtual void computeForce(size_t idx, float2& p1, float2& p2, float2& p);
 		void relax(size_t idx, float timeStep, float2& f1, float2& f2);
 		std::shared_ptr<UnsignedDistanceShader> unsignedShader;
 		bool resampleEnabled;

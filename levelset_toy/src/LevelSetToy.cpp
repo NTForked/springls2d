@@ -23,6 +23,7 @@
 #include "AlloyDistanceField.h"
 #include "AlloyIsoContour.h"
 #include "SpringLevelSet2D.h"
+#include "SpringlsSecondOrder.h"
 #include "MappingField.h"
 using namespace aly;
 
@@ -77,16 +78,22 @@ bool LevelSetToy::init(Composite& rootNode) {
 	int h = 128;
 	Image1f distField;
 	float maxDistance = 32;
-	createTextLevelSet(distField, gray, w, h, "A",196.0f, maxDistance);
+	createTextLevelSet(distField, gray, w, h, "A", 196.0f, maxDistance);
 	ConvertImage(gray, img);
 	cache = std::shared_ptr<SpringlCache2D>(new SpringlCache2D());
 	if (example == 0) {
 		simulation = std::shared_ptr<ActiveContour2D>(new ActiveContour2D(cache));
 		simulation->setCurvature(2.0f);
 	}
-	else {
+	else if(example==1){
 		simulation = std::shared_ptr<ActiveContour2D>(new SpringLevelSet2D(cache));
 		simulation->setCurvature(0.1f);
+	} else if(example==2){
+		simulation = std::shared_ptr<ActiveContour2D>(new SpringlsSecondOrder(cache));
+		simulation->setCurvature(0.1f);
+	}
+	else {
+		return false;
 	}
 	simulation->onUpdate = [this](uint64_t iteration, bool lastIteration) {
 		if (lastIteration || iteration == timelineSlider->getMaxValue().toInteger()) {
@@ -372,6 +379,12 @@ bool LevelSetToy::init(Composite& rootNode) {
 				pt = pt*bounds.dimensions + bounds.position;
 				nvgBeginPath(nvg);
 				nvgMoveTo(nvg, pt.x, pt.y);
+
+				pt = contour->particles[n/2] + float2(0.5f);
+				pt.x = pt.x / (float)img.width;
+				pt.y = pt.y / (float)img.height;
+				pt = pt*bounds.dimensions + bounds.position;
+				nvgLineTo(nvg, pt.x, pt.y);
 
 				pt = contour->points[n + 1] + float2(0.5f);
 				pt.x = pt.x / (float)img.width;
