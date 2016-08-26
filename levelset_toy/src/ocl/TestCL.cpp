@@ -50,23 +50,5 @@ void SANITY_CHECK_OPENCL(){
 	std::cout<<"GPU Result=\n"<<vecInput<<std::endl;
 	CLDestroy();
 }
-int main(int argc, char *argv[]) {
-	std::shared_ptr<aly::AlloyContext>& context = aly::AlloyContext::getDefaultContext();
-	if (context.get() == nullptr) {
-		context.reset(new aly::AlloyContext(1920, 1080, "OpenCL"));
-	}
-	context->addAssetDirectory("kernels/");
-	try {
-		SANITY_CHECK_OPENCL();
-	} catch(aly::ocl_runtime_error& e){
-		std::cout<<e.what()<<std::endl;
-		return 1;
-	} catch(std::exception& e){
-		std::cout<<"Error: "<<e.what()<<std::endl;
-		return 1;
-	}
 
-	context.reset();
-	return 0;
-}
 
