@@ -19,23 +19,38 @@
  * THE SOFTWARE.
  */
 #include "LevelSetToy.h"
+#include "MultiLevelSetToy.h"
 int main(int argc, char *argv[]) {
 	std::string filePath;
+	int index = -1;
 	try {
 		if(argc==1){
 			std::cout << "Usage: " << argv[0]<< " [example index]\nToy Examples:"<< std::endl;
 			std::cout << "[0] Original Level Set" << std::endl;
 			std::cout << "[1] Spring Level Set" << std::endl;
 			std::cout << "[2] Second Order Spring Level Set" << std::endl;
+			std::cout << "[3] Multi-Object Level Set" << std::endl;
 			std::cout << ">> Enter Example Number: ";
-			int index = -1;
 			std::cin >> index;
-			LevelSetToy app(index);
-			app.run();
+			if (index < 3) {
+				LevelSetToy app(index);
+				app.run();
+			}
+			else {
+				MultiLevelSetToy app(0);
+				app.run();
+			}
 		}
 		else {
-			LevelSetToy app(std::atoi(argv[1]));
-			app.run();
+			index = std::atoi(argv[1]);
+			if (index < 3) {
+				LevelSetToy app(index);
+				app.run();
+			}
+			else {
+				MultiLevelSetToy app(0);
+				app.run();
+			}
 		}
 		return 0;
 	} catch (std::exception& e) {

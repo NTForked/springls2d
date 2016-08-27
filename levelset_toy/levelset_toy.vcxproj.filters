@@ -42,6 +42,12 @@
     <ClInclude Include="include\GradientVectorFlow.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\MultiActiveContour2D.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\MultiLevelSetToy.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\ActiveContour2D.cpp">
@@ -72,6 +78,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\GradientVectorFlow.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\MultiActiveContour2D.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\MultiLevelSetToy.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
