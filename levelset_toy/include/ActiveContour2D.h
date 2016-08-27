@@ -50,7 +50,6 @@ namespace aly {
 		Image1f initialLevelSet;
 		Image1f levelSet;
 		Image1f swapLevelSet;
-		Image1f referenceLevelSet;
 		Image1f pressureImage;
 		Image2f vecFieldImage;
 		std::vector<float> deltaLevelSet;
@@ -81,6 +80,7 @@ namespace aly {
 			pressureParam.setValue(weight);
 			targetPressureParam.setValue(target);
 			pressureImage = img;
+			rescale(pressureImage);
 		}
 		void setPressure(const Image1f& img, float weight) {
 			pressureParam.setValue(weight);
@@ -103,9 +103,6 @@ namespace aly {
 
 		void setInitialDistanceField(const Image1f& img) {
 			initialLevelSet = img;
-		}
-		void setReferenceDistanceField(const Image1f& img) {
-			referenceLevelSet = img;
 		}
 	};
 }

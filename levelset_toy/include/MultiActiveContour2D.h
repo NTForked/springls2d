@@ -48,9 +48,11 @@ namespace aly {
 		const int maxLayers = 3;
 		bool updateIsoSurface;
 		Image1f initialLevelSet;
+		Image1i initialLabels;
 		Image1f levelSet;
+		Image1i labelImage;
 		Image1f swapLevelSet;
-		Image1f referenceLevelSet;
+		Image1i swapLabelImage;
 		Image1f pressureImage;
 		Image2f vecFieldImage;
 		std::vector<float> deltaLevelSet;
@@ -68,7 +70,6 @@ namespace aly {
 		int addElements();
 		float evolve(float maxStep);
 		void rebuildNarrowBand();
-
 		void applyForcesTopoRule(int i, int j, int offset, size_t index, float timeStep);
 		virtual bool stepInternal() override;
 	public:
@@ -81,6 +82,7 @@ namespace aly {
 			pressureParam.setValue(weight);
 			targetPressureParam.setValue(target);
 			pressureImage = img;
+			rescale(pressureImage);
 		}
 		void setPressure(const Image1f& img, float weight) {
 			pressureParam.setValue(weight);
@@ -96,17 +98,14 @@ namespace aly {
 			vecFieldImage = img;
 		}
 		Contour2D* getContour();
-
 		virtual bool init()override;
 		virtual void cleanup() override;
 		virtual void setup(const aly::ParameterPanePtr& pane) override;
-
-		void setInitialDistanceField(const Image1f& img) {
+		void setInitialDistanceField(const Image1f& img,const Image1i& labels) {
 			initialLevelSet = img;
+			initialLabels = labels;
 		}
-		void setReferenceDistanceField(const Image1f& img) {
-			referenceLevelSet = img;
-		}
+
 	};
 }
 

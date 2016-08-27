@@ -52,7 +52,7 @@ protected:
 	std::shared_ptr<aly::MultiActiveContour2D> simulation;
 	aly::IconButtonPtr playButton,stopButton;
     std::shared_ptr<aly::TimelineSlider> timelineSlider;
-	aly::Image1f createCircleLevelSet(int w,int h,aly::float2 center,float r);
+	void createCircleLevelSet(int w, int h, int rows, int cols, float r, aly::Image1f& levelset, aly::Image1i& labelImage);
 	void createRotationField(aly::Image2f& vecField, int w, int h);
 	void createTextLevelSet(aly::Image1f& levelSet,aly::Image1f& gray,int w,int h,const std::string& text,float textSize,float maxDistance);
 public:

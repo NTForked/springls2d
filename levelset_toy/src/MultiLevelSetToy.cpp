@@ -51,15 +51,32 @@ void MultiLevelSetToy::createTextLevelSet(aly::Image1f& distField, aly::Image1f&
 	df.solve(gray, distField, maxDistance);
 	gray = (-gray + float1(0.5f));
 }
-aly::Image1f MultiLevelSetToy::createCircleLevelSet(int w, int h, float2 center, float r) {
-	aly::Image1f levelSet(w, h);
+void MultiLevelSetToy::createCircleLevelSet(int w, int h,int rows,int cols,  float r, aly::Image1f& levelSet,aly::Image1i& labelImage) {
+	levelSet.resize(w, h);
+	labelImage.resize(w, h);
 	for (int j = 0; j < h; j++) {
 		for (int i = 0; i < w; i++) {
-			float l = distance(float2((float)i, (float)j), center) - r;
-			levelSet(i, j).x =l;
+			float minD = 2*r;
+			int label = 0;
+			for (int ii = 0;ii < rows;ii++) {
+				for (int jj = 0;jj < cols;jj++) {
+					float2 center =float2(w*((0.5f+ii) / (float)rows), h*((0.5f + jj) / (float)cols));
+					float l = distance(float2((float)i, (float)j), center) - r;
+					if (l < minD) {
+						minD = l;
+						if (l <= 0.0f) {
+							label = 1+ii + jj*rows;
+						}
+					}
+				}
+			}
+			labelImage(i, j).x = label;
+			levelSet(i, j).x = std::abs(minD);
 		}
 	}
-	return levelSet;
+	WriteImageToRawFile(GetDesktopDirectory() + ALY_PATH_SEPARATOR + "levelset.xml",levelSet);
+	WriteImageToRawFile(GetDesktopDirectory() + ALY_PATH_SEPARATOR + "label.xml", labelImage);
+
 }
 void MultiLevelSetToy::createRotationField(aly::Image2f& vecField, int w, int h) {
 	vecField.resize(w, h);
@@ -98,10 +115,13 @@ bool MultiLevelSetToy::init(Composite& rootNode) {
 			timelineSlider->setTimeValue((int)simulation->getSimulationIteration());
 		});
 	};
-	Image1f init = createCircleLevelSet(w, h, float2(0.5f*w, 0.5f*h), std::min(w, h)*0.35f);
+
+	Image1f initLevelSet;
+	Image1i initLabels;
+	createCircleLevelSet(w, h, 2,2, std::min(w, h)*0.15f,initLevelSet,initLabels);
 	SolveGradientVectorFlow(distField, vecField,true);
 	//createRotationField(vecField, w, h);
-	simulation->setInitialDistanceField(init);
+	simulation->setInitialDistanceField(initLevelSet,initLabels);
 	simulation->setVectorField(vecField,0.9f);
 	simulation->setPressure(gray, 0.01f, 0.5f);
 	simulation->init();
