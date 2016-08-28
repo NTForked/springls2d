@@ -26,7 +26,30 @@
 #include <cereal/archives/portable_binary.hpp>
 
 namespace aly {
-
+	void Contour2D::operator=(const Contour2D &c)
+	{
+		indexes = c.indexes;
+		vertexes = c.vertexes;
+		particles = c.particles;
+		points = c.points;
+		normals = c.normals;
+		velocities = c.velocities;
+		correspondence = c.correspondence;
+		vertexLabels = c.vertexLabels;
+		file = c.file;
+	}
+	Contour2D::Contour2D(const Contour2D& c)
+	{
+		indexes = c.indexes;
+		vertexes = c.vertexes;
+		particles = c.particles;
+		points = c.points;
+		normals = c.normals;
+		velocities = c.velocities;
+		correspondence = c.correspondence;
+		vertexLabels = c.vertexLabels;
+		file = c.file;
+	}
 	Contour2D::Contour2D(bool onScreen, const std::shared_ptr<AlloyContext>& context) :onScreen(onScreen), context(context), vao(0), vertexBuffer(0), particleBuffer(0),dirty(false), vertexCount(0) {
 	}
 	Contour2D::~Contour2D() {

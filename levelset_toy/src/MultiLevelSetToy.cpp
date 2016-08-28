@@ -125,6 +125,15 @@ bool MultiLevelSetToy::init(Composite& rootNode) {
 	simulation->setVectorField(vecField,0.9f);
 	simulation->setPressure(gray, 0.01f, 0.5f);
 	simulation->init();
+	{
+		int L = simulation->getNumLabels();
+		int CL = std::min(256, L);
+		lineColors.resize(L);
+		for (int l = 0;l < L;l++) {
+			HSV hsv = HSV((l%CL) / (float)CL, 0.7f, 0.7f);
+			lineColors[l] = HSVtoColor(hsv);
+		}
+	}
 	parametersDirty = true;
 	frameBuffersDirty = true;
 
@@ -141,7 +150,6 @@ bool MultiLevelSetToy::init(Composite& rootNode) {
 	lineWidth = Float(4.0f);
 	particleSize = Float(0.2f);
 
-	lineColor = Color(0.0f, 0.5f, 0.5f, 1.0f);
 	pointColor = Color(1.0f, 0.8f, 0.0f, 1.0f);
 	springlColor = Color(0.5f, 0.5f, 0.5f, 1.0f);
 	matchColor = Color(0.5f, 0.5f, 1.0f, 0.75f);
@@ -217,7 +225,6 @@ bool MultiLevelSetToy::init(Composite& rootNode) {
 	controls->addColorField("Particle", particleColor);
 	controls->addColorField("Point", pointColor);
 	controls->addColorField("Normal", normalColor);
-	controls->addColorField("Line", lineColor);
 	controls->addColorField("Correspondence", matchColor);
 	controls->addColorField("Vector Field", vecfieldColor);
 	timelineSlider = TimelineSliderPtr(
@@ -354,8 +361,7 @@ bool MultiLevelSetToy::init(Composite& rootNode) {
 				}
 			}
 		}
-		nvgFillColor(nvg, lineColor.toSemiTransparent(0.5f));
-		nvgStrokeColor(nvg, lineColor);
+
 		nvgStrokeWidth(nvg, lineWidth.toFloat());
 		for (int n = 0;n < (int)contour->indexes.size();n++) {
 			std::list<uint32_t> curve = contour->indexes[n];
@@ -363,6 +369,11 @@ bool MultiLevelSetToy::init(Composite& rootNode) {
 			nvgBeginPath(nvg);
 			bool firstTime = true;
 			for (uint32_t idx : curve) {
+				if (firstTime) {
+					int l = contour->vertexLabels[idx].x;
+					nvgFillColor(nvg, lineColors[l-1].toSemiTransparent(0.5f));
+					nvgStrokeColor(nvg, lineColors[l-1]);
+				}
 				float2 pt = contour->vertexes[idx] + float2(0.5f);
 				pt.x = pt.x / (float)img.width;
 				pt.y = pt.y / (float)img.height;

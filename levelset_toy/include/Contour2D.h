@@ -69,28 +69,8 @@ namespace aly {
 		{
 			archive( CEREAL_NVP(vertexes),CEREAL_NVP(indexes), CEREAL_NVP(particles), CEREAL_NVP(points),  CEREAL_NVP(normals), CEREAL_NVP(vertexLabels), CEREAL_NVP(correspondence));
 		}
-		void operator=(const Contour2D &c)
-		{
-			indexes = c.indexes;
-			vertexes = c.vertexes;
-			particles = c.particles;
-			points = c.points;
-			normals = c.normals;
-			velocities = c.velocities;
-			correspondence = c.correspondence;
-			file = c.file;
-		}
-		Contour2D(const Contour2D& c)
-		{
-			indexes = c.indexes;
-			vertexes = c.vertexes;
-			particles = c.particles;
-			points = c.points;
-			normals = c.normals;
-			velocities = c.velocities;
-			correspondence = c.correspondence;
-			file = c.file;
-		}
+		void operator=(const Contour2D &c);
+		Contour2D(const Contour2D& c);
 	};
 	void ReadContourFromFile(const std::string& file, Contour2D& contour);
 	void WriteContourToFile(const std::string& file, Contour2D& contour);
