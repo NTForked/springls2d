@@ -57,7 +57,9 @@ namespace aly {
 		Image1f pressureImage;
 		Image2f vecFieldImage;
 		std::vector<float> deltaLevelSet;
+		std::vector<int> objectIds;
 		std::vector<int2> activeList;
+		std::vector<int> forceIndexes;
 		std::mutex contourLock;
 		bool getBitValue(int i);
 		void rescale(aly::Image1f& pressureForce);
@@ -73,6 +75,8 @@ namespace aly {
 		void rebuildNarrowBand();
 		void applyForcesTopoRule(int i, int j, int offset, size_t index, float timeStep);
 		virtual bool stepInternal() override;
+		float getLevelSetValue(int i, int j, int l) const;
+		float getSwapLevelSetValue(int i, int j, int l) const;
 	public:
 		MultiActiveContour2D(const std::shared_ptr<SpringlCache2D>& cache=nullptr);
 		MultiActiveContour2D(const std::string& name,const std::shared_ptr<SpringlCache2D>& cache = nullptr);
@@ -101,6 +105,9 @@ namespace aly {
 		Contour2D* getContour();
 		int getNumLabels() const {
 			return (int)labelList.size();
+		}
+		int getLabel(int index) const {
+			return (int)labelList[index];
 		}
 		virtual bool init()override;
 		virtual void cleanup() override;

@@ -176,6 +176,7 @@ namespace aly {
 				points[vertexOffset +index] = split.second->pt2d;
 				vertexLabels[vertexOffset + index] = currentLabel;
 			}
+			if (pts.size() == 0)continue;
 			EdgeSplitPtr lastSplit = pts.front();
 			bool firstPass = true;
 			std::list<uint32_t> curvePath;

@@ -122,14 +122,15 @@ bool MultiLevelSetToy::init(Composite& rootNode) {
 	SolveGradientVectorFlow(distField, vecField,true);
 	//createRotationField(vecField, w, h);
 	simulation->setInitialDistanceField(initLevelSet,initLabels);
-	simulation->setVectorField(vecField,0.9f);
-	simulation->setPressure(gray, 0.01f, 0.5f);
+	simulation->setVectorField(vecField,0.1f);
+	simulation->setPressure(gray, 0.9f, 0.5f);
 	simulation->init();
 	{
 		int L = simulation->getNumLabels();
 		int CL = std::min(256, L);
-		lineColors.resize(L);
-		for (int l = 0;l < L;l++) {
+		
+		for (int i = 0;i < L;i++) {
+			int l = simulation->getLabel(i);
 			HSV hsv = HSV((l%CL) / (float)CL, 0.7f, 0.7f);
 			lineColors[l] = HSVtoColor(hsv);
 		}
@@ -371,8 +372,8 @@ bool MultiLevelSetToy::init(Composite& rootNode) {
 			for (uint32_t idx : curve) {
 				if (firstTime) {
 					int l = contour->vertexLabels[idx].x;
-					nvgFillColor(nvg, lineColors[l-1].toSemiTransparent(0.5f));
-					nvgStrokeColor(nvg, lineColors[l-1]);
+					nvgFillColor(nvg, lineColors[l].toSemiTransparent(0.5f));
+					nvgStrokeColor(nvg, lineColors[l]);
 				}
 				float2 pt = contour->vertexes[idx] + float2(0.5f);
 				pt.x = pt.x / (float)img.width;

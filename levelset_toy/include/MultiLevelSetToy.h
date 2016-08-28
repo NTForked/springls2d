@@ -41,7 +41,7 @@ protected:
 	aly::Image2f vecField;
 	aly::Number lineWidth;
 	aly::Number particleSize;
-	std::vector<aly::Color> lineColors;
+	std::map<int,aly::Color> lineColors;
 	aly::Color pointColor;
 	aly::Color particleColor;
 	aly::Color normalColor;
