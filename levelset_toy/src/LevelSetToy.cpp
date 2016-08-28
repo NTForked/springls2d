@@ -85,10 +85,11 @@ bool LevelSetToy::init(Composite& rootNode) {
 		simulation = std::shared_ptr<ActiveContour2D>(new ActiveContour2D(cache));
 		simulation->setCurvature(2.0f);
 	}
-	else if(example==1){
+	else if (example == 1) {
 		simulation = std::shared_ptr<ActiveContour2D>(new SpringLevelSet2D(cache));
 		simulation->setCurvature(0.1f);
-	} else if(example==2){
+	}
+	else if (example == 2) {
 		simulation = std::shared_ptr<ActiveContour2D>(new SpringlsSecondOrder(cache));
 		simulation->setCurvature(0.1f);
 	}
@@ -107,10 +108,10 @@ bool LevelSetToy::init(Composite& rootNode) {
 		});
 	};
 	Image1f init = createCircleLevelSet(w, h, float2(0.5f*w, 0.5f*h), std::min(w, h)*0.35f);
-	SolveGradientVectorFlow(distField, vecField,true);
+	SolveGradientVectorFlow(distField, vecField, true);
 	//createRotationField(vecField, w, h);
 	simulation->setInitialDistanceField(init);
-	simulation->setVectorField(vecField,0.9f);
+	simulation->setVectorField(vecField, 0.9f);
 	simulation->setPressure(gray, 0.01f, 0.5f);
 	simulation->init();
 	parametersDirty = true;
@@ -200,13 +201,15 @@ bool LevelSetToy::init(Composite& rootNode) {
 	simulation->setup(controls);
 	controls->addGroup("Visualization", true);
 	controls->addNumberField("Line Width", lineWidth, Float(1.0f), Float(20.0f), 6.0f);
-	controls->addNumberField("Particle Size", particleSize, Float(0.0f), Float(1.0f), 6.0f);
-	controls->addColorField("Element", springlColor);
-	controls->addColorField("Particle", particleColor);
-	controls->addColorField("Point", pointColor);
-	controls->addColorField("Normal", normalColor);
-	controls->addColorField("Line", lineColor);
-	controls->addColorField("Correspondence", matchColor);
+	if (example > 0) {
+		controls->addNumberField("Particle Size", particleSize, Float(0.0f), Float(1.0f), 6.0f);
+		controls->addColorField("Element", springlColor);
+		controls->addColorField("Particle", particleColor);
+		controls->addColorField("Point", pointColor);
+		controls->addColorField("Normal", normalColor);
+		controls->addColorField("Line", lineColor);
+		controls->addColorField("Correspondence", matchColor);
+	}
 	controls->addColorField("Vector Field", vecfieldColor);
 	timelineSlider = TimelineSliderPtr(
 		new TimelineSlider("Timeline", CoordPerPX(0.0f, 1.0f, 0.0f, -80.0f), CoordPerPX(1.0f, 0.0f, 0.0f, 80.0f), Integer(0), Integer(0), Integer(0)));

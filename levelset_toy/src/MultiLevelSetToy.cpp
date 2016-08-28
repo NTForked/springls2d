@@ -221,12 +221,14 @@ bool MultiLevelSetToy::init(Composite& rootNode) {
 	simulation->setup(controls);
 	controls->addGroup("Visualization", true);
 	controls->addNumberField("Line Width", lineWidth, Float(1.0f), Float(20.0f), 6.0f);
-	controls->addNumberField("Particle Size", particleSize, Float(0.0f), Float(1.0f), 6.0f);
-	controls->addColorField("Element", springlColor);
-	controls->addColorField("Particle", particleColor);
-	controls->addColorField("Point", pointColor);
-	controls->addColorField("Normal", normalColor);
-	controls->addColorField("Correspondence", matchColor);
+	if (example > 0) {
+		controls->addNumberField("Particle Size", particleSize, Float(0.0f), Float(1.0f), 6.0f);
+		controls->addColorField("Element", springlColor);	
+		controls->addColorField("Particle", particleColor);
+		controls->addColorField("Point", pointColor);
+		controls->addColorField("Normal", normalColor);
+		controls->addColorField("Correspondence", matchColor);
+	}
 	controls->addColorField("Vector Field", vecfieldColor);
 	timelineSlider = TimelineSliderPtr(
 		new TimelineSlider("Timeline", CoordPerPX(0.0f, 1.0f, 0.0f, -80.0f), CoordPerPX(1.0f, 0.0f, 0.0f, 80.0f), Integer(0), Integer(0), Integer(0)));
