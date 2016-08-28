@@ -74,8 +74,7 @@ void MultiLevelSetToy::createCircleLevelSet(int w, int h,int rows,int cols,  flo
 			levelSet(i, j).x = std::abs(minD);
 		}
 	}
-	WriteImageToRawFile(GetDesktopDirectory() + ALY_PATH_SEPARATOR + "levelset.xml",levelSet);
-	WriteImageToRawFile(GetDesktopDirectory() + ALY_PATH_SEPARATOR + "label.xml", labelImage);
+
 
 }
 void MultiLevelSetToy::createRotationField(aly::Image2f& vecField, int w, int h) {
