@@ -39,7 +39,7 @@ namespace aly {
 			}
 		}
 		deltaLevelSet.resize(5 * activeList.size(), 0.0f);
-		objectIds.resize(5 * activeList.size(), 0);
+		objectIds.resize(5 * activeList.size(), -1);
 	}
 	void MultiActiveContour2D::plugLevelSet(int i, int j, size_t index) {
 		int label = labelImage(i, j);
@@ -471,12 +471,12 @@ namespace aly {
 		return (int)(activeList.size() - sz);
 	}
 	void MultiActiveContour2D::applyForcesTopoRule(int i, int j, int offset, size_t gid, float timeStep) {
-		const int xShift[4] = { -1, 1, 0, 0 };
-		const int yShift[4] = { 0, 0,-1, 1 };
+		const int xShift[4] = { 0, 0, 1, 1 };
+		const int yShift[4] = { 0, 1, 0, 1 };
 		int xOff = xShift[offset];
 		int yOff = yShift[offset];
 		if (i % 2 != xOff || j % 2 != yOff)return;
-		if (swapLevelSet(i, j)>0.5f)return;
+		if (swapLevelSet(i, j).x>0.5f)return;
 		float minValue1 = 1E10f;
 		float minValue2 = 1E10f;
 		int minLabel1 = -1;
@@ -489,8 +489,7 @@ namespace aly {
 			mask = objectIds[5 * gid+l];
 			if (clampSpeed) {
 				delta = timeStep*clamp(deltaLevelSet[5 * gid+l], -1.0f, 1.0f);
-			}
-			else {
+			} else {
 				delta = timeStep*deltaLevelSet[5 * gid+l];
 			}
 			if (mask != -1) {
@@ -527,7 +526,7 @@ namespace aly {
 
 		if (minLabel2 >= 0) {
 			if (minValue1 == minValue2) {
-				labelImage(i,j).x = min(minLabel1, minLabel2);
+				labelImage(i,j).x = std::min(minLabel1, minLabel2);
 			}
 			else {
 				labelImage(i, j).x = minLabel1;
@@ -536,7 +535,7 @@ namespace aly {
 		}
 		else if (minValue1<1E10f) {
 			labelImage(i,j).x = minLabel1;
-			levelSet(i, j).x = fabs(minValue1);
+			levelSet(i, j).x = std::abs(minValue1);
 		}
 		
 	}
@@ -708,6 +707,7 @@ namespace aly {
 			timeStep = (float)(maxStep * ((maxDelta > maxSpeed) ? (maxSpeed / maxDelta) : maxSpeed));
 		}
 		contourLock.lock();
+
 		if (preserveTopology) {
 			for (int nn = 0; nn < 4; nn++) {
 #pragma omp parallel for
@@ -748,7 +748,7 @@ namespace aly {
 		int deleted = deleteElements();
 		int added = addElements();
 		deltaLevelSet.resize(5 * activeList.size(), 0.0f);
-		objectIds.resize(5 * activeList.size(), 0);
+		objectIds.resize(5 * activeList.size(), -1);
 		return timeStep;
 	}
 	bool MultiActiveContour2D::stepInternal() {

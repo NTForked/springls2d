@@ -359,7 +359,7 @@ namespace aly {
 				+ a2fVertex2Offset[mask[3]][1]);
 
 			EdgePtr edge = EdgePtr(new Edge(split1->vid, split2->vid));
-			// orient(*split1, *split2, edge);
+			//orient(*split1, *split2, edge);
 			if (split1->e1.get() == nullptr) {
 				split1->e1 = edge;
 			}
@@ -377,12 +377,12 @@ namespace aly {
 
 	}
 	void MultiIsoContour::processSquare(int x, int y, std::map<uint64_t, EdgeSplitPtr>& splits, std::list<EdgePtr>& edges) {
-		if (rule == TopologyRule2D::Unconstrained) {
+		//if (rule == TopologyRule2D::Unconstrained) {
 			processSquare1(x, y, splits, edges);
-		}
-		else {
-			processSquare2(x, y, splits, edges);
-		}
+		//}
+		//else {
+		//	processSquare2(x, y, splits, edges);
+		//}
 	}
 	/*
 	* Geometric Tools, LLC Copyright (c) 1998-2010 Distributed under the Boost
