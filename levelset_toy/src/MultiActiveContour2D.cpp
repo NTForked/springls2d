@@ -61,7 +61,7 @@ namespace aly {
 	Contour2D* MultiActiveContour2D::getContour() {
 		if (updateIsoSurface) {
 			std::lock_guard<std::mutex> lockMe(contourLock);
-			isoContour.solve(levelSet, contour.vertexes, contour.indexes, 0.0f, (preserveTopology) ? TopologyRule2D::Connect4 : TopologyRule2D::Unconstrained,Winding::Clockwise);
+			isoContour.solve(levelSet, labelImage, labelList, contour.vertexes, contour.vertexLabels,contour.indexes, 0.0f, (preserveTopology) ? TopologyRule2D::Connect4 : TopologyRule2D::Unconstrained, Winding::Clockwise);
 			updateIsoSurface = false;
 		}
 		return &contour;
@@ -103,20 +103,30 @@ namespace aly {
 		mSimulationTime=0;
 		mTimeStep=1.0f;
 		levelSet.resize(dims.x, dims.y);
+		labelImage.resize(dims.x, dims.y);
 		swapLevelSet.resize(dims.x, dims.y);
+		swapLabelImage.resize(dims.x, dims.y);
 #pragma omp parallel for
 		for (int i = 0; i < initialLevelSet.size(); i++) {
-			float val = clamp(initialLevelSet[i], -(maxLayers + 1.0f), (maxLayers + 1.0f));
+			float val = clamp(initialLevelSet[i], 0.0f, (maxLayers + 1.0f));
 			levelSet[i] = val;
 			swapLevelSet[i] = val;
 		}
+				labelImage = initialLabels;
+		swapLabelImage = initialLabels;
+		std::set<int> labelSet;
+		for (int1 l: initialLabels.data) {
+			if(l.x!=0)labelSet.insert(l.x);
+		}
+		labelList.clear();
+		labelList.assign(labelSet.begin(), labelSet.end());
 
 		rebuildNarrowBand();
 		updateIsoSurface = true;
 		if (cache.get() != nullptr) {
 			Contour2D* contour = getContour();
 			contour->setFile(MakeString() << GetDesktopDirectory() << ALY_PATH_SEPARATOR << "contour" << std::setw(4) << std::setfill('0') << mSimulationIteration << ".bin");
-			cache->set((int)mSimulationIteration, *contour);			
+			cache->set((int)mSimulationIteration, *contour);
 		}
 		return true;
 	}

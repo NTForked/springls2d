@@ -23,7 +23,7 @@
 #define INCLUDE_MULTIACTIVECONTOUR2D_H_
 #include <AlloyVector.h>
 #include <AlloyImage.h>
-#include <AlloyIsoContour.h>
+#include <AlloyMultiIsoContour.h>
 #include <vector>
 #include <list>
 #include <tuple>
@@ -34,8 +34,9 @@ namespace aly {
 	class MultiActiveContour2D: public Simulation {
 	protected:
 		std::shared_ptr<SpringlCache2D> cache;
-		IsoContour isoContour;
+		MultiIsoContour isoContour;
 		Contour2D contour;
+		std::vector<int> labelList;
 		bool preserveTopology;
 		bool clampSpeed;
 
@@ -98,6 +99,9 @@ namespace aly {
 			vecFieldImage = img;
 		}
 		Contour2D* getContour();
+		int getNumLabels() const {
+			return (int)labelList.size();
+		}
 		virtual bool init()override;
 		virtual void cleanup() override;
 		virtual void setup(const aly::ParameterPanePtr& pane) override;

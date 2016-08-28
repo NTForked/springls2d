@@ -48,6 +48,9 @@
     <ClInclude Include="include\MultiLevelSetToy.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\AlloyMultiIsoContour.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\ActiveContour2D.cpp">
@@ -84,6 +87,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\MultiLevelSetToy.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\AlloyMultiIsoContour.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

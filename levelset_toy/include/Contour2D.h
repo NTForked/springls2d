@@ -45,6 +45,7 @@ namespace aly {
 		Vector2f particles;
 		Vector2f points;
 		Vector2f normals;
+		Vector1i vertexLabels;
 		std::array<Vector2f,4> velocities;
 		Vector2f correspondence;
 		void setDirty(bool b) {
@@ -66,7 +67,7 @@ namespace aly {
 		}
 		template<class Archive> void serialize(Archive & archive)
 		{
-			archive( CEREAL_NVP(vertexes),CEREAL_NVP(indexes), CEREAL_NVP(particles), CEREAL_NVP(points), CEREAL_NVP(normals), CEREAL_NVP(correspondence));
+			archive( CEREAL_NVP(vertexes),CEREAL_NVP(indexes), CEREAL_NVP(particles), CEREAL_NVP(points),  CEREAL_NVP(normals), CEREAL_NVP(vertexLabels), CEREAL_NVP(correspondence));
 		}
 		void operator=(const Contour2D &c)
 		{

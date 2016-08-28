@@ -147,6 +147,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="include\ActiveContour2D.h" />
+    <ClInclude Include="include\AlloyMultiIsoContour.h" />
     <ClInclude Include="include\Contour2D.h" />
     <ClInclude Include="include\ContourShaders.h" />
     <ClInclude Include="include\GradientVectorFlow.h" />
@@ -160,6 +161,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\ActiveContour2D.cpp" />
+    <ClCompile Include="src\AlloyMultiIsoContour.cpp" />
     <ClCompile Include="src\Contour2D.cpp" />
     <ClCompile Include="src\ContourShaders.cpp" />
     <ClCompile Include="src\main.cpp" />

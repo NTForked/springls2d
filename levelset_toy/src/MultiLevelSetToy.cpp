@@ -254,7 +254,6 @@ bool MultiLevelSetToy::init(Composite& rootNode) {
 		}
 		else {
 			contour = simulation->getContour();
-
 		}
 		NVGcontext* nvg = context->nvgContext;
 		nvgLineCap(nvg, NVG_ROUND);
