@@ -20,6 +20,7 @@
  */
 #include "LevelSetToy.h"
 #include "MultiLevelSetToy.h"
+#include "SuperPixelToy.h"
 int main(int argc, char *argv[]) {
 	std::string filePath;
 	int index = -1;
@@ -30,27 +31,23 @@ int main(int argc, char *argv[]) {
 			std::cout << "[1] Spring Level Set" << std::endl;
 			std::cout << "[2] Second Order Spring Level Set" << std::endl;
 			std::cout << "[3] Multi-Object Level Set" << std::endl;
+			std::cout << "[4] Super-Pixel Level Set" << std::endl;
 			std::cout << ">> Enter Example Number: ";
 			std::cin >> index;
-			if (index < 3) {
-				LevelSetToy app(index);
-				app.run();
-			}
-			else {
-				MultiLevelSetToy app(0);
-				app.run();
-			}
-		}
-		else {
+		} else {
 			index = std::atoi(argv[1]);
-			if (index < 3) {
-				LevelSetToy app(index);
-				app.run();
-			}
-			else {
-				MultiLevelSetToy app(0);
-				app.run();
-			}
+		}
+		if (index < 3) {
+			LevelSetToy app(index);
+			app.run();
+		}
+		else if (index == 3) {
+			MultiLevelSetToy app(0);
+			app.run();
+		}
+		else if (index == 4) {
+			SuperPixelToy app(0);
+			app.run();
 		}
 		return 0;
 	} catch (std::exception& e) {

@@ -19,7 +19,7 @@
  * THE SOFTWARE.
  */
 #include "Alloy.h"
-#include "MultiLevelSetToy.h"
+#include "SuperPixelToy.h"
 #include "AlloyDistanceField.h"
 #include "AlloyIsoContour.h"
 #include "SpringlsSecondOrder.h"
@@ -27,64 +27,18 @@
 #include "SLIC.h"
 using namespace aly;
 
-MultiLevelSetToy::MultiLevelSetToy(int example) :
-	Application(1300, 1000, "Multi-Object Level Set Toy", false), currentIso(0.0f),example(example) {
-}
-void MultiLevelSetToy::createTextLevelSet(aly::Image1f& distField, aly::Image1f& gray, int w, int h, const std::string& text, float textSize, float maxDistance) {
-	GLFrameBuffer renderBuffer;
-	//Render text to image
-	NVGcontext* nvg = getContext()->nvgContext;
-	renderBuffer.initialize(w, h);
-	renderBuffer.begin(RGBAf(1.0f, 1.0f, 1.0f, 1.0f));
-	nvgBeginFrame(nvg, w, h, 1.0f);
-	nvgFontFaceId(nvg, getContext()->getFont(FontType::Bold)->handle);
-	nvgFillColor(nvg, Color(0, 0, 0));
-	nvgFontSize(nvg, textSize);
-	nvgTextAlign(nvg, NVG_ALIGN_CENTER | NVG_ALIGN_MIDDLE);
-	nvgText(nvg, w * 0.5f, h * 0.5f, text.c_str(), nullptr);
-	nvgEndFrame(nvg);
-	renderBuffer.end();
-	ImageRGBAf img = renderBuffer.getTexture().read();
-	FlipVertical(img);
-	ConvertImage(img, gray);
-	gray -= float1(0.5f);
-	DistanceField2f df;
-	df.solve(gray, distField, maxDistance);
-	gray = (-gray + float1(0.5f));
-}
-void MultiLevelSetToy::createCircleLevelSet(int w, int h,int rows,int cols,  float r, aly::Image1f& levelSet,aly::Image1i& labelImage) {
-	levelSet.resize(w, h);
-	labelImage.resize(w, h);
-	for (int j = 0; j < h; j++) {
-		for (int i = 0; i < w; i++) {
-			float minD = 2*r;
-			int label = 0;
-			for (int ii = 0;ii < rows;ii++) {
-				for (int jj = 0;jj < cols;jj++) {
-					float2 center =float2(w*((0.5f+ii) / (float)rows), h*((0.5f + jj) / (float)cols));
-					float l = distance(float2((float)i, (float)j), center) - r;
-					if (l < minD) {
-						minD = l;
-						if (l <= 0.0f) {
-							label = 1+ii + jj*rows;
-						}
-					}
-				}
-			}
-			labelImage(i, j).x = label;
-			levelSet(i, j).x = std::abs(minD);
-		}
-	}
+SuperPixelToy::SuperPixelToy(int example) :
+	Application(1600, 800, "Super-Pixel Level Set Toy", false), currentIso(0.0f),example(example) {
 }
 
-bool MultiLevelSetToy::init(Composite& rootNode) {
+
+bool SuperPixelToy::init(Composite& rootNode) {
 	int w = 128;
 	int h = 128;
 	Image1f distField;
 	float maxDistance = 32;
-	createTextLevelSet(distField, gray, w, h, "A", 196.0f, maxDistance);
-	ConvertImage(gray, img);
 	cache = std::shared_ptr<SpringlCache2D>(new SpringlCache2D());
+	ReadImageFromFile(getFullPath("images/picnic.png"), img);
 	if (example == 0) {
 		simulation = std::shared_ptr<MultiActiveContour2D>(new MultiActiveContour2D(cache));
 		simulation->setCurvature(2.0f);
@@ -104,39 +58,44 @@ bool MultiLevelSetToy::init(Composite& rootNode) {
 		});
 	};
 
-	Image1f initLevelSet;
 	Image1i initLabels;
-	createCircleLevelSet(w, h, 2,2, std::min(w, h)*0.15f,initLevelSet,initLabels);
-
-	SolveGradientVectorFlow(distField, vecField,true);
-	simulation->setInitial(initLevelSet,initLabels);
-	simulation->setVectorField(vecField,0.1f);
-	simulation->setPressure(gray, 0.9f, 0.5f);
+	SuperPixels sp;		
+	std::cout << "Computing super-pixels ..." << std::endl;
+	sp.solve(img, 256,16);
+	initLabels = sp.getLabelImage();
+	for (int j = 0;j < initLabels.height;j++) {
+		for (int i = 0;i < initLabels.width;i++) {
+			if (i < 1 || j < 1 || i >= initLabels.width - 1 || j >= initLabels.height - 1) {
+				initLabels(i, j) = int1(0);
+			} else {
+				initLabels(i, j).x++;
+			}
+		}
+	}
+	std::cout << "Initialize Level Set ..." << std::endl;
+	simulation->setInitial(initLabels);
+	std::cout << "Initializing application ..." << std::endl;
 	simulation->init();
 	{
 		int L = simulation->getNumLabels();
-		int CL = std::min(256, L);
-		
 		for (int i = 0;i < L;i++) {
 			int l = simulation->getLabel(i);
-			HSV hsv = HSV((l%CL) / (float)CL, 0.7f, 0.7f);
+			HSV hsv = HSV(RandomUniform(0.0f,1.0f), RandomUniform(0.5f, 1.0f), RandomUniform(0.5f, 1.0f));
 			lineColors[l] = HSVtoColor(hsv);
 		}
 	}
 	parametersDirty = true;
 	frameBuffersDirty = true;
-
 	BorderCompositePtr layout = BorderCompositePtr(new BorderComposite("UI Layout", CoordPX(0.0f, 0.0f), CoordPercent(1.0f, 1.0f), false));
 	ParameterPanePtr controls = ParameterPanePtr(new ParameterPane("Controls", CoordPX(0.0f, 0.0f), CoordPercent(1.0f, 1.0f)));
 	BorderCompositePtr controlLayout = BorderCompositePtr(new BorderComposite("Control Layout", CoordPX(0.0f, 0.0f), CoordPercent(1.0f, 1.0f), true));
-
 	controls->onChange = [this](const std::string& label, const AnyInterface& value) {
 
 		parametersDirty = true;
 	};
 
 	float aspect = 6.0f;
-	lineWidth = Float(4.0f);
+	lineWidth = Float(2.0f);
 	particleSize = Float(0.2f);
 
 	pointColor = Color(1.0f, 0.8f, 0.0f, 1.0f);
@@ -512,7 +471,7 @@ bool MultiLevelSetToy::init(Composite& rootNode) {
 	viewRegion->add(resizeableRegion);
 	return true;
 }
-void MultiLevelSetToy::draw(AlloyContext* context) {
+void SuperPixelToy::draw(AlloyContext* context) {
 	if (running) {
 		if (!simulation->step()) {
 			running = false;

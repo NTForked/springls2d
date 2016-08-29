@@ -19,16 +19,14 @@
  * THE SOFTWARE.
  */
 #include "MultiActiveContour2D.h"
-
 namespace aly {
-
 	void MultiActiveContour2D::rebuildNarrowBand() {
 		activeList.clear();
 		for (int band = 1; band <= maxLayers; band++) {
 #pragma omp parallel for
 			for (int i = 0; i < (int)activeList.size(); i++) {
 				int2 pos = activeList[i];
-				updateDistanceField(pos.x, pos.y, band, i);
+				updateDistanceField(pos.x, pos.y, band);
 			}
 		}
 		for (int j = 0; j < swapLevelSet.height; j++) {
@@ -100,6 +98,46 @@ namespace aly {
 	void MultiActiveContour2D::cleanup() {
 		if (cache.get() != nullptr)cache->clear();
 	}
+	void MultiActiveContour2D::setInitial(const Image1i& labels) {
+		this->initialLabels = labels;
+		this->swapLabelImage = labels;
+		this->labelImage = labels;
+		levelSet.resize(labels.width, labels.height);
+		swapLevelSet.resize(labels.width, labels.height);
+#pragma omp parallel for
+		for (int j = 0;j < labels.height;j++) {
+			int activeLabels[4];
+			for (int i = 0;i < labels.width;i++) {
+				int currentLabel = labels(i, j).x;
+				activeLabels[0] = labels(i + 1, j).x;
+				activeLabels[1] = labels(i - 1, j).x;
+				activeLabels[2] = labels(i, j + 1).x;
+				activeLabels[3] = labels(i, j - 1).x;
+				float val = 1.0f;
+				for (int n = 0;n < 4;n++) {
+					if (currentLabel < activeLabels[n]) {
+						val = 0.01f;
+						break;
+					}
+				}
+				levelSet(i, j) = float1(val);
+				swapLevelSet(i, j) = float1(val);
+			}
+		}
+		for (int band = 1; band <= 2*maxLayers; band++) {
+#pragma omp parallel for
+			for (int j = 0;j < labels.height;j++) {
+				for (int i = 0;i < labels.width;i++) {
+					updateDistanceField(i,j, band);
+				}
+			}
+		}
+		initialLevelSet = levelSet;
+		WriteImageToRawFile(GetDesktopDirectory() + ALY_PATH_SEPARATOR + "init_labels.xml",labelImage);
+		WriteImageToRawFile(GetDesktopDirectory() + ALY_PATH_SEPARATOR + "init_distfield.xml", levelSet);
+
+	}
+
 	bool MultiActiveContour2D::init() {
 		int2 dims = initialLevelSet.dimensions();
 		if (dims.x == 0 || dims.y == 0)return false;
@@ -649,7 +687,7 @@ namespace aly {
 			return swapLevelSet(i, j);
 		}
 	}
-	void MultiActiveContour2D::updateDistanceField(int i, int j, int band, size_t index) {
+	void MultiActiveContour2D::updateDistanceField(int i, int j, int band) {
 		float v11;
 		float v01;
 		float v12;
@@ -728,7 +766,7 @@ namespace aly {
 #pragma omp parallel for
 			for (int i = 0; i < (int)activeList.size(); i++) {
 				int2 pos = activeList[i];
-				updateDistanceField(pos.x, pos.y, band, i);
+				updateDistanceField(pos.x, pos.y, band);
 			}
 		}
 #pragma omp parallel for

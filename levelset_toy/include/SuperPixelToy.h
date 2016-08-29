@@ -19,8 +19,8 @@
  * THE SOFTWARE.
  */
 
-#ifndef MULTILEVELSETTOY_H_
-#define MULTILEVELSETTOY_H_
+#ifndef SUPERPIXELTOY_H_
+#define SUPERPIXELTOY_H_
 
 #include "AlloyApplication.h"
 #include "AlloyVector.h"
@@ -29,11 +29,11 @@
 #include "AlloyTimeline.h"
 #include "Simulation.h"
 #include "SpringlCache2D.h"
-class MultiLevelSetToy: public aly::Application {
+class SuperPixelToy: public aly::Application {
 protected:
 	int example;
-	aly::ImageRGBA img;
 	aly::Image1f gray;
+	aly::ImageRGBA img;
 	bool parametersDirty;
 	bool frameBuffersDirty;
 	float currentIso;
@@ -52,12 +52,9 @@ protected:
 	std::shared_ptr<aly::MultiActiveContour2D> simulation;
 	aly::IconButtonPtr playButton,stopButton;
     std::shared_ptr<aly::TimelineSlider> timelineSlider;
-	void createCircleLevelSet(int w, int h, int rows, int cols, float r, aly::Image1f& levelset, aly::Image1i& labelImage);
-
-	void createTextLevelSet(aly::Image1f& levelSet,aly::Image1f& gray,int w,int h,const std::string& text,float textSize,float maxDistance);
 public:
 	std::shared_ptr<aly::SpringlCache2D> cache;
-	MultiLevelSetToy(int example);
+	SuperPixelToy(int example);
 	virtual void draw(aly::AlloyContext* context) override;
 	bool init(aly::Composite& rootNode);
 

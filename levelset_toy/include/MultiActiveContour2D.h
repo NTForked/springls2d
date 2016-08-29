@@ -68,7 +68,7 @@ namespace aly {
 		void advectionMotion(int i, int j, size_t index);
 		void applyForces(int i, int j, size_t index, float timeStep);
 		void plugLevelSet(int i, int j, size_t index);
-		void updateDistanceField(int i, int j, int band, size_t index);
+		void updateDistanceField(int i, int j, int band);
 		int deleteElements();
 		int addElements();
 		float evolve(float maxStep);
@@ -112,11 +112,11 @@ namespace aly {
 		virtual bool init()override;
 		virtual void cleanup() override;
 		virtual void setup(const aly::ParameterPanePtr& pane) override;
-		void setInitialDistanceField(const Image1f& img,const Image1i& labels) {
+		void setInitial(const Image1f& img,const Image1i& labels) {
 			initialLevelSet = img;
 			initialLabels = labels;
 		}
-
+		void setInitial(const Image1i& labels);
 	};
 }
 

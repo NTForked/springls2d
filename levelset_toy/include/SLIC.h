@@ -48,7 +48,8 @@ namespace aly {
 		void optimize(int NUMITR=10);
 		void enforceLabelConnectivity();
 	public:
-		void solve(const ImageRGBAf& image,int K);
+		void solve(const ImageRGBAf& image,int K,int iterations=10);
+		void solve(const ImageRGBA& image, int K, int iterations = 10);
 		void setPerturbSeeds(bool p) {
 			perturbSeeds = p;
 		}

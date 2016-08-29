@@ -26,26 +26,21 @@ namespace aly {
 	void SuperPixels::initializeSeeds(int K) {
 		size_t sz = labImage.width*labImage.height;
 		float step = std::sqrt((float)(sz) / (float)(K));
-
 		float xoff =(step / 2.0f);
 		float yoff =(step / 2.0f);
-		int n=0;
-		int r=0;
 		colorCenters.clear();
 		pixelCenters.clear();
 		for (int y = 0; y < labImage.height; y++)
 		{
-			int yy = (int)std::floor(y*step + yoff);
+			float yy = std::floor(y*step + yoff);
 			if (yy > labImage.height - 1) break;
 			for (int x = 0; x < labImage.width; x++)
 			{
-				int xx =(int)std::floor(x*step + (((int)xoff) << (r & 0x1)));//hex grid
+				float xx=(x*step + ((y & 0x1)?(2.0f*xoff):xoff));//hex grid
 				if (xx > labImage.width - 1) break;
 				colorCenters.push_back(labImage(xx, yy));
-				pixelCenters.push_back(float2((float)xx,(float) yy));
-				n++;
+				pixelCenters.push_back(float2(xx,yy));
 			}
-			r++;
 		}
 	}
 	void SuperPixels::enforceLabelConnectivity() //the number of superpixels desired by the user
@@ -64,7 +59,7 @@ namespace aly {
 		int adjlabel=0;//adjacent label
 		for (int j = 0; j < labImage.height; j++)
 		{
-			for (int k = 0; k < labImage.width; k++)
+			for (int i = 0; i < labImage.width; i++)
 			{
 				if (newLabels[oindex].x<0)
 				{
@@ -72,7 +67,7 @@ namespace aly {
 					//--------------------
 					// Start a new segment
 					//--------------------
-					vec[0] = int2(k, j);
+					vec[0] = int2(i,j);
 					//-------------------------------------------------------
 					// Quickly find an adjacent label for use later if needed
 					//-------------------------------------------------------
@@ -83,8 +78,7 @@ namespace aly {
 						int y = v.y + dy4[n];
 						if ((x >= 0 && x < labImage.width) && (y >= 0 && y < labImage.height))
 						{
-							int nindex = y*labImage.width + x;
-							int l = newLabels[nindex].x;
+							int l = newLabels(x,y).x;
 							if (l >= 0) adjlabel =l;
 						}
 					}
@@ -96,11 +90,9 @@ namespace aly {
 							int2 v = vec[c];
 							int x = v.x + dx4[n];
 							int y = v.y + dy4[n];
-
 							if ((x >= 0 && x < labImage.width) && (y >= 0 && y < labImage.height))
 							{
 								int nindex = y*labImage.width + x;
-
 								if (0 > newLabels[nindex].x && labelImage[oindex] == labelImage[nindex])
 								{
 									vec[count] = int2(x,y);
@@ -130,6 +122,7 @@ namespace aly {
 				oindex++;
 			}
 		}
+		labelImage=newLabels;
 		numLabels = label;
 	}
 	void SuperPixels::refineSeeds(const Image1f& magImage) {
@@ -158,7 +151,7 @@ namespace aly {
 			}
 		}
 	}
-	void SuperPixels::optimize(int NUMITR) {
+	void SuperPixels::optimize(int iterations) {
 		float STEP = std::sqrt((labImage.width*labImage.height) /(float)(colorCenters.size())) + 2.0f;//adding a small value in the even the STEP size is too small.
 		int numk = (int)colorCenters.size();
 		float offset = STEP;
@@ -173,24 +166,23 @@ namespace aly {
 		labelImage.set(int1(-1));
 		distImage.set(float2(1E10f));
 		scoreImage.set(float1(1E10f));
-
 		std::vector<float> maxlab(numk, 10 * 10);//THIS IS THE VARIABLE VALUE OF M, just start with 10
 		std::vector<float> maxxy(numk, STEP*STEP);//THIS IS THE VARIABLE VALUE OF M, just start with 10
 		float invxywt = 1.0f / (STEP*STEP);//NOTE: this is different from how usual SLIC/LKM works
-		for (int numitr = 0;numitr < NUMITR;numitr++)
+		for (int iter = 0;iter < iterations;iter++)
 		{
 			scoreImage.set(float1(1E10f));
 			for (int n = 0; n < numk; n++)
 			{
 				float2 pixelCenter = pixelCenters[n];
 				float3 colorCenter = colorCenters[n];
-				int y1 = std::max(0,(int)(pixelCenter.y - offset));
-				int y2 = std::min(labImage.height-1,(int)(pixelCenter.y + offset));
-				int x1 = std::max(0, (int)(pixelCenter.x - offset));
-				int x2 = std::min(labImage.width-1, (int)(pixelCenter.x + offset));
-				for (int y = y1; y < y2; y++)
+				int y1 = std::max(0,(int)std::ceil(pixelCenter.y - offset));
+				int y2 = std::min(labImage.height-1,(int)std::floor(pixelCenter.y + offset));
+				int x1 = std::max(0, (int)std::ceil(pixelCenter.x - offset));
+				int x2 = std::min(labImage.width-1, (int)std::floor(pixelCenter.x + offset));
+				for (int y = y1; y <= y2; y++)
 				{
-					for (int x = x1; x < x2; x++)
+					for (int x = x1; x <= x2; x++)
 					{
 						float3 c = labImage(x, y);
 						float distLab = lengthSqr(c - colorCenter);
@@ -201,12 +193,12 @@ namespace aly {
 						if (dist < last)
 						{
 							scoreImage(x, y).x = dist;
-							labelImage(x, y) = n;
+							labelImage(x, y).x = n;
 						}
 					}
 				}
 			}
-
+#pragma omp parallel for
 			for (int j = 0;j < labImage.height;j++){
 				for (int i = 0; i < labImage.width; i++){
 					float2 dist = distImage(i, j);
@@ -228,10 +220,12 @@ namespace aly {
 					clustersize[idx]++;
 				}
 			}
+#pragma omp parallel for
 			for (int k = 0; k < numk; k++){
 				if (clustersize[k] <= 0) clustersize[k] = 1;
 				inv[k] = 1.0f / (float)(clustersize[k]);//computing inverse now to multiply, than divide later
 			}
+#pragma omp parallel for
 			for (int k = 0; k < numk; k++)
 			{
 				colorCenters[k] = colorSigma[k] * inv[k];
@@ -239,10 +233,28 @@ namespace aly {
 			}
 		}
 	}
-	void SuperPixels::solve(const ImageRGBAf& image,int K) {
+	void SuperPixels::solve(const ImageRGBA& image, int K, int iterations) {
 		labImage.resize(image.width, image.height);
 		labelImage.resize(image.width, image.height);
-		
+#pragma omp parallel for
+		for (int j = 0;j < image.height;j++) {
+			for (int i = 0;i < image.width;i++) {
+				labImage(i, j) = RGBtoLAB(ToRGBf(image(i, j)));
+			}
+		}
+		initializeSeeds(K);
+		if (perturbSeeds)
+		{
+			Image1f magImage;
+			gradientMagnitude(magImage);
+			refineSeeds(magImage);
+		}
+		optimize(iterations);
+		enforceLabelConnectivity();
+	}
+	void SuperPixels::solve(const ImageRGBAf& image,int K,int iterations) {
+		labImage.resize(image.width, image.height);
+		labelImage.resize(image.width, image.height);
 #pragma omp parallel for
 		for (int j = 0;j < image.height;j++) {
 			for (int i = 0;i < image.width;i++) {
@@ -256,22 +268,20 @@ namespace aly {
 			gradientMagnitude(magImage);
 			refineSeeds(magImage);
 		}
-		optimize();
+		optimize(iterations);
 		enforceLabelConnectivity();
 	}
 	void SuperPixels::gradientMagnitude(Image1f& magImage)
 	{
+		ImageRGBf Gx, Gy;
+		Gradient5x5(labImage, Gx, Gy);
 		magImage.resize(labImage.width, labImage.height);
 #pragma omp parallel for
 		for (int j = 0; j < labImage.height; j++){
 			for (int i = 0; i < labImage.width; i++){
-				RGBf v10 = labImage(i, j - 1);
-				RGBf v12 = labImage(i, j + 1);
-				RGBf v01 = labImage(i-1, j);
-				RGBf v21 = labImage(i+1, j);
-				float dx = length(v21 - v01);
-				float dy = length(v12 - v10);
-				magImage(i,j) = float1(dx + dy);
+				float3 gx = Gx(i, j);
+				float3 gy = Gy(i, j);
+				magImage(i,j) = float1(std::sqrt(lengthSqr(gx) + lengthSqr(gy)));
 			}
 		}
 	}
