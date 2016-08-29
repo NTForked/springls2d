@@ -166,8 +166,7 @@ namespace aly {
 		labelImage.set(int1(-1));
 		distImage.set(float2(1E10f));
 		scoreImage.set(float1(1E10f));
-		std::vector<float> maxlab(numk, 10 * 10);//THIS IS THE VARIABLE VALUE OF M, just start with 10
-		std::vector<float> maxxy(numk, STEP*STEP);//THIS IS THE VARIABLE VALUE OF M, just start with 10
+		std::vector<float> maxlab(numk, 10.0f*10.0f);//THIS IS THE VARIABLE VALUE OF M, just start with 10
 		float invxywt = 1.0f / (STEP*STEP);//NOTE: this is different from how usual SLIC/LKM works
 		for (int iter = 0;iter < iterations;iter++)
 		{
@@ -176,18 +175,17 @@ namespace aly {
 			{
 				float2 pixelCenter = pixelCenters[n];
 				float3 colorCenter = colorCenters[n];
-				int y1 = std::max(0,(int)std::ceil(pixelCenter.y - offset));
-				int y2 = std::min(labImage.height-1,(int)std::floor(pixelCenter.y + offset));
-				int x1 = std::max(0, (int)std::ceil(pixelCenter.x - offset));
-				int x2 = std::min(labImage.width-1, (int)std::floor(pixelCenter.x + offset));
-				for (int y = y1; y <= y2; y++)
-				{
-					for (int x = x1; x <= x2; x++)
-					{
+				int yMin = std::max(0,(int)std::floor(pixelCenter.y - offset));
+				int yMax = std::min(labImage.height-1,(int)std::ceil(pixelCenter.y + offset));
+				int xMin = std::max(0, (int)std::floor(pixelCenter.x - offset));
+				int xMax = std::min(labImage.width-1, (int)std::ceil(pixelCenter.x + offset));
+				float ml = maxlab[n];
+				for (int y = yMin; y <= yMax; y++){
+					for (int x = xMin; x <= xMax; x++){
 						float3 c = labImage(x, y);
 						float distLab = lengthSqr(c - colorCenter);
 						float distPixel = lengthSqr(float2((float)x, (float)y) - pixelCenter);
-						float dist = distLab/ maxlab[n] + distPixel * invxywt;
+						float dist = distLab/ ml + distPixel * invxywt;
 						float last = scoreImage(x, y).x;
 						distImage(x, y) = float2(distLab, distPixel);
 						if (dist < last)
@@ -198,12 +196,13 @@ namespace aly {
 					}
 				}
 			}
-#pragma omp parallel for
 			for (int j = 0;j < labImage.height;j++){
 				for (int i = 0; i < labImage.width; i++){
 					float2 dist = distImage(i, j);
-					if (maxlab[labelImage(i,j).x] < dist.x) maxlab[labelImage(i, j).x] = dist.x;
-					if (maxxy[labelImage(i, j).x] < dist.y) maxxy[labelImage(i, j).x] = dist.y;
+					int l = labelImage(i, j).x;
+					if (dist.x > maxlab[l]) {
+						maxlab[l] = dist.x;
+					}
 				}
 			}
 			//-----------------------------------------------------------------
@@ -221,13 +220,10 @@ namespace aly {
 				}
 			}
 #pragma omp parallel for
-			for (int k = 0; k < numk; k++){
-				if (clustersize[k] <= 0) clustersize[k] = 1;
-				inv[k] = 1.0f / (float)(clustersize[k]);//computing inverse now to multiply, than divide later
-			}
-#pragma omp parallel for
 			for (int k = 0; k < numk; k++)
 			{
+				if (clustersize[k] <= 0) clustersize[k] = 1;
+				inv[k] = 1.0f / (float)(clustersize[k]);//computing inverse now to multiply, than divide later
 				colorCenters[k] = colorSigma[k] * inv[k];
 				pixelCenters[k] = pixelSigma[k] * inv[k];
 			}

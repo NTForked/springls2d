@@ -61,7 +61,7 @@ bool SuperPixelToy::init(Composite& rootNode) {
 	Image1i initLabels;
 	SuperPixels sp;		
 	std::cout << "Computing super-pixels ..." << std::endl;
-	sp.solve(img, 256,16);
+	sp.solve(img, 512,32);
 	initLabels = sp.getLabelImage();
 	for (int j = 0;j < initLabels.height;j++) {
 		for (int i = 0;i < initLabels.width;i++) {
