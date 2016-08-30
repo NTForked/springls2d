@@ -41,7 +41,6 @@ protected:
 	aly::Image2f vecField;
 	aly::Number lineWidth;
 	aly::Number particleSize;
-	std::map<int,aly::Color> lineColors;
 	aly::Color pointColor;
 	aly::Color particleColor;
 	aly::Color normalColor;
@@ -52,6 +51,7 @@ protected:
 	std::shared_ptr<aly::MultiActiveContour2D> simulation;
 	aly::IconButtonPtr playButton,stopButton;
     std::shared_ptr<aly::TimelineSlider> timelineSlider;
+	aly::ImageGlyphPtr overlayGlyph;
 public:
 	std::shared_ptr<aly::SpringlCache2D> cache;
 	SuperPixelToy(int example);

@@ -61,6 +61,28 @@ namespace aly {
 			levelSet(i, j) = 3.0f;
 		}
 	}
+	bool MultiActiveContour2D::updateOverlayImage() {
+		if (updateOverlay) {
+			ImageRGBA& overlay = contour.overlay;
+			overlay.resize(labelImage.width, labelImage.height);
+			for (int j = 0; j <labelImage.height; j++) {
+				for (int i = 0; i < labelImage.width; i++) {
+					float d = levelSet(i, j).x;
+					int l = labelImage(i, j).x;
+					Color c = getColor(l);
+					RGBAf rgba = c.toRGBAf();
+					rgba.w = 0.5f;
+					rgba=aly::mix(RGBAf(0.0f, 0.0f, 0.0f, 1.0f), rgba,clamp(d/1.5f,0.0f,1.0f));
+					overlay(i, j) = ToRGBA(rgba);
+				}
+			}
+			updateOverlay = false;
+			return true;
+		}
+		else {
+			return false;
+		}
+	}
 	Contour2D* MultiActiveContour2D::getContour() {
 		if (updateIsoSurface) {
 			std::lock_guard<std::mutex> lockMe(contourLock);
@@ -171,8 +193,27 @@ namespace aly {
 		for (int i = 0;i < (int)labelList.size();i++) {
 			forceIndexes[labelList[i]] = i;
 		}
+		lineColors.clear();
+		L = (int)labelList.size();
+		lineColors[0] = RGBAf(0.0f, 0.0f, 0.0f, 0.0f);
+		if(L<256){
+			int CL = std::min(256, L);
+			for (int i = 0;i < L;i++) {
+				int l = labelList[i];
+				HSV hsv = HSV((l%CL) / (float)CL, 0.7f, 0.7f);
+				lineColors[l] = HSVtoColor(hsv);
+			}
+		}
+		else {
+			for (int i = 0;i < L;i++) {
+				int l = labelList[i];
+				HSV hsv = HSV(RandomUniform(0.0f, 1.0f), RandomUniform(0.5f, 1.0f), RandomUniform(0.5f, 1.0f));
+				lineColors[l] = HSVtoColor(hsv);
+			}
+		}
 		rebuildNarrowBand();
 		updateIsoSurface = true;
+		updateOverlay = true;
 		if (cache.get() != nullptr) {
 			Contour2D* contour = getContour();
 			contour->setFile(MakeString() << GetDesktopDirectory() << ALY_PATH_SEPARATOR << "contour" << std::setw(4) << std::setfill('0') << mSimulationIteration << ".bin");
@@ -775,6 +816,7 @@ namespace aly {
 			plugLevelSet(pos.x, pos.y, i);
 		}
 		updateIsoSurface = true;
+		updateOverlay = true;
 		contourLock.unlock();
 
 #pragma omp parallel for

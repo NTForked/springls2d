@@ -37,6 +37,7 @@ namespace aly {
 		correspondence = c.correspondence;
 		vertexLabels = c.vertexLabels;
 		file = c.file;
+		overlay = c.overlay;
 	}
 	Contour2D::Contour2D(const Contour2D& c)
 	{
@@ -49,6 +50,8 @@ namespace aly {
 		correspondence = c.correspondence;
 		vertexLabels = c.vertexLabels;
 		file = c.file;
+		overlay = c.overlay;
+
 	}
 	Contour2D::Contour2D(bool onScreen, const std::shared_ptr<AlloyContext>& context) :onScreen(onScreen), context(context), vao(0), vertexBuffer(0), particleBuffer(0),dirty(false), vertexCount(0) {
 	}

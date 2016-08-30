@@ -38,7 +38,7 @@ bool SuperPixelToy::init(Composite& rootNode) {
 	float maxDistance = 32;
 	cache = std::shared_ptr<SpringlCache2D>(new SpringlCache2D());
 	ImageRGBA down;
-	ReadImageFromFile(getFullPath("images/picnic.png"), down);
+	ReadImageFromFile(getFullPath("images/picnic.png"),img);
 	DownSample(down,img);
 	if (example == 0) {
 		simulation = std::shared_ptr<MultiActiveContour2D>(new MultiActiveContour2D(cache));
@@ -77,14 +77,6 @@ bool SuperPixelToy::init(Composite& rootNode) {
 	simulation->setInitial(initLabels);
 	std::cout << "Initializing application ..." << std::endl;
 	simulation->init();
-	{
-		int L = simulation->getNumLabels();
-		for (int i = 0;i < L;i++) {
-			int l = simulation->getLabel(i);
-			HSV hsv = HSV(RandomUniform(0.0f,1.0f), RandomUniform(0.5f, 1.0f), RandomUniform(0.5f, 1.0f));
-			lineColors[l] = HSVtoColor(hsv);
-		}
-	}
 	parametersDirty = true;
 	frameBuffersDirty = true;
 	BorderCompositePtr layout = BorderCompositePtr(new BorderComposite("UI Layout", CoordPX(0.0f, 0.0f), CoordPercent(1.0f, 1.0f), false));
@@ -204,8 +196,14 @@ bool SuperPixelToy::init(Composite& rootNode) {
 			CoordPX(img.width * downScale, img.height * downScale)));
 	Application::addListener(resizeableRegion.get());
 	ImageGlyphPtr imageGlyph = AlloyApplicationContext()->createImageGlyph(img, false);
+	overlayGlyph= AlloyApplicationContext()->createImageGlyph(img, false);
 	DrawPtr drawContour = DrawPtr(new Draw("Contour Draw", CoordPX(0.0f, 0.0f), CoordPercent(1.0f, 1.0f), [this](AlloyContext* context, const box2px& bounds) {
 		std::shared_ptr<CacheElement> elem = this->cache->get(timelineSlider->getTimeValue().toInteger());
+		
+		if (simulation->updateOverlayImage()) {
+			overlayGlyph->set(simulation->getContour()->overlay, getContext().get());
+		}
+		/*
 		Contour2D* contour;
 		if (elem.get() != nullptr) {
 			contour = elem->getContour().get();
@@ -213,6 +211,7 @@ bool SuperPixelToy::init(Composite& rootNode) {
 		else {
 			contour = simulation->getContour();
 		}
+
 		NVGcontext* nvg = context->nvgContext;
 		nvgLineCap(nvg, NVG_ROUND);
 		float scale = bounds.dimensions.x / (float)img.width;
@@ -322,8 +321,8 @@ bool SuperPixelToy::init(Composite& rootNode) {
 			for (uint32_t idx : curve) {
 				if (firstTime) {
 					int l = contour->vertexLabels[idx].x;
-					nvgFillColor(nvg, lineColors[l].toSemiTransparent(0.5f));
-					nvgStrokeColor(nvg, lineColors[l]);
+					nvgFillColor(nvg, simulation->getColor(l).toSemiTransparent(0.5f));
+					nvgStrokeColor(nvg, simulation->getColor(l));
 				}
 				float2 pt = contour->vertexes[idx] + float2(0.5f);
 				pt.x = pt.x / (float)img.width;
@@ -412,12 +411,19 @@ bool SuperPixelToy::init(Composite& rootNode) {
 				nvgFill(nvg);
 			}
 		}
+		*/
 	}));
 	GlyphRegionPtr glyphRegion = GlyphRegionPtr(new GlyphRegion("Image Region", imageGlyph, CoordPX(0.0f, 0.0f), CoordPercent(1.0f, 1.0f)));
 	glyphRegion->setAspectRule(AspectRule::Unspecified);
 	glyphRegion->foregroundColor = MakeColor(COLOR_NONE);
 	glyphRegion->backgroundColor = MakeColor(COLOR_NONE);
 	glyphRegion->borderColor = MakeColor(COLOR_NONE);
+
+	GlyphRegionPtr overlayRegion = GlyphRegionPtr(new GlyphRegion("Overlay Region", overlayGlyph, CoordPX(0.0f, 0.0f), CoordPercent(1.0f, 1.0f)));
+	overlayRegion->setAspectRule(AspectRule::Unspecified);
+	overlayRegion->foregroundColor = MakeColor(COLOR_NONE);
+	overlayRegion->backgroundColor = MakeColor(COLOR_NONE);
+	overlayRegion->borderColor = MakeColor(COLOR_NONE);
 	drawContour->onScroll = [this](AlloyContext* context, const InputEvent& event)
 	{
 		box2px bounds = resizeableRegion->getBounds(false);
@@ -445,6 +451,7 @@ bool SuperPixelToy::init(Composite& rootNode) {
 		return false;
 	};
 	resizeableRegion->add(glyphRegion);
+	resizeableRegion->add(overlayRegion);
 	resizeableRegion->add(drawContour);
 	resizeableRegion->setAspectRatio(img.width / (float)img.height);
 	resizeableRegion->setAspectRule(AspectRule::FixedHeight);
@@ -470,6 +477,7 @@ bool SuperPixelToy::init(Composite& rootNode) {
 	viewRegion->borderColor = MakeColor(getContext()->theme.DARK);
 	viewRegion->borderWidth = UnitPX(1.0f);
 	viewRegion->add(resizeableRegion);
+
 	return true;
 }
 void SuperPixelToy::draw(AlloyContext* context) {

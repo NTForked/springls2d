@@ -113,16 +113,7 @@ bool MultiLevelSetToy::init(Composite& rootNode) {
 	simulation->setVectorField(vecField,0.1f);
 	simulation->setPressure(gray, 0.9f, 0.5f);
 	simulation->init();
-	{
-		int L = simulation->getNumLabels();
-		int CL = std::min(256, L);
-		
-		for (int i = 0;i < L;i++) {
-			int l = simulation->getLabel(i);
-			HSV hsv = HSV((l%CL) / (float)CL, 0.7f, 0.7f);
-			lineColors[l] = HSVtoColor(hsv);
-		}
-	}
+
 	parametersDirty = true;
 	frameBuffersDirty = true;
 
@@ -253,6 +244,7 @@ bool MultiLevelSetToy::init(Composite& rootNode) {
 		else {
 			contour = simulation->getContour();
 		}
+
 		NVGcontext* nvg = context->nvgContext;
 		nvgLineCap(nvg, NVG_ROUND);
 		float scale = bounds.dimensions.x / (float)img.width;
@@ -362,8 +354,8 @@ bool MultiLevelSetToy::init(Composite& rootNode) {
 			for (uint32_t idx : curve) {
 				if (firstTime) {
 					int l = contour->vertexLabels[idx].x;
-					nvgFillColor(nvg, lineColors[l].toSemiTransparent(0.5f));
-					nvgStrokeColor(nvg, lineColors[l]);
+					nvgFillColor(nvg, simulation->getColor(l).toSemiTransparent(0.5f));
+					nvgStrokeColor(nvg, simulation->getColor(l));
 				}
 				float2 pt = contour->vertexes[idx] + float2(0.5f);
 				pt.x = pt.x / (float)img.width;

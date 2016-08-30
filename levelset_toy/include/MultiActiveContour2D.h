@@ -48,6 +48,7 @@ namespace aly {
 		const float MAX_DISTANCE = 3.5f;
 		const int maxLayers = 3;
 		bool updateIsoSurface;
+		bool updateOverlay;
 		Image1f initialLevelSet;
 		Image1i initialLabels;
 		Image1f levelSet;
@@ -77,12 +78,17 @@ namespace aly {
 		virtual bool stepInternal() override;
 		float getLevelSetValue(int i, int j, int l) const;
 		float getSwapLevelSetValue(int i, int j, int l) const;
+		std::map<int, aly::Color> lineColors;
 	public:
 		MultiActiveContour2D(const std::shared_ptr<SpringlCache2D>& cache=nullptr);
 		MultiActiveContour2D(const std::string& name,const std::shared_ptr<SpringlCache2D>& cache = nullptr);
 		void setCurvature(float c) {
 			curvatureParam.setValue(c);
 		}
+		aly::Color getColor(int l) {
+			return lineColors[l];
+		}
+		bool updateOverlayImage();
 		void setPressure(const Image1f& img, float weight, float target) {
 			pressureParam.setValue(weight);
 			targetPressureParam.setValue(target);

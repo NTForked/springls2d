@@ -95,6 +95,8 @@ namespace aly {
 	CacheElement::~CacheElement() {
 		if (FileExists(contourFile)) {
 			RemoveFile(contourFile);
+			std::string imageFile = GetFileWithoutExtension(contourFile) + ".png";
+			if(FileExists(imageFile))RemoveFile(imageFile);
 		}
 	}
 	void SpringlCache2D::clear() {

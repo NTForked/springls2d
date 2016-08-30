@@ -23,6 +23,7 @@
 #include "GLComponent.h"
 #include "AlloyVector.h"
 #include "AlloyContext.h"
+#include "AlloyFileUtil.h"
 #include <cereal/cereal.hpp>
 #include <cereal/types/vector.hpp>
 #include <cereal/types/list.hpp>
@@ -46,6 +47,7 @@ namespace aly {
 		Vector2f points;
 		Vector2f normals;
 		Vector1i vertexLabels;
+		ImageRGBA overlay;
 		std::array<Vector2f,4> velocities;
 		Vector2f correspondence;
 		void setDirty(bool b) {
@@ -65,9 +67,20 @@ namespace aly {
 		void setFile(const std::string& file) {
 			this->file = file;
 		}
-		template<class Archive> void serialize(Archive & archive)
-		{
+
+		template<class Archive> void save(Archive & archive) const {
+			if (overlay.size() > 0) {
+				WriteImageToFile(GetFileWithoutExtension(file) + ".png", overlay);
+			}
 			archive( CEREAL_NVP(vertexes),CEREAL_NVP(indexes), CEREAL_NVP(particles), CEREAL_NVP(points),  CEREAL_NVP(normals), CEREAL_NVP(vertexLabels), CEREAL_NVP(correspondence));
+		}
+		template<class Archive> void load(Archive & archive) 
+		{
+			archive(CEREAL_NVP(vertexes), CEREAL_NVP(indexes), CEREAL_NVP(particles), CEREAL_NVP(points), CEREAL_NVP(normals), CEREAL_NVP(vertexLabels), CEREAL_NVP(correspondence));
+			std::string imageFile = GetFileWithoutExtension(file) + ".png";
+			if (FileExists(imageFile)) {
+				ReadImageFromFile(imageFile, overlay);
+			}
 		}
 		void operator=(const Contour2D &c);
 		Contour2D(const Contour2D& c);
