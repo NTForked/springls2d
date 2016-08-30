@@ -153,13 +153,12 @@ namespace aly {
 		Vector3f colorMean(numk);
 		Vector2f pixelMean(numk);
 		std::vector<int> clustersize(numk,0);
-		//std::vector<float> inv(numk, 0);//to store 1/clustersize[k] values
 		Image2f distImage(labImage.width, labImage.height);
 		Image1f scoreImage(labImage.width, labImage.height);
 		labelImage.set(int1(-1));
 		distImage.set(float2(1E10f));
 		scoreImage.set(float1(1E10f));
-		std::vector<float> maxlab(numk, 0.0f);//THIS IS THE VARIABLE VALUE OF M, start with high value.
+		std::vector<float> maxlab(numk, 0.0f);
 		float invxywt = 1.0f / (S*S);//NOTE: this is different from how usual SLIC/LKM works, but in original code implementation
 		for (int iter = 0;iter < iterations;iter++)
 		{
