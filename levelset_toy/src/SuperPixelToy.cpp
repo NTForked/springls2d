@@ -39,7 +39,7 @@ bool SuperPixelToy::init(Composite& rootNode) {
 	cache = std::shared_ptr<SpringlCache2D>(new SpringlCache2D());
 	ImageRGBA down;
 	ReadImageFromFile(getFullPath("images/picnic.png"),img);
-	DownSample(down,img);
+	//DownSample(down,img);
 	if (example == 0) {
 		simulation = std::shared_ptr<MultiActiveContour2D>(new MultiActiveContour2D(cache));
 		simulation->setCurvature(2.0f);
@@ -62,7 +62,7 @@ bool SuperPixelToy::init(Composite& rootNode) {
 	Image1i initLabels;
 	SuperPixels sp;		
 	std::cout << "Computing super-pixels ..." << std::endl;
-	sp.solve(img, 256);
+	sp.solve(img,1024);
 	initLabels = sp.getLabelImage();
 	for (int j = 0;j < initLabels.height;j++) {
 		for (int i = 0;i < initLabels.width;i++) {

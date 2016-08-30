@@ -212,7 +212,7 @@ namespace aly {
 			}
 		}
 		rebuildNarrowBand();
-		updateIsoSurface = true;
+		updateIsoSurface = (getNumLabels()<256);
 		updateOverlay = true;
 		if (cache.get() != nullptr) {
 			Contour2D* contour = getContour();
@@ -815,7 +815,7 @@ namespace aly {
 			int2 pos = activeList[i];
 			plugLevelSet(pos.x, pos.y, i);
 		}
-		updateIsoSurface = true;
+		updateIsoSurface = (getNumLabels()<256);
 		updateOverlay = true;
 		contourLock.unlock();
 
