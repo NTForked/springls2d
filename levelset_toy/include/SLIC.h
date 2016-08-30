@@ -42,14 +42,17 @@ namespace aly {
 		Vector2f pixelCenters;
 		bool perturbSeeds;
 		int numLabels;
+		float bonusThreshold;
+		float bonus;
+		float errorThreshold;
 		void initializeSeeds(int K);
 		void refineSeeds(const Image1f& magImage);
 		void gradientMagnitude(Image1f& magImage);
 		void optimize(int NUMITR=10);
 		void enforceLabelConnectivity();
 	public:
-		void solve(const ImageRGBAf& image,int K,int iterations=10);
-		void solve(const ImageRGBA& image, int K, int iterations = 10);
+		void solve(const ImageRGBAf& image,int K,int iterations=128);
+		void solve(const ImageRGBA& image, int K, int iterations = 128);
 		void setPerturbSeeds(bool p) {
 			perturbSeeds = p;
 		}
