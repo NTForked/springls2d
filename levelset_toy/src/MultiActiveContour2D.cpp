@@ -19,6 +19,7 @@
  * THE SOFTWARE.
  */
 #include "MultiActiveContour2D.h"
+#include <AlloyImageProcessing.h>
 namespace aly {
 	void MultiActiveContour2D::rebuildNarrowBand() {
 		activeList.clear();
@@ -65,8 +66,8 @@ namespace aly {
 		if (updateOverlay) {
 			ImageRGBA& overlay = contour.overlay;
 			overlay.resize(labelImage.width, labelImage.height);
-			for (int j = 0; j <labelImage.height; j++) {
-				for (int i = 0; i < labelImage.width; i++) {
+			for (int j = 0; j <overlay.height; j++) {
+				for (int i = 0; i < overlay.width; i++) {
 					float d = levelSet(i, j).x;
 					int l = labelImage(i, j).x;
 					Color c = getColor(l);
@@ -154,10 +155,8 @@ namespace aly {
 				}
 			}
 		}
-		initialLevelSet = levelSet;
-		WriteImageToRawFile(GetDesktopDirectory() + ALY_PATH_SEPARATOR + "init_labels.xml",labelImage);
-		WriteImageToRawFile(GetDesktopDirectory() + ALY_PATH_SEPARATOR + "init_distfield.xml", levelSet);
-
+		Smooth3x3(levelSet, initialLevelSet);
+		levelSet = initialLevelSet;
 	}
 
 	bool MultiActiveContour2D::init() {

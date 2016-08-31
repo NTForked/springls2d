@@ -60,15 +60,16 @@ bool SuperPixelToy::init(Composite& rootNode) {
 	};
 
 	Image1i initLabels;
-	SuperPixels sp;		
+	SuperPixels sp;
 	std::cout << "Computing super-pixels ..." << std::endl;
-	sp.solve(img,1024);
+	sp.solve(img, 1024);
 	initLabels = sp.getLabelImage();
 	for (int j = 0;j < initLabels.height;j++) {
 		for (int i = 0;i < initLabels.width;i++) {
 			if (i < 1 || j < 1 || i >= initLabels.width - 1 || j >= initLabels.height - 1) {
 				initLabels(i, j) = int1(0);
-			} else {
+			}
+			else {
 				initLabels(i, j).x++;
 			}
 		}
@@ -163,7 +164,7 @@ bool SuperPixelToy::init(Composite& rootNode) {
 	controls->addNumberField("Line Width", lineWidth, Float(1.0f), Float(20.0f), 6.0f);
 	if (example > 0) {
 		controls->addNumberField("Particle Size", particleSize, Float(0.0f), Float(1.0f), 6.0f);
-		controls->addColorField("Element", springlColor);	
+		controls->addColorField("Element", springlColor);
 		controls->addColorField("Particle", particleColor);
 		controls->addColorField("Point", pointColor);
 		controls->addColorField("Normal", normalColor);
@@ -196,22 +197,11 @@ bool SuperPixelToy::init(Composite& rootNode) {
 			CoordPX(img.width * downScale, img.height * downScale)));
 	Application::addListener(resizeableRegion.get());
 	ImageGlyphPtr imageGlyph = AlloyApplicationContext()->createImageGlyph(img, false);
-	overlayGlyph= AlloyApplicationContext()->createImageGlyph(img, false);
+	if (simulation->updateOverlayImage()) {
+		overlayGlyph = AlloyApplicationContext()->createImageGlyph(simulation->getContour()->overlay, false);
+	}
 	DrawPtr drawContour = DrawPtr(new Draw("Contour Draw", CoordPX(0.0f, 0.0f), CoordPercent(1.0f, 1.0f), [this](AlloyContext* context, const box2px& bounds) {
 		std::shared_ptr<CacheElement> elem = this->cache->get(timelineSlider->getTimeValue().toInteger());
-		
-		if (simulation->updateOverlayImage()) {
-			overlayGlyph->set(simulation->getContour()->overlay, getContext().get());
-		}
-		/*
-		Contour2D* contour;
-		if (elem.get() != nullptr) {
-			contour = elem->getContour().get();
-		}
-		else {
-			contour = simulation->getContour();
-		}
-
 		NVGcontext* nvg = context->nvgContext;
 		nvgLineCap(nvg, NVG_ROUND);
 		float scale = bounds.dimensions.x / (float)img.width;
@@ -219,35 +209,7 @@ bool SuperPixelToy::init(Composite& rootNode) {
 
 			nvgFillColor(nvg, vecfieldColor);
 			nvgStrokeWidth(nvg, 0.05f*scale);
-			const float aH=0.5f*std::sqrt(2.0f);
-			const float aW= 0.25f*std::sqrt(2.0f);
-			for (int i = 0;i < vecField.width;i++) {
-				for (int j = 0;j < vecField.height;j++) {
-					float2 v = vecField(i, j);
-					float2 pt1 = float2(i + 0.5f + 0.7f*aH*v.x, j + 0.5f + 0.7f*aH*v.y);
-					float2 pt2 = float2(i + 0.5f - 0.5f*aW*v.y - 0.3f*aH*v.x, j + 0.5f + 0.5f*aW*v.x- 0.3f*aH*v.y);
-					float2 pt3 = float2(i + 0.5f + 0.5f*aW*v.y - 0.3f*aH*v.x, j + 0.5f - 0.5f*aW*v.x - 0.3f*aH*v.y);
-
-					pt1.x = pt1.x / (float)img.width;
-					pt1.y = pt1.y / (float)img.height;
-					pt1 = pt1*bounds.dimensions + bounds.position;
-
-					pt2.x = pt2.x / (float)img.width;
-					pt2.y = pt2.y / (float)img.height;
-					pt2 = pt2*bounds.dimensions + bounds.position;
-
-					pt3.x = pt3.x / (float)img.width;
-					pt3.y = pt3.y / (float)img.height;
-					pt3 = pt3*bounds.dimensions + bounds.position;
-					
-					nvgBeginPath(nvg);
-					nvgMoveTo(nvg, pt1.x, pt1.y);
-					nvgLineTo(nvg, pt2.x, pt2.y);
-					nvgLineTo(nvg, pt3.x, pt3.y);
-					nvgClosePath(nvg);
-					nvgFill(nvg);
-				}
-			}
+			
 			nvgStrokeColor(nvg, Color(0.4f, 0.4f, 0.4f, 0.5f));
 			nvgBeginPath(nvg);
 			for (int i = 0;i < img.width;i++) {
@@ -276,144 +238,10 @@ bool SuperPixelToy::init(Composite& rootNode) {
 			}
 			nvgStroke(nvg);
 		}
-		if (0.04f*scale > 0.5f&&contour->particles.size()== contour->correspondence.size()) {
-			
-			nvgStrokeColor(nvg, matchColor);
-			nvgStrokeWidth(nvg, 0.04f*scale);
-			for (int n = 0;n < (int)contour->particles.size();n++) {
-				float2 qt = contour->correspondence[n];
-				if (!std::isinf(qt.x)) {
-					float2 pt = contour->particles[n] + float2(0.5f);
-					pt.x = pt.x / (float)img.width;
-					pt.y = pt.y / (float)img.height;
-					pt = pt*bounds.dimensions + bounds.position;
-					nvgBeginPath(nvg);
-					nvgMoveTo(nvg, pt.x, pt.y);
-					pt = qt + float2(0.5f);
-					pt.x = pt.x / (float)img.width;
-					pt.y = pt.y / (float)img.height;
-					pt = pt*bounds.dimensions + bounds.position;
-					nvgLineTo(nvg, pt.x, pt.y);
-					nvgStroke(nvg);
-				}
-			}
-			nvgFillColor(nvg, matchColor.toSemiTransparent(1.0f));
-			for (int n = 0;n < (int)contour->correspondence.size();n++) {
-				float2 qt = contour->correspondence[n];
-				if (!std::isinf(qt.x)) {
-					float2 pt = qt + float2(0.5f);
-					pt.x = pt.x / (float)img.width;
-					pt.y = pt.y / (float)img.height;
-					pt = pt*bounds.dimensions + bounds.position;
-					nvgBeginPath(nvg);
-					nvgEllipse(nvg, pt.x, pt.y, 0.05f*scale, 0.05f*scale);
-					nvgFill(nvg);
-				}
-			}
-		}
-
-		nvgStrokeWidth(nvg, lineWidth.toFloat());
-		for (int n = 0;n < (int)contour->indexes.size();n++) {
-			std::list<uint32_t> curve = contour->indexes[n];
-			nvgPathWinding(nvg, NVG_CW);
-			nvgBeginPath(nvg);
-			bool firstTime = true;
-			for (uint32_t idx : curve) {
-				if (firstTime) {
-					int l = contour->vertexLabels[idx].x;
-					nvgFillColor(nvg, simulation->getColor(l).toSemiTransparent(0.5f));
-					nvgStrokeColor(nvg, simulation->getColor(l));
-				}
-				float2 pt = contour->vertexes[idx] + float2(0.5f);
-				pt.x = pt.x / (float)img.width;
-				pt.y = pt.y / (float)img.height;
-				pt = pt*bounds.dimensions + bounds.position;
-				if (firstTime) {
-					nvgMoveTo(nvg, pt.x, pt.y);
-				}
-				else {
-					nvgLineTo(nvg, pt.x, pt.y);
-				}
-				firstTime = false;
-			}
-			nvgClosePath(nvg);
-			nvgFill(nvg);
-			nvgStroke(nvg);
-		}
-
-		if (0.1f*scale > 0.5f) {
-			nvgStrokeColor(nvg, springlColor);
-			nvgStrokeWidth(nvg, 0.1f*scale);
-			for (int n = 0;n < (int)contour->points.size();n += 2) {
-				float2 pt = contour->points[n] + float2(0.5f);
-				pt.x = pt.x / (float)img.width;
-				pt.y = pt.y / (float)img.height;
-				pt = pt*bounds.dimensions + bounds.position;
-				nvgBeginPath(nvg);
-				nvgMoveTo(nvg, pt.x, pt.y);
-
-				pt = contour->particles[n/2] + float2(0.5f);
-				pt.x = pt.x / (float)img.width;
-				pt.y = pt.y / (float)img.height;
-				pt = pt*bounds.dimensions + bounds.position;
-				nvgLineTo(nvg, pt.x, pt.y);
-
-				pt = contour->points[n + 1] + float2(0.5f);
-				pt.x = pt.x / (float)img.width;
-				pt.y = pt.y / (float)img.height;
-				pt = pt*bounds.dimensions + bounds.position;
-
-				nvgLineTo(nvg, pt.x, pt.y);
-				nvgStroke(nvg);
-			}
-		}
-
-		if (0.05f*scale > 0.5f) {
-			nvgStrokeColor(nvg, normalColor);
-			nvgStrokeWidth(nvg, 0.05f*scale);
-			for (int n = 0;n < (int)contour->normals.size();n++) {
-				float2 pt = contour->particles[n] + float2(0.5f);
-				pt.x = pt.x / (float)img.width;
-				pt.y = pt.y / (float)img.height;
-				pt = pt*bounds.dimensions + bounds.position;
-				nvgBeginPath(nvg);
-				nvgMoveTo(nvg, pt.x, pt.y);
-				pt = contour->particles[n] + SpringLevelSet2D::EXTENT*contour->normals[n] + float2(0.5f);
-				pt.x = pt.x / (float)img.width;
-				pt.y = pt.y / (float)img.height;
-				pt = pt*bounds.dimensions + bounds.position;
-				nvgLineTo(nvg, pt.x, pt.y);
-				nvgStroke(nvg);
-			}
-		}
-		if (0.05f*scale > 0.5f) {
-			nvgFillColor(nvg, pointColor);
-			for (int n = 0;n < (int)contour->points.size();n++) {
-				float2 pt = contour->points[n] + float2(0.5f);
-				pt.x = pt.x / (float)img.width;
-				pt.y = pt.y / (float)img.height;
-				pt = pt*bounds.dimensions + bounds.position;
-				nvgBeginPath(nvg);
-				nvgEllipse(nvg, pt.x, pt.y, 0.05f*scale, 0.05f*scale);
-				nvgFill(nvg);
-			}
-		}
-
-		if (0.1f*scale > 0.5f) {
-			nvgFillColor(nvg, particleColor);
-			for (int n = 0;n < (int)contour->particles.size();n++) {
-				float2 pt = contour->particles[n] + float2(0.5f);
-				pt.x = pt.x / (float)img.width;
-				pt.y = pt.y / (float)img.height;
-				pt = pt*bounds.dimensions + bounds.position;
-				nvgBeginPath(nvg);
-				nvgEllipse(nvg, pt.x, pt.y, 0.1f*scale, 0.1f*scale);
-				nvgFill(nvg);
-			}
-		}
-		*/
+		
 	}));
-	GlyphRegionPtr glyphRegion = GlyphRegionPtr(new GlyphRegion("Image Region", imageGlyph, CoordPX(0.0f, 0.0f), CoordPercent(1.0f, 1.0f)));
+	
+	GlyphRegionPtr glyphRegion = GlyphRegionPtr(new GlyphRegion("Image Region",imageGlyph, CoordPX(0.0f, 0.0f), CoordPercent(1.0f, 1.0f)));
 	glyphRegion->setAspectRule(AspectRule::Unspecified);
 	glyphRegion->foregroundColor = MakeColor(COLOR_NONE);
 	glyphRegion->backgroundColor = MakeColor(COLOR_NONE);
@@ -424,7 +252,7 @@ bool SuperPixelToy::init(Composite& rootNode) {
 	overlayRegion->foregroundColor = MakeColor(COLOR_NONE);
 	overlayRegion->backgroundColor = MakeColor(COLOR_NONE);
 	overlayRegion->borderColor = MakeColor(COLOR_NONE);
-	drawContour->onScroll = [this](AlloyContext* context, const InputEvent& event)
+	overlayRegion->onScroll = [this](AlloyContext* context, const InputEvent& event)
 	{
 		box2px bounds = resizeableRegion->getBounds(false);
 		pixel scaling = (pixel)(1 - 0.1f*event.scroll.y);
@@ -444,15 +272,16 @@ bool SuperPixelToy::init(Composite& rootNode) {
 		context->requestPack();
 		return true;
 	};
-	drawContour->onMouseOver = [this](AlloyContext* context, const InputEvent& event) {
+	overlayRegion->onMouseOver = [this](AlloyContext* context, const InputEvent& event) {
 		box2px bbox = resizeableRegion->getBounds(true);
 		float2 dims = float2(img.dimensions());
 		float2 cursor = aly::clamp(dims*(event.cursor - bbox.position) / bbox.dimensions, float2(0.0f), dims);
 		return false;
 	};
 	resizeableRegion->add(glyphRegion);
-	resizeableRegion->add(overlayRegion);
 	resizeableRegion->add(drawContour);
+
+	resizeableRegion->add(overlayRegion);
 	resizeableRegion->setAspectRatio(img.width / (float)img.height);
 	resizeableRegion->setAspectRule(AspectRule::FixedHeight);
 	resizeableRegion->setDragEnabled(true);
