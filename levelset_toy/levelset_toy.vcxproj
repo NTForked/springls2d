@@ -159,6 +159,7 @@
     <ClInclude Include="include\SpringLevelSet2D.h" />
     <ClInclude Include="include\LevelSetToy.h" />
     <ClInclude Include="include\SpringlsSecondOrder.h" />
+    <ClInclude Include="include\SuperPixelLevelSet.h" />
     <ClInclude Include="include\SuperPixelToy.h" />
   </ItemGroup>
   <ItemGroup>
@@ -176,6 +177,7 @@
     <ClCompile Include="src\SpringLevelSet2D.cpp" />
     <ClCompile Include="src\LevelSetToy.cpp" />
     <ClCompile Include="src\SpringlsSecondOrder.cpp" />
+    <ClCompile Include="src\SuperPixelLevelSet.cpp" />
     <ClCompile Include="src\SuperPixelToy.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

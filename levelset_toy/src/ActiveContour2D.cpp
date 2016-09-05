@@ -59,15 +59,15 @@ namespace aly {
 		}
 	}
 	Contour2D* ActiveContour2D::getContour() {
-		if (updateIsoSurface) {
+		if (requestUpdateContour) {
 			std::lock_guard<std::mutex> lockMe(contourLock);
 			isoContour.solve(levelSet, contour.vertexes, contour.indexes, 0.0f, (preserveTopology) ? TopologyRule2D::Connect4 : TopologyRule2D::Unconstrained,Winding::Clockwise);
-			updateIsoSurface = false;
+			requestUpdateContour = false;
 		}
 		return &contour;
 	}
 	ActiveContour2D::ActiveContour2D(const std::shared_ptr<SpringlCache2D>& cache) :Simulation("Active Contour 2D"),
-			cache(cache),  preserveTopology(false), clampSpeed(false), updateIsoSurface(
+			cache(cache),  preserveTopology(false), clampSpeed(false), requestUpdateContour(
 					false){
 		advectionParam = Float(1.0f);
 		pressureParam = Float(0.0f);
@@ -75,7 +75,7 @@ namespace aly {
 		curvatureParam = Float(0.3f);
 	}
 	ActiveContour2D::ActiveContour2D(const std::string& name,const std::shared_ptr<SpringlCache2D>& cache) : Simulation(name),
-		cache(cache),  preserveTopology(false), clampSpeed(false), updateIsoSurface(
+		cache(cache),  preserveTopology(false), clampSpeed(false), requestUpdateContour(
 			false){
 		advectionParam = Float(1.0f);
 		pressureParam = Float(0.0f);
@@ -112,7 +112,7 @@ namespace aly {
 		}
 
 		rebuildNarrowBand();
-		updateIsoSurface = true;
+		requestUpdateContour = true;
 		if (cache.get() != nullptr) {
 			Contour2D* contour = getContour();
 			contour->setFile(MakeString() << GetDesktopDirectory() << ALY_PATH_SEPARATOR << "contour" << std::setw(4) << std::setfill('0') << mSimulationIteration << ".bin");
@@ -547,7 +547,7 @@ namespace aly {
 			int2 pos = activeList[i];
 			plugLevelSet(pos.x, pos.y, i);
 		}
-		updateIsoSurface = true;
+		requestUpdateContour = true;
 		contourLock.unlock();
 
 #pragma omp parallel for

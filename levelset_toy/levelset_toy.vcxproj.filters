@@ -57,6 +57,9 @@
     <ClInclude Include="include\SuperPixelToy.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\SuperPixelLevelSet.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\ActiveContour2D.cpp">
@@ -102,6 +105,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\SuperPixelToy.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\SuperPixelLevelSet.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

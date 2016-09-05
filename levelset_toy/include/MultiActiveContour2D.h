@@ -47,8 +47,8 @@ namespace aly {
 		
 		const float MAX_DISTANCE = 3.5f;
 		const int maxLayers = 3;
-		bool updateIsoSurface;
-		bool updateOverlay;
+		bool requestUpdateContour;
+		bool requestUpdateOverlay;
 		Image1f initialLevelSet;
 		Image1i initialLabels;
 		Image1f levelSet;
@@ -72,7 +72,7 @@ namespace aly {
 		void updateDistanceField(int i, int j, int band);
 		int deleteElements();
 		int addElements();
-		float evolve(float maxStep);
+		virtual float evolve(float maxStep);
 		void rebuildNarrowBand();
 		void applyForcesTopoRule(int i, int j, int offset, size_t index, float timeStep);
 		virtual bool stepInternal() override;
@@ -85,10 +85,14 @@ namespace aly {
 		void setCurvature(float c) {
 			curvatureParam.setValue(c);
 		}
+		void setPressure(float c) {
+			pressureParam.setValue(c);
+		}
 		aly::Color getColor(int l) {
 			return lineColors[l];
 		}
-		bool updateOverlayImage();
+		bool updateContour();
+		bool updateOverlay();
 		void setPressure(const Image1f& img, float weight, float target) {
 			pressureParam.setValue(weight);
 			targetPressureParam.setValue(target);

@@ -62,10 +62,11 @@ namespace aly {
 			levelSet(i, j) = 3.0f;
 		}
 	}
-	bool MultiActiveContour2D::updateOverlayImage() {
-		if (updateOverlay) {
+	bool MultiActiveContour2D::updateOverlay() {
+		if (requestUpdateOverlay) {
 			ImageRGBA& overlay = contour.overlay;
 			overlay.resize(labelImage.width, labelImage.height);
+#pragma omp parallel for
 			for (int j = 0; j <overlay.height; j++) {
 				for (int i = 0; i < overlay.width; i++) {
 					float d = levelSet(i, j).x;
@@ -77,7 +78,18 @@ namespace aly {
 					overlay(i, j) = ToRGBA(rgba);
 				}
 			}
-			updateOverlay = false;
+			requestUpdateOverlay = false;
+			return true;
+		}
+		else {
+			return false;
+		}
+	}
+	bool MultiActiveContour2D::updateContour() {
+		if (requestUpdateContour) {
+			std::lock_guard<std::mutex> lockMe(contourLock);
+			isoContour.solve(levelSet, labelImage, labelList, contour.vertexes, contour.vertexLabels, contour.indexes, 0.0f, (preserveTopology) ? TopologyRule2D::Connect4 : TopologyRule2D::Unconstrained, Winding::Clockwise);
+			requestUpdateContour = false;
 			return true;
 		}
 		else {
@@ -85,15 +97,10 @@ namespace aly {
 		}
 	}
 	Contour2D* MultiActiveContour2D::getContour() {
-		if (updateIsoSurface) {
-			std::lock_guard<std::mutex> lockMe(contourLock);
-			isoContour.solve(levelSet, labelImage, labelList, contour.vertexes, contour.vertexLabels, contour.indexes, 0.0f, (preserveTopology) ? TopologyRule2D::Connect4 : TopologyRule2D::Unconstrained, Winding::Clockwise);
-			updateIsoSurface = false;
-		}
 		return &contour;
 	}
 	MultiActiveContour2D::MultiActiveContour2D(const std::shared_ptr<SpringlCache2D>& cache) :Simulation("Active Contour 2D"),
-		cache(cache), preserveTopology(false), clampSpeed(false), updateIsoSurface(
+		cache(cache), preserveTopology(false), clampSpeed(false), requestUpdateContour(
 			false) {
 		advectionParam = Float(1.0f);
 		pressureParam = Float(0.0f);
@@ -101,7 +108,7 @@ namespace aly {
 		curvatureParam = Float(0.3f);
 	}
 	MultiActiveContour2D::MultiActiveContour2D(const std::string& name, const std::shared_ptr<SpringlCache2D>& cache) : Simulation(name),
-		cache(cache), preserveTopology(false), clampSpeed(false), updateIsoSurface(
+		cache(cache), preserveTopology(false), clampSpeed(false), requestUpdateContour(
 			false) {
 		advectionParam = Float(1.0f);
 		pressureParam = Float(0.0f);
@@ -155,8 +162,7 @@ namespace aly {
 				}
 			}
 		}
-		Smooth3x3(levelSet, initialLevelSet);
-		levelSet = initialLevelSet;
+		initialLevelSet = levelSet;
 	}
 
 	bool MultiActiveContour2D::init() {
@@ -186,6 +192,7 @@ namespace aly {
 				L = std::max(L, l.x + 1);
 			}
 		}
+		
 		forceIndexes.resize(L,-1);
 		labelList.clear();
 		labelList.assign(labelSet.begin(), labelSet.end());
@@ -211,12 +218,14 @@ namespace aly {
 			}
 		}
 		rebuildNarrowBand();
-		updateIsoSurface = (getNumLabels()<256);
-		updateOverlay = true;
+		//requestUpdateContour = true;//(getNumLabels() < 256);
+		requestUpdateOverlay = false;
+		requestUpdateOverlay = true;
 		if (cache.get() != nullptr) {
-			Contour2D* contour = getContour();
-			contour->setFile(MakeString() << GetDesktopDirectory() << ALY_PATH_SEPARATOR << "contour" << std::setw(4) << std::setfill('0') << mSimulationIteration << ".bin");
-			cache->set((int)mSimulationIteration, *contour);
+			updateOverlay();
+			updateContour();
+			contour.setFile(MakeString() << GetDesktopDirectory() << ALY_PATH_SEPARATOR << "contour" << std::setw(4) << std::setfill('0') << mSimulationIteration << ".bin");
+			cache->set((int)mSimulationIteration, contour);
 		}
 		return true;
 	}
@@ -633,7 +642,7 @@ namespace aly {
 		activeLabels[3] = swapLabelImage(i, j + 1);
 		activeLabels[4] = swapLabelImage(i, j - 1);
 		int label;
-		float pressureValue = pressureImage(i, j).x;
+		float pressureValue = (pressureImage.size()>0)?pressureImage(i, j).x:0.0f;
 		for (int index = 0;index < 5;index++) {
 			label = activeLabels[index];
 			if (label == 0) {
@@ -814,8 +823,8 @@ namespace aly {
 			int2 pos = activeList[i];
 			plugLevelSet(pos.x, pos.y, i);
 		}
-		updateIsoSurface = (getNumLabels()<256);
-		updateOverlay = true;
+		requestUpdateContour = (getNumLabels()<256);
+		requestUpdateOverlay = true;
 		contourLock.unlock();
 
 #pragma omp parallel for
@@ -841,6 +850,8 @@ namespace aly {
 		mSimulationTime += t;
 		mSimulationIteration++;
 		if (cache.get() != nullptr) {
+			updateOverlay();
+			updateContour();
 			Contour2D* contour = getContour();
 			contour->setFile(MakeString() << GetDesktopDirectory() << ALY_PATH_SEPARATOR << "contour" << std::setw(4) << std::setfill('0') << mSimulationIteration << ".bin");
 			cache->set((int)mSimulationIteration, *contour);

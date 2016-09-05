@@ -40,11 +40,16 @@ namespace aly {
 		Image1i labelImage;
 		Vector3f colorCenters;
 		Vector2f pixelCenters;
+		std::vector<int> clustersize;
+		Vector3f colorMean;
+		Vector2f pixelMean;
+		std::vector<float> maxlab;
 		bool perturbSeeds;
 		int numLabels;
 		float bonusThreshold;
 		float bonus;
 		float errorThreshold;
+		float S;
 		void initializeSeeds(int K);
 		void refineSeeds(const Image1f& magImage);
 		void gradientMagnitude(Image1f& magImage);
@@ -53,6 +58,8 @@ namespace aly {
 	public:
 		void solve(const ImageRGBAf& image,int K,int iterations=128);
 		void solve(const ImageRGBA& image, int K, int iterations = 128);
+		float updateClusters(const Image1i& labelImage,int labelOffset=0);
+		float distance(int x, int y,int label) const;
 		void setPerturbSeeds(bool p) {
 			perturbSeeds = p;
 		}

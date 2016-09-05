@@ -46,7 +46,7 @@ namespace aly {
 		
 		const float MAX_DISTANCE = 3.5f;
 		const int maxLayers = 3;
-		bool updateIsoSurface;
+		bool requestUpdateContour;
 		Image1f initialLevelSet;
 		Image1f levelSet;
 		Image1f swapLevelSet;
@@ -65,7 +65,7 @@ namespace aly {
 		void updateDistanceField(int i, int j, int band, size_t index);
 		int deleteElements();
 		int addElements();
-		float evolve(float maxStep);
+		virtual float evolve(float maxStep);
 		void rebuildNarrowBand();
 
 		void applyForcesTopoRule(int i, int j, int offset, size_t index, float timeStep);

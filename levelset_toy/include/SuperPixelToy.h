@@ -24,7 +24,7 @@
 
 #include "AlloyApplication.h"
 #include "AlloyVector.h"
-#include "MultiActiveContour2D.h"
+#include "SuperPixelLevelSet.h"
 #include "AlloyWorker.h"
 #include "AlloyTimeline.h"
 #include "Simulation.h"
@@ -37,6 +37,7 @@ protected:
 	bool parametersDirty;
 	bool frameBuffersDirty;
 	float currentIso;
+	int lastSimTime;
 	bool running = false;
 	aly::Image2f vecField;
 	aly::Number lineWidth;
@@ -48,7 +49,7 @@ protected:
 	aly::Color matchColor;
 	aly::Color vecfieldColor;
 	aly::AdjustableCompositePtr resizeableRegion;
-	std::shared_ptr<aly::MultiActiveContour2D> simulation;
+	std::shared_ptr<aly::SuperPixelLevelSet> simulation;
 	aly::IconButtonPtr playButton,stopButton;
     std::shared_ptr<aly::TimelineSlider> timelineSlider;
 	aly::ImageGlyphPtr overlayGlyph;

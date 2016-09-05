@@ -70,13 +70,14 @@ namespace aly {
 
 		template<class Archive> void save(Archive & archive) const {
 			if (overlay.size() > 0) {
-				WriteImageToFile(GetFileWithoutExtension(file) + ".png", overlay);
+				std::string imageFile = GetFileWithoutExtension(file) + ".png";
+				WriteImageToFile(imageFile, overlay);
 			}
-			archive( CEREAL_NVP(vertexes),CEREAL_NVP(indexes), CEREAL_NVP(particles), CEREAL_NVP(points),  CEREAL_NVP(normals), CEREAL_NVP(vertexLabels), CEREAL_NVP(correspondence));
+			archive( CEREAL_NVP(vertexes),CEREAL_NVP(file), CEREAL_NVP(indexes), CEREAL_NVP(particles), CEREAL_NVP(points),  CEREAL_NVP(normals), CEREAL_NVP(vertexLabels), CEREAL_NVP(correspondence));
 		}
 		template<class Archive> void load(Archive & archive) 
 		{
-			archive(CEREAL_NVP(vertexes), CEREAL_NVP(indexes), CEREAL_NVP(particles), CEREAL_NVP(points), CEREAL_NVP(normals), CEREAL_NVP(vertexLabels), CEREAL_NVP(correspondence));
+			archive(CEREAL_NVP(vertexes), CEREAL_NVP(file), CEREAL_NVP(indexes), CEREAL_NVP(particles), CEREAL_NVP(points), CEREAL_NVP(normals), CEREAL_NVP(vertexLabels), CEREAL_NVP(correspondence));
 			std::string imageFile = GetFileWithoutExtension(file) + ".png";
 			if (FileExists(imageFile)) {
 				ReadImageFromFile(imageFile, overlay);

@@ -28,21 +28,19 @@
 using namespace aly;
 
 SuperPixelToy::SuperPixelToy(int example) :
-	Application(1600, 800, "Super-Pixel Level Set Toy", false), currentIso(0.0f),example(example) {
+	Application(1600, 800, "Super-Pixel Level Set Toy", false), currentIso(0.0f),example(example), lastSimTime(-1){
 }
 
 
 bool SuperPixelToy::init(Composite& rootNode) {
-	int w = 128;
-	int h = 128;
-	float maxDistance = 32;
 	cache = std::shared_ptr<SpringlCache2D>(new SpringlCache2D());
 	ImageRGBA down;
-	ReadImageFromFile(getFullPath("images/picnic.png"),img);
-	//DownSample(down,img);
+	ReadImageFromFile(getFullPath("images/picnic.png"),down);
+	DownSample(down,img);
 	if (example == 0) {
-		simulation = std::shared_ptr<MultiActiveContour2D>(new MultiActiveContour2D(cache));
-		simulation->setCurvature(2.0f);
+		simulation = std::shared_ptr<SuperPixelLevelSet>(new SuperPixelLevelSet(cache));
+		simulation->setCurvature(0.0f);
+		simulation->setPressure(1.0f);
 	}
 	else {
 		return false;
@@ -59,24 +57,9 @@ bool SuperPixelToy::init(Composite& rootNode) {
 		});
 	};
 
-	Image1i initLabels;
-	SuperPixels sp;
-	std::cout << "Computing super-pixels ..." << std::endl;
-	sp.solve(img, 1024);
-	initLabels = sp.getLabelImage();
-	for (int j = 0;j < initLabels.height;j++) {
-		for (int i = 0;i < initLabels.width;i++) {
-			if (i < 1 || j < 1 || i >= initLabels.width - 1 || j >= initLabels.height - 1) {
-				initLabels(i, j) = int1(0);
-			}
-			else {
-				initLabels(i, j).x++;
-			}
-		}
-	}
-	std::cout << "Initialize Level Set ..." << std::endl;
-	simulation->setInitial(initLabels);
-	std::cout << "Initializing application ..." << std::endl;
+	std::shared_ptr<SuperPixels> sp=std::shared_ptr<SuperPixels>(new SuperPixels());
+	sp->solve(img, 256,2);
+	simulation->setSuperPixels(sp);
 	simulation->init();
 	parametersDirty = true;
 	frameBuffersDirty = true;
@@ -197,11 +180,21 @@ bool SuperPixelToy::init(Composite& rootNode) {
 			CoordPX(img.width * downScale, img.height * downScale)));
 	Application::addListener(resizeableRegion.get());
 	ImageGlyphPtr imageGlyph = AlloyApplicationContext()->createImageGlyph(img, false);
-	if (simulation->updateOverlayImage()) {
-		overlayGlyph = AlloyApplicationContext()->createImageGlyph(simulation->getContour()->overlay, false);
-	}
+	overlayGlyph = AlloyApplicationContext()->createImageGlyph(simulation->getContour()->overlay, false);
 	DrawPtr drawContour = DrawPtr(new Draw("Contour Draw", CoordPX(0.0f, 0.0f), CoordPercent(1.0f, 1.0f), [this](AlloyContext* context, const box2px& bounds) {
-		std::shared_ptr<CacheElement> elem = this->cache->get(timelineSlider->getTimeValue().toInteger());
+		int currentTime = timelineSlider->getTimeValue().toInteger();
+		std::shared_ptr<CacheElement> elem = this->cache->get(currentTime);
+		Contour2D* contour;
+		if (elem.get() != nullptr) {
+			contour = elem->getContour().get();
+		}
+		else {
+			contour = simulation->getContour();
+		}
+		if (currentTime != lastSimTime) {
+			overlayGlyph->set(contour->overlay, context);
+			lastSimTime = currentTime;
+		}
 		NVGcontext* nvg = context->nvgContext;
 		nvgLineCap(nvg, NVG_ROUND);
 		float scale = bounds.dimensions.x / (float)img.width;

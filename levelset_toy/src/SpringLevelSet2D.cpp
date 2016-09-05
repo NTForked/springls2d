@@ -230,7 +230,7 @@ namespace aly {
 			std::lock_guard<std::mutex> lockMe(contourLock);
 			isoContour.solve(levelSet, contour.vertexes, contour.indexes, 0.0f, (preserveTopology) ? TopologyRule2D::Connect4 : TopologyRule2D::Unconstrained, Winding::Clockwise);
 			refineContour(false);
-			updateIsoSurface = false;
+			requestUpdateContour = false;
 		}
 		int fillCount = 0;
 		for (std::list<uint32_t> curve : contour.indexes) {
@@ -486,7 +486,7 @@ namespace aly {
 			int2 pos = activeList[i];
 			plugLevelSet(pos.x, pos.y, i);
 		}
-		updateIsoSurface = true;
+		requestUpdateContour = true;
 		contourLock.unlock();
 
 #pragma omp parallel for
@@ -770,7 +770,7 @@ return -(v11*grad / len);
 				refineContour(false);
 				contour.updateNormals();
 				contour.setDirty(true);
-				updateIsoSurface = false;
+				requestUpdateContour = false;
 			}
 			remaining = mTimeStep - t;
 		} while (remaining > 1E-5f);

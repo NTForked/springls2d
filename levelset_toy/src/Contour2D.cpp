@@ -65,6 +65,8 @@ namespace aly {
 		if (vao != 0)
 			glDeleteVertexArrays(1, &vao);
 		context->end();
+
+
 	}
 	void Contour2D::draw() {
 		if (dirty) {
@@ -158,9 +160,9 @@ namespace aly {
 			cereal::PortableBinaryInputArchive archive(os);
 			archive(cereal::make_nvp("contour", params));
 		}
-		params.setFile(file);
 	}
 	void WriteContourToFile(const std::string& file, Contour2D& params) {
+		params.setFile(file);
 		std::string ext = GetFileExtension(file);
 		if (ext == "json") {
 			std::ofstream os(file);
