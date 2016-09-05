@@ -199,10 +199,10 @@ namespace aly {
 		for (int i = 0;i < (int)labelList.size();i++) {
 			forceIndexes[labelList[i]] = i;
 		}
-		lineColors.clear();
 		L = (int)labelList.size();
-		lineColors[0] = RGBAf(0.0f, 0.0f, 0.0f, 0.0f);
 		if(L<256){
+			lineColors.clear();
+			lineColors[0] = RGBAf(0.0f, 0.0f, 0.0f, 0.0f);
 			int CL = std::min(256, L);
 			for (int i = 0;i < L;i++) {
 				int l = labelList[i];
@@ -211,14 +211,18 @@ namespace aly {
 			}
 		}
 		else {
-			for (int i = 0;i < L;i++) {
-				int l = labelList[i];
-				HSV hsv = HSV(RandomUniform(0.0f, 1.0f), RandomUniform(0.5f, 1.0f), RandomUniform(0.5f, 1.0f));
-				lineColors[l] = HSVtoColor(hsv);
+			if (lineColors.size() != L + 1) {
+				lineColors.clear();
+				lineColors[0] = RGBAf(0.0f, 0.0f, 0.0f, 0.0f);
+				for (int i = 0;i < L;i++) {
+					int l = labelList[i];
+					HSV hsv = HSV(RandomUniform(0.0f, 1.0f), RandomUniform(0.5f, 1.0f), RandomUniform(0.5f, 1.0f));
+					lineColors[l] = HSVtoColor(hsv);
+				}
 			}
 		}
 		rebuildNarrowBand();
-		//requestUpdateContour = true;//(getNumLabels() < 256);
+		requestUpdateContour = (getNumLabels() < 256);
 		requestUpdateOverlay = false;
 		requestUpdateOverlay = true;
 		if (cache.get() != nullptr) {

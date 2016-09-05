@@ -1,25 +1,26 @@
 #include "SuperPixelLevelSet.h"
 namespace aly {
 	bool SuperPixelLevelSet::stepInternal() {
-		float E=superPixels->updateClusters(labelImage,-1);
-		std::cout << "Center Movement " << E << std::endl;
-		maxClusterDistance = 0;
-		meanClusterDistance = 0;
-		int samples = 0;
-		for (int n = 0;n<(int)activeList.size();n++) {
-			int2 pos = activeList[n];
-			if (swapLevelSet(pos).x <= 0.5f) {
-				int label = swapLabelImage(pos).x;
-				if (label>0) {
-					samples++;
-					float d = superPixels->distance(pos.x, pos.y, label - 1);
-					maxClusterDistance = std::max(maxClusterDistance, d);
-					meanClusterDistance += d;
+		float E = superPixels->updateClusters(labelImage, -1);
+		float mx = superPixels->updateMaxColor(labelImage, -1);
+		if (mSimulationIteration == 0) {
+			maxClusterDistance = 0;
+			meanClusterDistance = 0;
+			int samples = 0;
+			for (int n = 0;n < (int)activeList.size();n++) {
+				int2 pos = activeList[n];
+				if (swapLevelSet(pos).x <= 0.5f) {
+					int label = swapLabelImage(pos.x, pos.y).x;
+					if (label > 0) {
+						samples++;
+						float d = superPixels->distance(pos.x, pos.y, label - 1);
+						maxClusterDistance = std::max(maxClusterDistance, d);
+						meanClusterDistance += d;
+					}
 				}
 			}
+			meanClusterDistance /= (float)samples;
 		}
-		meanClusterDistance /= (float)samples;
-		std::cout << "Max Distance " << maxClusterDistance << " Mean Distance " << meanClusterDistance << std::endl;
 		double remaining = mTimeStep;
 		double t = 0.0;
 		do {
@@ -110,23 +111,23 @@ namespace aly {
 		activeLabels[2] = swapLabelImage(i - 1, j).x;
 		activeLabels[3] = swapLabelImage(i, j + 1).x;
 		activeLabels[4] = swapLabelImage(i, j - 1).x;
-		int label;
 		float maxDiff = 0.0f;
 		for (int index = 0;index < 5;index++) {
-			label = activeLabels[index];
-			float diff = offsets[index] = (label > 0) ? superPixels->distance(i, j, label - 1) : -1;
-			if (label!= activeLabels[0] &&diff > maxDiff) {
-				maxDiff = diff;
+			int label = activeLabels[index];
+			offsets[index] = (label > 0) ? superPixels->distance(i, j, label - 1) : -0.01f;
+			if (label != activeLabels[0]) {
+				if (offsets[index] > maxDiff) {
+					maxDiff = offsets[index];
+				}
 			}
 		}
 		for (int index = 0;index < 5;index++) {
-			label = activeLabels[index];
+			int label = activeLabels[index];
 			if (label == 0) {
 				objectIds[gid * 5 + index] = 0;
 				deltaLevelSet[gid * 5 + index] = 0;
 			}
 			else {
-				objectIds[gid * 5 + index] = label;
 				float v11 = getSwapLevelSetValue(i, j, label);
 				float v00 = getSwapLevelSetValue(i - 1, j - 1, label);
 				float v01 = getSwapLevelSetValue(i - 1, j, label);
@@ -140,7 +141,6 @@ namespace aly {
 				float DxPos = v21 - v11;
 				float DyNeg = v11 - v10;
 				float DyPos = v12 - v11;
-
 				float DxNegMin = std::min(DxNeg, 0.0f);
 				float DxNegMax = std::max(DxNeg, 0.0f);
 				float DxPosMin = std::min(DxPos, 0.0f);
@@ -178,7 +178,7 @@ namespace aly {
 				}
 				// Force should be negative to move level set outwards if pressure is
 				// positive
-				float force = pressureParam.toFloat() *(maxDiff - offsets[index])/ maxClusterDistance;
+				float force = pressureParam.toFloat() *aly::clamp((maxDiff - offsets[index])/ meanClusterDistance,-1.0f,1.0f);
 				float pressure = 0;
 				if (force > 0) {
 					pressure = -force * std::sqrt(GradientSqrPos);
@@ -186,6 +186,7 @@ namespace aly {
 				else if (force < 0) {
 					pressure = -force * std::sqrt(GradientSqrNeg);
 				}
+				objectIds[gid * 5 + index] = label;
 				deltaLevelSet[5 * gid + index] = kappa + pressure;
 			}
 		}

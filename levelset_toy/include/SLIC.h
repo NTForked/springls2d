@@ -59,7 +59,14 @@ namespace aly {
 		void solve(const ImageRGBAf& image,int K,int iterations=128);
 		void solve(const ImageRGBA& image, int K, int iterations = 128);
 		float updateClusters(const Image1i& labelImage,int labelOffset=0);
+		float updateMaxColor(const Image1i& labelImage, int labelOffset = 0);
 		float distance(int x, int y,int label) const;
+		float2 getPixelCenter(int label) const {
+			return pixelCenters[label];
+		}
+		RGBAf getColorCenter(int label) const {
+			return LABAtoRGBA(float4(colorCenters[label],1.0f));
+		}
 		void setPerturbSeeds(bool p) {
 			perturbSeeds = p;
 		}

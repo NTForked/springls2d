@@ -118,8 +118,8 @@ namespace aly {
 		}
 		labelImage = newLabels;
 		numLabels = label;
-		std::cout << "Max Label " << numLabels << std::endl;
 		updateClusters(labelImage);
+		updateMaxColor(labelImage);
 	}
 	void SuperPixels::refineSeeds(const Image1f& magImage) {
 		const int dx8[8] = { -1, -1,  0,  1, 1, 1, 0, -1 };
@@ -167,17 +167,7 @@ namespace aly {
 		{
 			scoreImage.set(float1(1E10f));
 			if (iter > 0) {
-				//Dynamically re-estimate weight
-				maxlab.assign(maxlab.size(), 1.0f);
-				for (int j = 0;j < labImage.height;j++) {
-					for (int i = 0; i < labImage.width; i++) {
-						int idx = labelImage(i, j).x;
-						float2 dist = distImage(i, j);
-						if (dist.x > maxlab[idx]) {
-							maxlab[idx] = dist.x;
-						}
-					}
-				}
+				updateMaxColor(labelImage);
 			}
 			for (int n = 0; n < numk; n++)
 			{
@@ -212,12 +202,36 @@ namespace aly {
 			if (E < errorThreshold)break;
 		}
 	}
+	float SuperPixels::updateMaxColor(const Image1i& labelImage, int labelOffset) {
+		maxlab.resize(numLabels);
+		maxlab.assign(numLabels, 1.0f);
+		float maxx = 0.0f;
+		for (int j = 0;j < labImage.height;j++) {
+			for (int i = 0; i < labImage.width; i++) {
+				int idx = labelImage(i, j).x+labelOffset;
+				if (idx >= 0) {
+					if (idx >= numLabels) {
+						std::cout << "Index exceeds max" << idx << std::endl;
+					}
+					float3 c = labImage(i, j);
+					float3 colorCenter = colorCenters[idx];
+					float distLab = lengthSqr(c - colorCenter);
+					maxx = std::max(distLab, maxx);
+					if (distLab > maxlab[idx]) {
+						maxlab[idx] = distLab;
+					}
+				}
+			}
+		}
+		maxx=std::sqrt(maxx);
+		return maxx;
+	}
 	float SuperPixels::updateClusters(const Image1i& labelImage,int labelOffset) {
 		colorMean.resize(numLabels);
 		pixelMean.resize(numLabels);
 		colorCenters.resize(numLabels);
 		pixelCenters.resize(numLabels);
-		clustersize.resize(numLabels, 0);
+		clustersize.resize(numLabels);
 		colorMean.set(float3(0.0f));
 		pixelMean.set(float2(0.0f));
 		clustersize.assign(clustersize.size(), 0);
@@ -225,6 +239,9 @@ namespace aly {
 			for (int i = 0; i < labImage.width; i++) {
 				int idx = labelImage(i, j).x+ labelOffset;
 				if (idx >= 0) {
+					if (idx >= numLabels) {
+						throw std::runtime_error("Invalid cluster id.");
+					}
 					colorMean[idx] += labImage(i, j);
 					pixelMean[idx] += float2((float)i, (float)j);
 					clustersize[idx]++;
@@ -247,15 +264,21 @@ namespace aly {
 		return E;
 	}
 	float SuperPixels::distance(int x, int y, int label) const {
-		float invxywt = 1.0f / (S*S);//NOTE: this is different from how usual SLIC/LKM works, but in original code implementation
-		float3 c = labImage(x, y);
-		float2 pixelCenter = pixelCenters[label];
-		float3 colorCenter = colorCenters[label];
-		float distLab = lengthSqr(c - colorCenter);
-		float distPixel = lengthSqr(float2((float)x, (float)y) - pixelCenter);
-		float ml = (maxlab[label] > 0.0f) ? 1.0f / maxlab[label] : 0.0f;
-		float dist = distLab*ml + distPixel * invxywt;
-		return dist;
+		if (label >= 0&&label<numLabels) {
+			float invxywt = 1.0f / (S*S);//NOTE: this is different from how usual SLIC/LKM works, but in original code implementation
+			float3 c = labImage(x, y);
+			float2 pixelCenter = pixelCenters[label];
+			float3 colorCenter = colorCenters[label];
+			float distLab = lengthSqr(c - colorCenter);
+			float distPixel = lengthSqr(float2((float)x, (float)y) - pixelCenter);
+			float ml = (maxlab[label] > 0.0f) ? 1.0f / maxlab[label] : 0.0f;
+			float dist = std::sqrt(distLab*ml + distPixel * invxywt);
+			return dist;
+		}
+		else {
+			throw std::runtime_error("Invalid cluster id.");
+			return 0;
+		}
 	}
 	void SuperPixels::solve(const ImageRGBA& image, int K, int iterations) {
 		labImage.resize(image.width, image.height);

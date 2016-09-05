@@ -39,7 +39,7 @@ bool SuperPixelToy::init(Composite& rootNode) {
 	DownSample(down,img);
 	if (example == 0) {
 		simulation = std::shared_ptr<SuperPixelLevelSet>(new SuperPixelLevelSet(cache));
-		simulation->setCurvature(0.0f);
+		simulation->setCurvature(0.3f);
 		simulation->setPressure(1.0f);
 	}
 	else {
@@ -58,7 +58,7 @@ bool SuperPixelToy::init(Composite& rootNode) {
 	};
 
 	std::shared_ptr<SuperPixels> sp=std::shared_ptr<SuperPixels>(new SuperPixels());
-	sp->solve(img, 256,2);
+	sp->solve(img,1024,1);
 	simulation->setSuperPixels(sp);
 	simulation->init();
 	parametersDirty = true;

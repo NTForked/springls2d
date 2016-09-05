@@ -30,7 +30,6 @@ namespace aly {
 		std::shared_ptr<SuperPixels> superPixels;
 		void superPixelMotion(int i, int j, size_t index);
 		virtual float evolve(float maxStep) override;
-
 		virtual bool stepInternal() override;
 	public:
 		SuperPixelLevelSet(const std::shared_ptr<SpringlCache2D>& cache = nullptr);
