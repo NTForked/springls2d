@@ -34,25 +34,16 @@ protected:
 	int example;
 	aly::Image1f gray;
 	aly::ImageRGBA img;
-	bool parametersDirty;
-	bool frameBuffersDirty;
-	float currentIso;
+	bool showCenters;
 	int lastSimTime;
 	bool running = false;
-	aly::Image2f vecField;
-	aly::Number lineWidth;
-	aly::Number particleSize;
-	aly::Color pointColor;
-	aly::Color particleColor;
-	aly::Color normalColor;
-	aly::Color springlColor;
-	aly::Color matchColor;
-	aly::Color vecfieldColor;
+	aly::Number transparency;
 	aly::AdjustableCompositePtr resizeableRegion;
 	std::shared_ptr<aly::SuperPixelLevelSet> simulation;
 	aly::IconButtonPtr playButton,stopButton;
     std::shared_ptr<aly::TimelineSlider> timelineSlider;
 	aly::ImageGlyphPtr overlayGlyph;
+	//aly::GlyphRegionPtr overlayRegion;
 public:
 	std::shared_ptr<aly::SpringlCache2D> cache;
 	SuperPixelToy(int example);

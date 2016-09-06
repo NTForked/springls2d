@@ -27,6 +27,9 @@ namespace aly {
 	protected:
 		float maxClusterDistance;
 		float meanClusterDistance;
+		bool updateClusterCenters;
+		bool updateCompactness;
+		SuperPixels initSuperPixels;
 		std::shared_ptr<SuperPixels> superPixels;
 		void superPixelMotion(int i, int j, size_t index);
 		virtual float evolve(float maxStep) override;
@@ -35,6 +38,12 @@ namespace aly {
 		SuperPixelLevelSet(const std::shared_ptr<SpringlCache2D>& cache = nullptr);
 		SuperPixelLevelSet(const std::string& name, const std::shared_ptr<SpringlCache2D>& cache = nullptr);
 		void setSuperPixels(const std::shared_ptr<SuperPixels>& superPixels);
+		virtual void setup(const aly::ParameterPanePtr& pane) override;
+		virtual bool init()override;
+		virtual bool updateOverlay() override;
+
+
+
 	};
 }
 #endif

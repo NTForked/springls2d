@@ -263,6 +263,21 @@ namespace aly {
 		E /= (float)numLabels;
 		return E;
 	}
+	float SuperPixels::distanceColor(int x, int y, int label) const {
+		if (label >= 0 && label<numLabels) {
+			float3 c = labImage(x, y);
+			float3 colorCenter = colorCenters[label];
+			float distLab = lengthSqr(c - colorCenter);
+			float ml = (maxlab[label] > 0.0f) ? 1.0f / maxlab[label] : 0.0f;
+			float dist = std::sqrt(distLab*ml);
+			return dist;
+		}
+		else {
+			throw std::runtime_error("Invalid cluster id.");
+			return 0;
+		}
+	}
+
 	float SuperPixels::distance(int x, int y, int label) const {
 		if (label >= 0&&label<numLabels) {
 			float invxywt = 1.0f / (S*S);//NOTE: this is different from how usual SLIC/LKM works, but in original code implementation

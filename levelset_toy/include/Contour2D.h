@@ -50,6 +50,7 @@ namespace aly {
 		ImageRGBA overlay;
 		std::array<Vector2f,4> velocities;
 		Vector2f correspondence;
+		Vector2f clusterCenters;
 		void setDirty(bool b) {
 			dirty = b;
 		}
@@ -73,11 +74,11 @@ namespace aly {
 				std::string imageFile = GetFileWithoutExtension(file) + ".png";
 				WriteImageToFile(imageFile, overlay);
 			}
-			archive( CEREAL_NVP(vertexes),CEREAL_NVP(file), CEREAL_NVP(indexes), CEREAL_NVP(particles), CEREAL_NVP(points),  CEREAL_NVP(normals), CEREAL_NVP(vertexLabels), CEREAL_NVP(correspondence));
+			archive( CEREAL_NVP(vertexes),CEREAL_NVP(file), CEREAL_NVP(indexes), CEREAL_NVP(particles), CEREAL_NVP(points),  CEREAL_NVP(normals), CEREAL_NVP(vertexLabels), CEREAL_NVP(correspondence), CEREAL_NVP(clusterCenters));
 		}
 		template<class Archive> void load(Archive & archive) 
 		{
-			archive(CEREAL_NVP(vertexes), CEREAL_NVP(file), CEREAL_NVP(indexes), CEREAL_NVP(particles), CEREAL_NVP(points), CEREAL_NVP(normals), CEREAL_NVP(vertexLabels), CEREAL_NVP(correspondence));
+			archive(CEREAL_NVP(vertexes), CEREAL_NVP(file), CEREAL_NVP(indexes), CEREAL_NVP(particles), CEREAL_NVP(points), CEREAL_NVP(normals), CEREAL_NVP(vertexLabels), CEREAL_NVP(correspondence),CEREAL_NVP(clusterCenters));
 			std::string imageFile = GetFileWithoutExtension(file) + ".png";
 			if (FileExists(imageFile)) {
 				ReadImageFromFile(imageFile, overlay);

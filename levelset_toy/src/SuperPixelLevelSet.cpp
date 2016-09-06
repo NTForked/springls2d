@@ -1,8 +1,112 @@
 #include "SuperPixelLevelSet.h"
 namespace aly {
+	void SuperPixelLevelSet::setup(const aly::ParameterPanePtr& pane) {
+		MultiActiveContour2D::setup(pane);
+		pane->addCheckBox("Dynamic Cluster Centers", updateClusterCenters);
+		pane->addCheckBox("Dynamic Compactness", updateCompactness);
+	}
+
+	bool SuperPixelLevelSet::updateOverlay() {
+		if (requestUpdateOverlay) {
+			ImageRGBA& overlay = contour.overlay;
+			overlay.resize(labelImage.width, labelImage.height);
+#pragma omp parallel for
+			for (int j = 0; j <overlay.height; j++) {
+				for (int i = 0; i < overlay.width; i++) {
+					float d = levelSet(i, j).x;
+					int l = labelImage(i, j).x;
+					Color c = (l>0)?superPixels->getColorCenter(l-1):Color(0,0,0,0);//getColor(l);
+					RGBAf rgba = c.toRGBAf();
+					rgba = aly::mix(rgba,RGBAf(0.0f, 0.0f, 0.0f, 1.0f),(d<2.0f)?std::exp(-d*d/(0.5f)): 0.0f);
+					overlay(i, j) = ToRGBA(rgba);
+				}
+			}
+			requestUpdateOverlay = false;
+			return true;
+		}
+		else {
+			return false;
+		}
+	}
+
+	bool SuperPixelLevelSet::init() {
+		int2 dims = initialLevelSet.dimensions();
+		if (dims.x == 0 || dims.y == 0||superPixels.get()==nullptr)return false;
+		*superPixels = initSuperPixels;
+		mSimulationDuration = std::max(dims.x, dims.y)*0.5f;
+		mSimulationIteration = 0;
+		mSimulationTime = 0;
+		mTimeStep = 1.0f;
+		levelSet.resize(dims.x, dims.y);
+		labelImage.resize(dims.x, dims.y);
+		swapLevelSet.resize(dims.x, dims.y);
+		swapLabelImage.resize(dims.x, dims.y);
+#pragma omp parallel for
+		for (int i = 0; i < initialLevelSet.size(); i++) {
+			float val = clamp(initialLevelSet[i], 0.0f, (maxLayers + 1.0f));
+			levelSet[i] = val;
+			swapLevelSet[i] = val;
+		}
+		labelImage = initialLabels;
+		swapLabelImage = initialLabels;
+		std::set<int> labelSet;
+		int L = 1;
+		for (int1 l : initialLabels.data) {
+			if (l.x != 0) {
+				labelSet.insert(l.x);
+				L = std::max(L, l.x + 1);
+			}
+		}
+
+		forceIndexes.resize(L, -1);
+		labelList.clear();
+		labelList.assign(labelSet.begin(), labelSet.end());
+		for (int i = 0;i < (int)labelList.size();i++) {
+			forceIndexes[labelList[i]] = i;
+		}
+		L = (int)labelList.size();
+		if (L<256) {
+			lineColors.clear();
+			lineColors[0] = RGBAf(0.0f, 0.0f, 0.0f, 0.0f);
+			int CL = std::min(256, L);
+			for (int i = 0;i < L;i++) {
+				int l = labelList[i];
+				HSV hsv = HSV((l%CL) / (float)CL, 0.7f, 0.7f);
+				lineColors[l] = HSVtoColor(hsv);
+			}
+		}
+		else {
+			if (lineColors.size() != L + 1) {
+				lineColors.clear();
+				lineColors[0] = RGBAf(0.0f, 0.0f, 0.0f, 0.0f);
+				for (int i = 0;i < L;i++) {
+					int l = labelList[i];
+					HSV hsv = HSV(RandomUniform(0.0f, 1.0f), RandomUniform(0.5f, 1.0f), RandomUniform(0.5f, 1.0f));
+					lineColors[l] = HSVtoColor(hsv);
+				}
+			}
+		}
+		rebuildNarrowBand();
+		requestUpdateContour = false;
+		requestUpdateOverlay = true;
+		contour.clusterCenters = superPixels->getPixelCenters();
+		if (cache.get() != nullptr) {
+			updateOverlay();
+			updateContour();
+			contour.setFile(MakeString() << GetDesktopDirectory() << ALY_PATH_SEPARATOR << "contour" << std::setw(4) << std::setfill('0') << mSimulationIteration << ".bin");
+			cache->set((int)mSimulationIteration, contour);
+		}
+		return true;
+	}
+
 	bool SuperPixelLevelSet::stepInternal() {
-		float E = superPixels->updateClusters(labelImage, -1);
-		float mx = superPixels->updateMaxColor(labelImage, -1);
+		if (updateClusterCenters) {
+			float E = superPixels->updateClusters(labelImage, -1);
+			contour.clusterCenters = superPixels->getPixelCenters();
+		}
+		if (updateCompactness) {
+			float mx = superPixels->updateMaxColor(labelImage, -1);
+		}
 		if (mSimulationIteration == 0) {
 			maxClusterDistance = 0;
 			meanClusterDistance = 0;
@@ -33,9 +137,8 @@ namespace aly {
 		if (cache.get() != nullptr) {
 			updateOverlay();
 			updateContour();
-			Contour2D* contour = getContour();
-			contour->setFile(MakeString() << GetDesktopDirectory() << ALY_PATH_SEPARATOR << "contour" << std::setw(4) << std::setfill('0') << mSimulationIteration << ".bin");
-			cache->set((int)mSimulationIteration, *contour);
+			contour.setFile(MakeString() << GetDesktopDirectory() << ALY_PATH_SEPARATOR << "contour" << std::setw(4) << std::setfill('0') << mSimulationIteration << ".bin");
+			cache->set((int)mSimulationIteration, contour);
 		}
 		return (mSimulationTime<mSimulationDuration);
 	}
@@ -53,7 +156,6 @@ namespace aly {
 			}
 			const float maxSpeed = 0.999f;
 			timeStep = (float)(maxStep * ((maxDelta > maxSpeed) ? (maxSpeed / maxDelta) : maxSpeed));
-			//std::cout << "Max Delta " << maxDelta <<" Time Step "<<timeStep<<" Max Step "<<maxStep<< std::endl;
 		}
 		contourLock.lock();
 		if (preserveTopology) {
@@ -193,6 +295,7 @@ namespace aly {
 	}
 	void SuperPixelLevelSet::setSuperPixels(const std::shared_ptr<SuperPixels>& superPixels) {
 		this->superPixels = superPixels;
+		initSuperPixels = *superPixels;
 		Image1i initLabels = superPixels->getLabelImage();
 		{
 			auto range = initLabels.range();
@@ -209,10 +312,10 @@ namespace aly {
 		}
 		setInitial(initLabels);
 	}
-	SuperPixelLevelSet::SuperPixelLevelSet(const std::shared_ptr<SpringlCache2D>& cache) :MultiActiveContour2D(cache) {
+	SuperPixelLevelSet::SuperPixelLevelSet(const std::shared_ptr<SpringlCache2D>& cache) :MultiActiveContour2D(cache),updateClusterCenters(true),updateCompactness(true) {
 
 	}
-	SuperPixelLevelSet::SuperPixelLevelSet(const std::string& name, const std::shared_ptr<SpringlCache2D>& cache) : MultiActiveContour2D(name, cache) {
+	SuperPixelLevelSet::SuperPixelLevelSet(const std::string& name, const std::shared_ptr<SpringlCache2D>& cache) : MultiActiveContour2D(name, cache), updateClusterCenters(true), updateCompactness(true) {
 
 	}
 }

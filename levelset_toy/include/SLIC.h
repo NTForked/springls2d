@@ -61,6 +61,8 @@ namespace aly {
 		float updateClusters(const Image1i& labelImage,int labelOffset=0);
 		float updateMaxColor(const Image1i& labelImage, int labelOffset = 0);
 		float distance(int x, int y,int label) const;
+		float distanceColor(int x, int y, int label) const;
+
 		float2 getPixelCenter(int label) const {
 			return pixelCenters[label];
 		}
@@ -95,7 +97,7 @@ namespace aly {
 			return labImage;
 		}
 		int getNumLabels() const {
-			numLabels;
+			return numLabels;
 		}
 		SuperPixels();
 	};

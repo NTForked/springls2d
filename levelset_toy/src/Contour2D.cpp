@@ -28,6 +28,7 @@
 namespace aly {
 	void Contour2D::operator=(const Contour2D &c)
 	{
+		clusterCenters = c.clusterCenters;
 		indexes = c.indexes;
 		vertexes = c.vertexes;
 		particles = c.particles;
@@ -41,6 +42,7 @@ namespace aly {
 	}
 	Contour2D::Contour2D(const Contour2D& c)
 	{
+		clusterCenters = c.clusterCenters;
 		indexes = c.indexes;
 		vertexes = c.vertexes;
 		particles = c.particles;

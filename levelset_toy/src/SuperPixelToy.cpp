@@ -28,13 +28,14 @@
 using namespace aly;
 
 SuperPixelToy::SuperPixelToy(int example) :
-	Application(1600, 800, "Super-Pixel Level Set Toy", false), currentIso(0.0f),example(example), lastSimTime(-1){
+	Application(1600, 800, "Super-Pixel Level Set Toy", false), showCenters(true),example(example), lastSimTime(-1){
 }
 
 
 bool SuperPixelToy::init(Composite& rootNode) {
 	cache = std::shared_ptr<SpringlCache2D>(new SpringlCache2D());
 	ImageRGBA down;
+	transparency = Float(1.0f);
 	ReadImageFromFile(getFullPath("images/picnic.png"),down);
 	DownSample(down,img);
 	if (example == 0) {
@@ -58,29 +59,13 @@ bool SuperPixelToy::init(Composite& rootNode) {
 	};
 
 	std::shared_ptr<SuperPixels> sp=std::shared_ptr<SuperPixels>(new SuperPixels());
-	sp->solve(img,1024,1);
+	sp->solve(img,1024,10);
 	simulation->setSuperPixels(sp);
 	simulation->init();
-	parametersDirty = true;
-	frameBuffersDirty = true;
 	BorderCompositePtr layout = BorderCompositePtr(new BorderComposite("UI Layout", CoordPX(0.0f, 0.0f), CoordPercent(1.0f, 1.0f), false));
 	ParameterPanePtr controls = ParameterPanePtr(new ParameterPane("Controls", CoordPX(0.0f, 0.0f), CoordPercent(1.0f, 1.0f)));
 	BorderCompositePtr controlLayout = BorderCompositePtr(new BorderComposite("Control Layout", CoordPX(0.0f, 0.0f), CoordPercent(1.0f, 1.0f), true));
-	controls->onChange = [this](const std::string& label, const AnyInterface& value) {
-
-		parametersDirty = true;
-	};
-
 	float aspect = 6.0f;
-	lineWidth = Float(2.0f);
-	particleSize = Float(0.2f);
-
-	pointColor = Color(1.0f, 0.8f, 0.0f, 1.0f);
-	springlColor = Color(0.5f, 0.5f, 0.5f, 1.0f);
-	matchColor = Color(0.5f, 0.5f, 1.0f, 0.75f);
-	particleColor = Color(0.6f, 0.0f, 0.0f, 1.0f);
-	normalColor = Color(0.0f, 0.8f, 0.0f, 0.5f);
-	vecfieldColor = Color(0.8f, 0.4f, 0.8f, 0.5f);
 	controls->setAlwaysShowVerticalScrollBar(false);
 	controls->setScrollEnabled(false);
 	controls->backgroundColor = MakeColor(getContext()->theme.DARKER);
@@ -144,16 +129,8 @@ bool SuperPixelToy::init(Composite& rootNode) {
 	controls->addGroup("Simulation", true);
 	simulation->setup(controls);
 	controls->addGroup("Visualization", true);
-	controls->addNumberField("Line Width", lineWidth, Float(1.0f), Float(20.0f), 6.0f);
-	if (example > 0) {
-		controls->addNumberField("Particle Size", particleSize, Float(0.0f), Float(1.0f), 6.0f);
-		controls->addColorField("Element", springlColor);
-		controls->addColorField("Particle", particleColor);
-		controls->addColorField("Point", pointColor);
-		controls->addColorField("Normal", normalColor);
-		controls->addColorField("Correspondence", matchColor);
-	}
-	controls->addColorField("Vector Field", vecfieldColor);
+	controls->addNumberField("Transparency", transparency, Float(0.0f), Float(1.0f));
+	controls->addCheckBox("Show Centers", showCenters);
 	timelineSlider = TimelineSliderPtr(
 		new TimelineSlider("Timeline", CoordPerPX(0.0f, 1.0f, 0.0f, -80.0f), CoordPerPX(1.0f, 0.0f, 0.0f, 80.0f), Integer(0), Integer(0), Integer(0)));
 	CompositePtr viewRegion = CompositePtr(new Composite("View", CoordPX(0.0f, 0.0f), CoordPerPX(1.0f, 1.0f, 0.0f, -80.0f)));
@@ -181,7 +158,7 @@ bool SuperPixelToy::init(Composite& rootNode) {
 	Application::addListener(resizeableRegion.get());
 	ImageGlyphPtr imageGlyph = AlloyApplicationContext()->createImageGlyph(img, false);
 	overlayGlyph = AlloyApplicationContext()->createImageGlyph(simulation->getContour()->overlay, false);
-	DrawPtr drawContour = DrawPtr(new Draw("Contour Draw", CoordPX(0.0f, 0.0f), CoordPercent(1.0f, 1.0f), [this](AlloyContext* context, const box2px& bounds) {
+	DrawPtr drawContour = DrawPtr(new Draw("Contour Draw", CoordPX(0.0f, 0.0f), CoordPercent(1.0f, 1.0f), [this,sp](AlloyContext* context, const box2px& bounds) {
 		int currentTime = timelineSlider->getTimeValue().toInteger();
 		std::shared_ptr<CacheElement> elem = this->cache->get(currentTime);
 		Contour2D* contour;
@@ -199,10 +176,7 @@ bool SuperPixelToy::init(Composite& rootNode) {
 		nvgLineCap(nvg, NVG_ROUND);
 		float scale = bounds.dimensions.x / (float)img.width;
 		if (0.05f*scale > 0.5f) {
-
-			nvgFillColor(nvg, vecfieldColor);
-			nvgStrokeWidth(nvg, 0.05f*scale);
-			
+			nvgStrokeWidth(nvg, 0.05f*scale);			
 			nvgStrokeColor(nvg, Color(0.4f, 0.4f, 0.4f, 0.5f));
 			nvgBeginPath(nvg);
 			for (int i = 0;i < img.width;i++) {
@@ -231,7 +205,33 @@ bool SuperPixelToy::init(Composite& rootNode) {
 			}
 			nvgStroke(nvg);
 		}
-		
+		NVGpaint imgPaint = nvgImagePattern(nvg, bounds.position.x,
+			bounds.position.y, bounds.dimensions.x, bounds.dimensions.y, 0.f,
+			overlayGlyph->handle, transparency.toFloat());
+		nvgBeginPath(nvg);
+		nvgFillColor(nvg, Color(COLOR_WHITE));
+		nvgRect(nvg, bounds.position.x, bounds.position.y, bounds.dimensions.x,
+			bounds.dimensions.y);
+		nvgFillPaint(nvg, imgPaint);
+		nvgFill(nvg);
+		float circlRadius = 1.0f;
+		nvgStrokeWidth(nvg,1.0f);
+		nvgStrokeColor(nvg, Color(0.0, 0.0f, 0.0f, 1.0f));
+		if (showCenters&&circlRadius*scale > 0.5f) {
+			const Vector2f& centers = contour->clusterCenters;
+			int L = (int)centers.size();
+			for (int n = 0;n < L;n++) {
+				float2 pt = centers[n] + float2(0.5f);
+				pt.x = pt.x / (float)img.width;
+				pt.y = pt.y / (float)img.height;
+				pt = pt*bounds.dimensions + bounds.position;
+				nvgFillColor(nvg, Color(sp->getColorCenter(n)));
+				nvgBeginPath(nvg);
+				nvgEllipse(nvg, pt.x, pt.y, circlRadius*scale, circlRadius*scale);
+				nvgFill(nvg);
+				nvgStroke(nvg);
+			}
+		}
 	}));
 	
 	GlyphRegionPtr glyphRegion = GlyphRegionPtr(new GlyphRegion("Image Region",imageGlyph, CoordPX(0.0f, 0.0f), CoordPercent(1.0f, 1.0f)));
@@ -239,13 +239,7 @@ bool SuperPixelToy::init(Composite& rootNode) {
 	glyphRegion->foregroundColor = MakeColor(COLOR_NONE);
 	glyphRegion->backgroundColor = MakeColor(COLOR_NONE);
 	glyphRegion->borderColor = MakeColor(COLOR_NONE);
-
-	GlyphRegionPtr overlayRegion = GlyphRegionPtr(new GlyphRegion("Overlay Region", overlayGlyph, CoordPX(0.0f, 0.0f), CoordPercent(1.0f, 1.0f)));
-	overlayRegion->setAspectRule(AspectRule::Unspecified);
-	overlayRegion->foregroundColor = MakeColor(COLOR_NONE);
-	overlayRegion->backgroundColor = MakeColor(COLOR_NONE);
-	overlayRegion->borderColor = MakeColor(COLOR_NONE);
-	overlayRegion->onScroll = [this](AlloyContext* context, const InputEvent& event)
+	drawContour->onScroll = [this](AlloyContext* context, const InputEvent& event)
 	{
 		box2px bounds = resizeableRegion->getBounds(false);
 		pixel scaling = (pixel)(1 - 0.1f*event.scroll.y);
@@ -265,7 +259,7 @@ bool SuperPixelToy::init(Composite& rootNode) {
 		context->requestPack();
 		return true;
 	};
-	overlayRegion->onMouseOver = [this](AlloyContext* context, const InputEvent& event) {
+	drawContour->onMouseOver = [this](AlloyContext* context, const InputEvent& event) {
 		box2px bbox = resizeableRegion->getBounds(true);
 		float2 dims = float2(img.dimensions());
 		float2 cursor = aly::clamp(dims*(event.cursor - bbox.position) / bbox.dimensions, float2(0.0f), dims);
@@ -274,7 +268,7 @@ bool SuperPixelToy::init(Composite& rootNode) {
 	resizeableRegion->add(glyphRegion);
 	resizeableRegion->add(drawContour);
 
-	resizeableRegion->add(overlayRegion);
+	//resizeableRegion->add(overlayRegion);
 	resizeableRegion->setAspectRatio(img.width / (float)img.height);
 	resizeableRegion->setAspectRule(AspectRule::FixedHeight);
 	resizeableRegion->setDragEnabled(true);

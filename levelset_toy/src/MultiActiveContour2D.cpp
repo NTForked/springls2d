@@ -73,7 +73,7 @@ namespace aly {
 					int l = labelImage(i, j).x;
 					Color c = getColor(l);
 					RGBAf rgba = c.toRGBAf();
-					rgba.w = 0.5f;
+					rgba.w = 0.5;
 					rgba=aly::mix(RGBAf(0.0f, 0.0f, 0.0f, 1.0f), rgba,clamp(d/1.5f,0.0f,1.0f));
 					overlay(i, j) = ToRGBA(rgba);
 				}
@@ -222,8 +222,7 @@ namespace aly {
 			}
 		}
 		rebuildNarrowBand();
-		requestUpdateContour = (getNumLabels() < 256);
-		requestUpdateOverlay = false;
+		requestUpdateContour = true;
 		requestUpdateOverlay = true;
 		if (cache.get() != nullptr) {
 			updateOverlay();
@@ -856,9 +855,8 @@ namespace aly {
 		if (cache.get() != nullptr) {
 			updateOverlay();
 			updateContour();
-			Contour2D* contour = getContour();
-			contour->setFile(MakeString() << GetDesktopDirectory() << ALY_PATH_SEPARATOR << "contour" << std::setw(4) << std::setfill('0') << mSimulationIteration << ".bin");
-			cache->set((int)mSimulationIteration, *contour);
+			contour.setFile(MakeString() << GetDesktopDirectory() << ALY_PATH_SEPARATOR << "contour" << std::setw(4) << std::setfill('0') << mSimulationIteration << ".bin");
+			cache->set((int)mSimulationIteration, contour);
 		}
 		return (mSimulationTime<mSimulationDuration);
 	}

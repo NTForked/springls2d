@@ -92,7 +92,7 @@ namespace aly {
 			return lineColors[l];
 		}
 		bool updateContour();
-		bool updateOverlay();
+		virtual bool updateOverlay();
 		void setPressure(const Image1f& img, float weight, float target) {
 			pressureParam.setValue(weight);
 			targetPressureParam.setValue(target);
