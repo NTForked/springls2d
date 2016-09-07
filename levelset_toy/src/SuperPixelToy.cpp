@@ -41,7 +41,7 @@ bool SuperPixelToy::init(Composite& rootNode) {
 	if (example == 0) {
 		simulation = std::shared_ptr<SuperPixelLevelSet>(new SuperPixelLevelSet(cache));
 		simulation->setCurvature(0.3f);
-		simulation->setPressure(1.0f);
+		simulation->setPressure(0.5f);
 	}
 	else {
 		return false;
