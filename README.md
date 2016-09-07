@@ -19,3 +19,5 @@ BC Lucas, Y Otake, M Armand, RH Taylor, MICCAI 2012](http://www.cs.jhu.edu/~blak
 ![Extra](https://github.com/bclucas/blob/blob/master/screenshots/levelset_toy4.png)
 ## Multi-Object Level Set
 ![Extra](https://github.com/bclucas/blob/blob/master/screenshots/levelset_toy5.png)
+## Super Pixels (SLIC) with Multi-Object Level Sets
+![Extra](https://github.com/bclucas/blob/blob/master/screenshots/levelset_toy6.png)
