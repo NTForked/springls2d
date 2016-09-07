@@ -58,12 +58,16 @@ namespace aly {
 			levelSet(i, j) = sgn * MAX_DISTANCE;
 		}
 	}
-	Contour2D* ActiveContour2D::getContour() {
+	bool ActiveContour2D::updateContour() {
 		if (requestUpdateContour) {
 			std::lock_guard<std::mutex> lockMe(contourLock);
-			isoContour.solve(levelSet, contour.vertexes, contour.indexes, 0.0f, (preserveTopology) ? TopologyRule2D::Connect4 : TopologyRule2D::Unconstrained,Winding::Clockwise);
+			isoContour.solve(levelSet, contour.vertexes, contour.indexes, 0.0f, (preserveTopology) ? TopologyRule2D::Connect4 : TopologyRule2D::Unconstrained, Winding::Clockwise);
 			requestUpdateContour = false;
+			return true;
 		}
+		return false;
+	}
+	Contour2D* ActiveContour2D::getContour() {
 		return &contour;
 	}
 	ActiveContour2D::ActiveContour2D(const std::shared_ptr<SpringlCache2D>& cache) :Simulation("Active Contour 2D"),
@@ -114,9 +118,9 @@ namespace aly {
 		rebuildNarrowBand();
 		requestUpdateContour = true;
 		if (cache.get() != nullptr) {
-			Contour2D* contour = getContour();
-			contour->setFile(MakeString() << GetDesktopDirectory() << ALY_PATH_SEPARATOR << "contour" << std::setw(4) << std::setfill('0') << mSimulationIteration << ".bin");
-			cache->set((int)mSimulationIteration, *contour);			
+			updateContour();
+			contour.setFile(MakeString() << GetDesktopDirectory() << ALY_PATH_SEPARATOR << "contour" << std::setw(4) << std::setfill('0') << mSimulationIteration << ".bin");
+			cache->set((int)mSimulationIteration, contour);			
 		}
 		return true;
 	}
@@ -572,9 +576,9 @@ namespace aly {
 		mSimulationTime+=t;
 		mSimulationIteration++;
 		if (cache.get() != nullptr) {
-			Contour2D* contour = getContour();
-			contour->setFile(MakeString() << GetDesktopDirectory() << ALY_PATH_SEPARATOR << "contour" << std::setw(4) << std::setfill('0') << mSimulationIteration << ".bin");
-			cache->set((int)mSimulationIteration, *contour);
+			updateContour();
+			contour.setFile(MakeString() << GetDesktopDirectory() << ALY_PATH_SEPARATOR << "contour" << std::setw(4) << std::setfill('0') << mSimulationIteration << ".bin");
+			cache->set((int)mSimulationIteration, contour);
 		}
 		return (mSimulationTime<mSimulationDuration);
 	}

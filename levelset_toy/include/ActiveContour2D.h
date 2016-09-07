@@ -68,6 +68,7 @@ namespace aly {
 		virtual float evolve(float maxStep);
 		void rebuildNarrowBand();
 
+		bool updateContour();
 		void applyForcesTopoRule(int i, int j, int offset, size_t index, float timeStep);
 		virtual bool stepInternal() override;
 	public:
