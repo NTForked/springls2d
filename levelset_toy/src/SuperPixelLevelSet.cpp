@@ -1,7 +1,10 @@
 #include "SuperPixelLevelSet.h"
 namespace aly {
 	void SuperPixelLevelSet::setup(const aly::ParameterPanePtr& pane) {
-		MultiActiveContour2D::setup(pane);
+		pane->addNumberField("Pressure Weight", pressureParam, Float(-2.0f), Float(2.0f));
+		pane->addNumberField("Curvature Weight", curvatureParam, Float(0.0f), Float(4.0f));
+		pane->addCheckBox("Preserve Topology", preserveTopology);
+		pane->addCheckBox("Clamp Speed", clampSpeed);
 		pane->addCheckBox("Dynamic Cluster Centers", updateClusterCenters);
 		pane->addCheckBox("Dynamic Compactness", updateCompactness);
 	}
