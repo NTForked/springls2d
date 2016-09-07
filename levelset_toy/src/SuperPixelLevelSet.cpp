@@ -300,9 +300,6 @@ namespace aly {
 		this->superPixels = superPixels;
 		initSuperPixels = *superPixels;
 		Image1i initLabels = superPixels->getLabelImage();
-		{
-			auto range = initLabels.range();
-		}
 		for (int j = 0;j < initLabels.height;j++) {
 			for (int i = 0;i < initLabels.width;i++) {
 				if (i < 1 || j < 1 || i >= initLabels.width - 1 || j >= initLabels.height - 1) {

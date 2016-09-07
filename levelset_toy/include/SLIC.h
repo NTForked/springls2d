@@ -33,6 +33,9 @@
 #include <array>
 using namespace std;
 namespace aly {
+	int ComputeConnectedComponents(const Image1i& labels, Image1i& outLabels, std::vector<int> &compCounts);
+	int RemoveSmallConnectedComponents(const Image1i& labels, Image1i& outImage, int minSize);
+	int MakeLabelsUnique(Image1i& outImage);
 	class SuperPixels
 	{
 	private:

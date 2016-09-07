@@ -20,9 +20,132 @@
 */
 #include "SLIC.h"
 #include <AlloyImageProcessing.h>
+#include <set>
 namespace aly {
 	SuperPixels::SuperPixels() :perturbSeeds(true), numLabels(0), bonusThreshold(10.0f), bonus(1.5f), errorThreshold(0.01f){
 	}
+	int ComputeConnectedComponents(const Image1i& labels, Image1i& outLabels, std::vector<int> &compCounts) {
+		const int xShift[4] = { -1, 1, 0, 0 };
+		const int yShift[4] = { 0, 0,-1, 1 };
+		outLabels.resize(labels.width, labels.height);
+		outLabels.set(int1(-1));
+		std::list<int2> queue;
+		int2 pivot(0, 0);
+		int cc = 0;
+		int ccCount = 0;
+		int pivotLabel = 0;
+		compCounts.clear();
+		do
+		{
+			queue.clear();
+			outLabels(pivot) = int1(cc);
+			pivotLabel = labels(pivot).x;
+			ccCount = 1;
+			queue.push_back(pivot);
+			while (queue.size() > 0)
+			{
+				int2 v = queue.front();
+				queue.pop_front();
+				for (int s = 0; s < 4; s++)
+				{
+					int2 nbr = int2(v.x + xShift[s], v.y + yShift[s]);
+					if (nbr.x > 0 && nbr.y > 0 && nbr.x < outLabels.width&&nbr.y < outLabels.height) {
+						if (outLabels(nbr).x < 0 && labels(nbr).x == pivotLabel) {
+							outLabels(nbr).x = cc;
+							ccCount++;
+							queue.push_back(nbr);
+						}
+					}
+				}
+			}
+			compCounts.push_back(ccCount);
+			int2 lastPivot = pivot;
+			pivot = int2(-1, -1);
+			for (int t = 0;t < 16;t++) {
+				int i = RandomUniform(0, labels.width - 1);
+				int j = RandomUniform(0, labels.height - 1);
+				if (outLabels(i, j).x < 0)
+				{
+					pivot = int2(i, j);
+					break;
+				}
+			}
+			if (pivot.x < 0) {
+				for (int j = 0; j < labels.height; j++) {
+					for (int i = 0; i < labels.width; i++) {
+						if (outLabels(i, j).x < 0) {
+							pivot = int2(i, j);
+							break;
+						}
+					}
+				}
+			}
+			cc++;
+		} while (pivot.x >= 0);
+		return (int)compCounts.size();
+	}
+	int MakeLabelsUnique(Image1i& outImage) {
+		std::map<int, int> lookup;
+		for (int j = 0;j < outImage.height;j++) {
+			for (int i = 0;i < outImage.width;i++) {
+				int l = outImage(i, j).x;
+				if (lookup.find(l) == lookup.end()) {
+					lookup[l] = (int)lookup.size();
+				}
+			}
+		}
+		for (int j = 0;j < outImage.height;j++) {
+			for (int i = 0;i < outImage.width;i++) {
+				outImage(i, j).x = lookup[outImage(i, j).x];
+			}
+		}
+		return (int)lookup.size();
+	}
+	int RemoveSmallConnectedComponents(const Image1i& labelImage, Image1i& outImage, int minSize)
+	{
+		const int xShift[4] = { -1, 1, 0, 0 };
+		const int yShift[4] = { 0, 0,-1, 1 };
+
+		std::vector<int> compCounts;
+		std::vector<int> labels;
+		std::set<int> removeList;
+		ComputeConnectedComponents(labelImage,outImage, compCounts);
+		for (int l = 0;l < (int)compCounts.size();l++) {
+			if (compCounts[l] < minSize) {
+				removeList.insert(l);
+			}
+		}
+		for (int j = 0;j < outImage.height;j++) {
+			for (int i = 0;i < outImage.width;i++) {
+				int l = outImage(i, j).x;
+				if (removeList.find(l) != removeList.end()) {
+					outImage(i, j).x = -1;
+				}
+			}
+		}
+		bool change = false;
+		do {
+			change = false;
+			for (int j = 0;j < outImage.height;j++) {
+				for (int i = 0;i < outImage.width;i++) {
+					int l = outImage(i, j).x;
+					if (l < 0) {
+						for (int s = 0; s < 4; s++) {
+							int2 nbr = int2(i + xShift[s], j + yShift[s]);
+							int nl = outImage(nbr).x;
+							if (nl >= 0) {
+								outImage(i, j).x = nl;
+								change = true;
+								break;
+							}
+						}
+					}
+				}
+			}
+		}while (change);
+		return (int)removeList.size();
+	}
+
 	void SuperPixels::initializeSeeds(int K) {
 		size_t sz = labImage.width*labImage.height;
 		float step = std::sqrt((float)(sz) / (float)(K));
@@ -45,79 +168,11 @@ namespace aly {
 	}
 	void SuperPixels::enforceLabelConnectivity() //the number of superpixels desired by the user
 	{
-		const int dx4[4] = { -1,  0,  1,  0 };
-		const int dy4[4] = { 0, -1,  0,  1 };
-		int K = (int)colorCenters.size();
-		const int SUPSZ = (labImage.width*labImage.height) / K;
-		Image1i newLabels(labelImage.width, labelImage.height);
-		newLabels.set(int1(-1));
-		int label = 0;
-		Vector2i vec(labImage.width* labImage.height);//temporary buffer with worse case memory storage
-		int adjlabel = 0;//adjacent label
-		for (int j = 0; j < labImage.height; j++)
-		{
-			for (int i = 0; i < labImage.width; i++)
-			{
-				if (newLabels(i, j).x < 0)
-				{
-					newLabels(i, j).x = label;
-					//--------------------
-					// Start a new segment
-					//--------------------
-					vec[0] = int2(i, j);
-					//-------------------------------------------------------
-					// Quickly find an adjacent label for use later if needed
-					//-------------------------------------------------------
-					for (int n = 0; n < 4; n++)
-					{
-						int2 v = vec[0];
-						int x = v.x + dx4[n];
-						int y = v.y + dy4[n];
-						if ((x >= 0 && x < labImage.width) && (y >= 0 && y < labImage.height))
-						{
-							int l = newLabels(x, y).x;
-							if (l >= 0) adjlabel = l;
-						}
-					}
-					int count = 1;
-					for (int c = 0; c < count; c++)
-					{
-						for (int n = 0; n < 4; n++)
-						{
-							int2 v = vec[c];
-							int x = v.x + dx4[n];
-							int y = v.y + dy4[n];
-							if ((x >= 0 && x < labImage.width) && (y >= 0 && y < labImage.height))
-							{
-								if (0 > newLabels(x, y).x && labelImage(i, j).x == labelImage(x, y).x)
-								{
-									vec[count] = int2(x, y);
-									newLabels(x, y) = label;
-									count++;
-								}
-							}
-
-						}
-					}
-					//-------------------------------------------------------
-					// If segment size is less then a limit, assign an
-					// adjacent label found before, and decrement label count.
-					//-------------------------------------------------------
-					if (count <= SUPSZ >> 2)
-					{
-						for (int c = 0; c < count; c++)
-						{
-							int2 v = vec[c];
-							newLabels(v.x, v.y) = adjlabel;
-						}
-						label--;
-					}
-					label++;
-				}
-			}
-		}
+		Image1i newLabels;
+		int minSize = std::max(1,(labImage.width*labImage.height) / (2*numLabels));
+		RemoveSmallConnectedComponents(labelImage, newLabels, minSize);
+		numLabels = MakeLabelsUnique(newLabels);
 		labelImage = newLabels;
-		numLabels = label;
 		updateClusters(labelImage);
 		updateMaxColor(labelImage);
 	}
