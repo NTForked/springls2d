@@ -169,7 +169,7 @@ namespace aly {
 	void SuperPixels::enforceLabelConnectivity(Image1i& labelImage) //the number of superpixels desired by the user
 	{
 		Image1i newLabels;
-		int minSize = std::max(1,(labImage.width*labImage.height) / (3*numLabels));
+		int minSize = std::max(1,(labImage.width*labImage.height) / (4*numLabels));
 		RemoveSmallConnectedComponents(labelImage, newLabels, minSize);
 		numLabels = MakeLabelsUnique(newLabels);
 		labelImage = newLabels;
