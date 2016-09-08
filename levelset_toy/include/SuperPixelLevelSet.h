@@ -29,13 +29,15 @@ namespace aly {
 		float meanClusterDistance;
 		bool updateClusterCenters;
 		bool updateCompactness;
-		int pruneInterval;
+		Number pruneInterval;
+		Number splitInterval;
+		Number splitThreshold;
 		SuperPixels initSuperPixels;
 		std::shared_ptr<SuperPixels> superPixels;
 		void superPixelMotion(int i, int j, size_t index);
 		virtual float evolve(float maxStep) override;
 		virtual bool stepInternal() override;
-		void splitRegions();
+		void reinit();
 	public:
 		SuperPixelLevelSet(const std::shared_ptr<SpringlCache2D>& cache = nullptr);
 		SuperPixelLevelSet(const std::string& name, const std::shared_ptr<SpringlCache2D>& cache = nullptr);
@@ -44,9 +46,14 @@ namespace aly {
 		virtual bool init()override;
 		virtual bool updateOverlay() override;
 		void setPruneIterval(int v) {
-			pruneInterval = v;
+			pruneInterval.setValue(v);
 		}
-
+		void setSplitThreshold(float v) {
+			splitThreshold.setValue(v);
+		}
+		void setSplitIterval(int v) {
+			splitInterval.setValue(v);
+		}
 
 	};
 }

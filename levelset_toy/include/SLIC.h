@@ -33,6 +33,11 @@
 #include <array>
 using namespace std;
 namespace aly {
+	struct SuperRegion {
+		std::vector<int2> pixels;
+		std::vector<int> label;
+		void classify(const ImageRGBf& labImage, Image1i& labelImage, float3 colorCenter1,float3 colorCenter2,int label1,int label2);
+	};
 	int ComputeConnectedComponents(const Image1i& labels, Image1i& outLabels, std::vector<int> &compCounts);
 	int RemoveSmallConnectedComponents(const Image1i& labels, Image1i& outImage, int minSize);
 	int MakeLabelsUnique(Image1i& outImage);
@@ -47,6 +52,7 @@ namespace aly {
 		Vector3f colorMean;
 		Vector2f pixelMean;
 		std::vector<float> maxlab;
+		std::vector<float> minlab;
 		bool perturbSeeds;
 		int numLabels;
 		float bonusThreshold;
@@ -64,6 +70,7 @@ namespace aly {
 		float updateClusters(const Image1i& labelImage,int labelOffset=0);
 		float updateMaxColor(const Image1i& labelImage, int labelOffset = 0);
 		void enforceLabelConnectivity(Image1i& labelImage);
+		void splitRegions(Image1i& labelImage, float colorThreshold, int labelOffset=0);
 		float distance(int x, int y,int label) const;
 		float distanceColor(int x, int y, int label) const;
 

@@ -105,7 +105,6 @@ namespace aly {
 	{
 		const int xShift[4] = { -1, 1, 0, 0 };
 		const int yShift[4] = { 0, 0,-1, 1 };
-
 		std::vector<int> compCounts;
 		std::vector<int> labels;
 		std::set<int> removeList;
@@ -132,7 +131,7 @@ namespace aly {
 					if (l < 0) {
 						for (int s = 0; s < 4; s++) {
 							int2 nbr = int2(i + xShift[s], j + yShift[s]);
-							int nl = outImage(nbr).x;
+							int nl = outImage(nbr.x,nbr.y).x;
 							if (nl >= 0) {
 								outImage(i, j).x = nl;
 								change = true;
@@ -166,13 +165,75 @@ namespace aly {
 			}
 		}
 	}
-	void SuperPixels::enforceLabelConnectivity(Image1i& labelImage) //the number of superpixels desired by the user
-	{
+	void SuperPixels::splitRegions(Image1i& labelImage,float colorThreshold,int labelOffset) {
+		Vector3f maxLab(numLabels);
+		Vector3f minLab(numLabels);
+		maxLab.set(float3(0.0f));
+		minLab.set(float3(1E30f));
+		int minSize = std::max(1, (labelImage.width*labelImage.height) / numLabels);
+		for (int j = 0;j < labImage.height;j++) {
+			for (int i = 0; i < labImage.width; i++) {
+				int idx = labelImage(i, j).x + labelOffset;
+				if (idx >= 0) {
+					if (idx >= numLabels) {
+						std::cout << "Index exceeds max" << idx << std::endl;
+					}
+					float3 c = labImage(i, j);
+					maxLab[idx] = aly::max(maxLab[idx], c);
+					minLab[idx] = aly::min(minLab[idx], c);
+				}
+			}
+		}
+		std::set<int> splitLabels;
+		for (int l = 0;l < numLabels;l++) {
+			float diff = length(maxLab[l] - minLab[l]);
+			if (diff> colorThreshold) {
+				splitLabels.insert(l);
+			}
+		}
+		std::map<int, SuperRegion> regionMap;
+		for (int j = 0;j < labImage.height;j++) {
+			for (int i = 0; i < labImage.width; i++) {
+				int idx = labelImage(i, j).x + labelOffset;
+				if (idx >= 0 && splitLabels.find(idx) != splitLabels.end()) {
+					regionMap[idx].pixels.push_back(int2(i, j));
+				}
+			}
+		}
+		int newLabel = numLabels;
+		for (int l = 0;l < numLabels;l++) {
+			if (regionMap[l].pixels.size()> minSize) {
+				regionMap[l].classify(labImage, labelImage, minLab[l], maxLab[l], l - labelOffset, newLabel - labelOffset);
+				newLabel++;
+			}
+		}
+		this->labelImage = labelImage;
+		std::vector<int> counts;
+		ComputeConnectedComponents(this->labelImage, labelImage,counts);
+		numLabels=MakeLabelsUnique(labelImage);
+		this->labelImage = labelImage+int1(labelOffset);
+		updateClusters(labelImage);
+		updateMaxColor(labelImage);
+		WriteImageToRawFile(GetDesktopDirectory() + ALY_PATH_SEPARATOR + "after_split.xml", labelImage);
+
+	}
+	void SuperRegion::classify(const ImageRGBf& labImage,Image1i& labelImage,float3 colorCenter1,float3 colorCenter2,int label1,int label2) {
+		for (int2& pix : pixels) {
+			float3 c = labImage(pix);
+			if (distanceSqr(c, colorCenter1)<distanceSqr(c, colorCenter2)) {
+				labelImage(pix).x = label1;
+			}
+			else {
+				labelImage(pix).x = label2;
+			}
+		}
+	}
+	void SuperPixels::enforceLabelConnectivity(Image1i& labelImage){
 		Image1i newLabels;
 		int minSize = std::max(1,(labImage.width*labImage.height) / (4*numLabels));
 		RemoveSmallConnectedComponents(labelImage, newLabels, minSize);
-		numLabels = MakeLabelsUnique(newLabels);
 		labelImage = newLabels;
+		numLabels = MakeLabelsUnique(labelImage);
 		updateClusters(labelImage);
 		updateMaxColor(labelImage);
 	}
