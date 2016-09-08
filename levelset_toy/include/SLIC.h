@@ -37,6 +37,8 @@ namespace aly {
 		std::vector<int2> pixels;
 		std::vector<int> label;
 		void classify(const ImageRGBf& labImage, Image1i& labelImage, float3 colorCenter1,float3 colorCenter2,int label1,int label2);
+		void classify(Image1i& labelImage, std::vector<int> labels);
+
 	};
 	int ComputeConnectedComponents(const Image1i& labels, Image1i& outLabels, std::vector<int> &compCounts);
 	int RemoveSmallConnectedComponents(const Image1i& labels, Image1i& outImage, int minSize);

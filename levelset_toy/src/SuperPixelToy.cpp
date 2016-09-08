@@ -46,6 +46,7 @@ bool SuperPixelToy::init(Composite& rootNode) {
 	else {
 		return false;
 	}
+
 	simulation->onUpdate = [this](uint64_t iteration, bool lastIteration) {
 		if (lastIteration || iteration == timelineSlider->getMaxValue().toInteger()) {
 			stopButton->setVisible(false);
@@ -59,7 +60,7 @@ bool SuperPixelToy::init(Composite& rootNode) {
 	};
 
 	std::shared_ptr<SuperPixels> sp=std::shared_ptr<SuperPixels>(new SuperPixels());
-	sp->solve(img,1024,10);
+	sp->solve(img,1024,16);
 	simulation->setSuperPixels(sp);
 	simulation->init();
 	BorderCompositePtr layout = BorderCompositePtr(new BorderComposite("UI Layout", CoordPX(0.0f, 0.0f), CoordPercent(1.0f, 1.0f), false));

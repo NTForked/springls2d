@@ -203,8 +203,9 @@ namespace aly {
 		int newLabel = numLabels;
 		for (int l = 0;l < numLabels;l++) {
 			if (regionMap[l].pixels.size()> minSize) {
-				regionMap[l].classify(labImage, labelImage, minLab[l], maxLab[l], l - labelOffset, newLabel - labelOffset);
-				newLabel++;
+				regionMap[l].classify(labImage, labelImage, minLab[l],maxLab[l], l - labelOffset, newLabel - labelOffset);
+				//regionMap[l].classify(labelImage, std::vector<int>{ l - labelOffset, newLabel - labelOffset, newLabel + 1 - labelOffset, newLabel + 2 - labelOffset});
+				newLabel+=3;
 			}
 		}
 		this->labelImage = labelImage;
@@ -213,6 +214,32 @@ namespace aly {
 		numLabels=MakeLabelsUnique(labelImage);
 		updateClusters(labelImage);
 		updateMaxColor(labelImage);
+	}
+	void SuperRegion::classify(Image1i& labelImage, std::vector<int> labels) {
+		int2 p1 = int2(labelImage.width, labelImage.height);
+		int2 p4 = int2(0, 0);
+		for (int2& pix : pixels) {
+			p1 = aly::min(pix, p1);
+			p4 = aly::max(pix, p4);
+		}
+		int2 p2 = int2(p1.x, p4.y);
+		int2 p3 = int2(p4.x, p1.y);
+		float dists[4];
+		for (int2& pix : pixels) {
+			dists[0] = lengthSqr(float2(pix- p1));
+			dists[1] = lengthSqr(float2(pix- p4));
+			dists[2] = lengthSqr(float2(pix- p3));
+			dists[3] = lengthSqr(float2(pix- p2));
+			int minL = labelImage(pix).x;
+			float mind = 1E30;
+			for (int k = 0;k < 4;k++) {
+				if (dists[k] < mind) {
+					minL = labels[k];
+					mind = dists[k];
+				}
+			}
+			labelImage(pix).x = minL;
+		}
 	}
 	void SuperRegion::classify(const ImageRGBf& labImage,Image1i& labelImage,float3 colorCenter1,float3 colorCenter2,int label1,int label2) {
 		for (int2& pix : pixels) {
