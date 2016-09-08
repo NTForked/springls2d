@@ -57,12 +57,13 @@ namespace aly {
 		void refineSeeds(const Image1f& magImage);
 		void gradientMagnitude(Image1f& magImage);
 		void optimize(int NUMITR=10);
-		void enforceLabelConnectivity();
+		
 	public:
 		void solve(const ImageRGBAf& image,int K,int iterations=128);
 		void solve(const ImageRGBA& image, int K, int iterations = 128);
 		float updateClusters(const Image1i& labelImage,int labelOffset=0);
 		float updateMaxColor(const Image1i& labelImage, int labelOffset = 0);
+		void enforceLabelConnectivity(Image1i& labelImage);
 		float distance(int x, int y,int label) const;
 		float distanceColor(int x, int y, int label) const;
 

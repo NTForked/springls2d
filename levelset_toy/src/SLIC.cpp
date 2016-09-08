@@ -166,7 +166,7 @@ namespace aly {
 			}
 		}
 	}
-	void SuperPixels::enforceLabelConnectivity() //the number of superpixels desired by the user
+	void SuperPixels::enforceLabelConnectivity(Image1i& labelImage) //the number of superpixels desired by the user
 	{
 		Image1i newLabels;
 		int minSize = std::max(1,(labImage.width*labImage.height) / (3*numLabels));
@@ -367,7 +367,7 @@ namespace aly {
 			refineSeeds(magImage);
 		}
 		optimize(iterations);
-		enforceLabelConnectivity();
+		enforceLabelConnectivity(labelImage);
 	}
 	void SuperPixels::solve(const ImageRGBAf& image, int K, int iterations) {
 		labImage.resize(image.width, image.height);
@@ -386,7 +386,7 @@ namespace aly {
 			refineSeeds(magImage);
 		}
 		optimize(iterations);
-		enforceLabelConnectivity();
+		enforceLabelConnectivity(labelImage);
 	}
 	void SuperPixels::gradientMagnitude(Image1f& magImage)
 	{

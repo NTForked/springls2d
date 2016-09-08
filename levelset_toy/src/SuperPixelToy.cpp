@@ -219,13 +219,14 @@ bool SuperPixelToy::init(Composite& rootNode) {
 		nvgStrokeColor(nvg, Color(0.0, 0.0f, 0.0f, 1.0f));
 		if (showCenters&&circlRadius*scale > 0.5f) {
 			const Vector2f& centers = contour->clusterCenters;
+			const Vector3f& colors = contour->clusterColors;
 			int L = (int)centers.size();
 			for (int n = 0;n < L;n++) {
 				float2 pt = centers[n] + float2(0.5f);
 				pt.x = pt.x / (float)img.width;
 				pt.y = pt.y / (float)img.height;
 				pt = pt*bounds.dimensions + bounds.position;
-				nvgFillColor(nvg, Color(sp->getColorCenter(n)));
+				nvgFillColor(nvg, Color(LABAtoRGBA(float4(colors[n],1.0f))));
 				nvgBeginPath(nvg);
 				nvgEllipse(nvg, pt.x, pt.y, circlRadius*scale, circlRadius*scale);
 				nvgFill(nvg);
@@ -268,7 +269,6 @@ bool SuperPixelToy::init(Composite& rootNode) {
 	resizeableRegion->add(glyphRegion);
 	resizeableRegion->add(drawContour);
 
-	//resizeableRegion->add(overlayRegion);
 	resizeableRegion->setAspectRatio(img.width / (float)img.height);
 	resizeableRegion->setAspectRule(AspectRule::FixedHeight);
 	resizeableRegion->setDragEnabled(true);

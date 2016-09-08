@@ -93,6 +93,7 @@ namespace aly {
 		requestUpdateContour = false;
 		requestUpdateOverlay = true;
 		contour.clusterCenters = superPixels->getPixelCenters();
+		contour.clusterColors = superPixels->getColorCenters();
 		if (cache.get() != nullptr) {
 			updateOverlay();
 			updateContour();
@@ -101,14 +102,106 @@ namespace aly {
 		}
 		return true;
 	}
+	void SuperPixelLevelSet::splitRegions() {
 
+		//RemoveSmallConnectedComponents()
+	}
 	bool SuperPixelLevelSet::stepInternal() {
-		if (updateClusterCenters) {
-			float E = superPixels->updateClusters(labelImage, -1);
+		if (mSimulationIteration % pruneInterval == 0&&mSimulationIteration>0) {
+			superPixels->enforceLabelConnectivity(labelImage);
+#pragma omp parallel for
+			for (int j = 0;j < labelImage.height;j++) {
+				int activeLabels[4];
+				for (int i = 0;i < labelImage.width;i++) {
+					int currentLabel = labelImage(i, j).x;
+					activeLabels[0] = labelImage(i + 1, j).x;
+					activeLabels[1] = labelImage(i - 1, j).x;
+					activeLabels[2] = labelImage(i, j + 1).x;
+					activeLabels[3] = labelImage(i, j - 1).x;
+					float val = 1.0f;
+					for (int n = 0;n < 4;n++) {
+						if (currentLabel < activeLabels[n]) {
+							val = 0.01f;
+							break;
+						}
+					}
+					levelSet(i, j) = float1(val);
+					swapLevelSet(i, j) = float1(val);
+				}
+			}
+			for (int band = 1; band <= 2 * maxLayers; band++) {
+#pragma omp parallel for
+				for (int j = 0;j < labelImage.height;j++) {
+					for (int i = 0;i < labelImage.width;i++) {
+						updateDistanceField(i, j, band);
+					}
+				}
+			}
+			for (int j = 0;j < labelImage.height;j++) {
+				for (int i = 0;i <  labelImage.width;i++) {
+					if (i < 1 || j < 1 || i >= labelImage.width - 1 || j >= labelImage.height - 1) {
+						labelImage(i, j) = int1(0);
+					}
+					else {
+						labelImage(i, j).x++;
+					}
+				}
+			}
+			swapLabelImage = labelImage;
+#pragma omp parallel for
+			for (int i = 0; i < labelImage.size(); i++) {
+				float val = clamp(levelSet[i], 0.0f, (maxLayers + 1.0f));
+				levelSet[i] = val;
+				swapLevelSet[i] = val;
+			}
+			std::set<int> labelSet;
+			int L = 1;
+			for (int1 l : labelImage.data) {
+				if (l.x != 0) {
+					labelSet.insert(l.x);
+					L = std::max(L, l.x + 1);
+				}
+			}
+			forceIndexes.resize(L, -1);
+			labelList.clear();
+			labelList.assign(labelSet.begin(), labelSet.end());
+			for (int i = 0;i < (int)labelList.size();i++) {
+				forceIndexes[labelList[i]] = i;
+			}
+			L = (int)labelList.size();
+			if (L<256) {
+				lineColors.clear();
+				lineColors[0] = RGBAf(0.0f, 0.0f, 0.0f, 0.0f);
+				int CL = std::min(256, L);
+				for (int i = 0;i < L;i++) {
+					int l = labelList[i];
+					HSV hsv = HSV((l%CL) / (float)CL, 0.7f, 0.7f);
+					lineColors[l] = HSVtoColor(hsv);
+				}
+			}
+			else {
+				if (lineColors.size() != L + 1) {
+					lineColors.clear();
+					lineColors[0] = RGBAf(0.0f, 0.0f, 0.0f, 0.0f);
+					for (int i = 0;i < L;i++) {
+						int l = labelList[i];
+						HSV hsv = HSV(RandomUniform(0.0f, 1.0f), RandomUniform(0.5f, 1.0f), RandomUniform(0.5f, 1.0f));
+						lineColors[l] = HSVtoColor(hsv);
+					}
+				}
+			}
 			contour.clusterCenters = superPixels->getPixelCenters();
+			contour.clusterColors = superPixels->getColorCenters();
 		}
-		if (updateCompactness) {
-			float mx = superPixels->updateMaxColor(labelImage, -1);
+		else {
+			if (updateClusterCenters) {
+				float E = superPixels->updateClusters(labelImage, -1);
+				contour.clusterCenters = superPixels->getPixelCenters();
+				contour.clusterColors = superPixels->getColorCenters();
+			}
+			if (updateCompactness) {
+				float mx = superPixels->updateMaxColor(labelImage, -1);
+			}
 		}
 		if (mSimulationIteration == 0) {
 			maxClusterDistance = 0;
@@ -312,10 +405,10 @@ namespace aly {
 		}
 		setInitial(initLabels);
 	}
-	SuperPixelLevelSet::SuperPixelLevelSet(const std::shared_ptr<SpringlCache2D>& cache) :MultiActiveContour2D(cache),updateClusterCenters(true),updateCompactness(true) {
+	SuperPixelLevelSet::SuperPixelLevelSet(const std::shared_ptr<SpringlCache2D>& cache) :MultiActiveContour2D(cache),updateClusterCenters(true),updateCompactness(true), pruneInterval(10){
 
 	}
-	SuperPixelLevelSet::SuperPixelLevelSet(const std::string& name, const std::shared_ptr<SpringlCache2D>& cache) : MultiActiveContour2D(name, cache), updateClusterCenters(true), updateCompactness(true) {
+	SuperPixelLevelSet::SuperPixelLevelSet(const std::string& name, const std::shared_ptr<SpringlCache2D>& cache) : MultiActiveContour2D(name, cache), updateClusterCenters(true), updateCompactness(true), pruneInterval(10) {
 
 	}
 }

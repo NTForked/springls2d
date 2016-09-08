@@ -43,7 +43,6 @@ protected:
 	aly::IconButtonPtr playButton,stopButton;
     std::shared_ptr<aly::TimelineSlider> timelineSlider;
 	aly::ImageGlyphPtr overlayGlyph;
-	//aly::GlyphRegionPtr overlayRegion;
 public:
 	std::shared_ptr<aly::SpringlCache2D> cache;
 	SuperPixelToy(int example);

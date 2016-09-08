@@ -26,8 +26,8 @@
 #include <cereal/archives/portable_binary.hpp>
 
 namespace aly {
-	void Contour2D::operator=(const Contour2D &c)
-	{
+	void Contour2D::operator=(const Contour2D &c) {
+		clusterColors = c.clusterColors;
 		clusterCenters = c.clusterCenters;
 		indexes = c.indexes;
 		vertexes = c.vertexes;
@@ -40,8 +40,8 @@ namespace aly {
 		file = c.file;
 		overlay = c.overlay;
 	}
-	Contour2D::Contour2D(const Contour2D& c)
-	{
+	Contour2D::Contour2D(const Contour2D& c){
+		clusterColors = c.clusterColors;
 		clusterCenters = c.clusterCenters;
 		indexes = c.indexes;
 		vertexes = c.vertexes;
