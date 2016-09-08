@@ -211,11 +211,8 @@ namespace aly {
 		std::vector<int> counts;
 		ComputeConnectedComponents(this->labelImage, labelImage,counts);
 		numLabels=MakeLabelsUnique(labelImage);
-		this->labelImage = labelImage+int1(labelOffset);
 		updateClusters(labelImage);
 		updateMaxColor(labelImage);
-		WriteImageToRawFile(GetDesktopDirectory() + ALY_PATH_SEPARATOR + "after_split.xml", labelImage);
-
 	}
 	void SuperRegion::classify(const ImageRGBf& labImage,Image1i& labelImage,float3 colorCenter1,float3 colorCenter2,int label1,int label2) {
 		for (int2& pix : pixels) {
