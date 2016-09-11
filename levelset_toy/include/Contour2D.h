@@ -32,14 +32,14 @@ namespace aly {
 	class AlloyContext;
 	class Contour2D {
 	protected:
-		std::string file;
+		bool onScreen;
+		std::shared_ptr<AlloyContext> context;
 		GLuint vao;
 		GLuint vertexBuffer;
 		GLuint particleBuffer;
-		int vertexCount;
+		std::string file;
 		bool dirty;
-		bool onScreen;
-		std::shared_ptr<AlloyContext> context;
+		int vertexCount;
 	public:
 		std::vector<std::list<uint32_t>> indexes;
 		Vector2f vertexes;

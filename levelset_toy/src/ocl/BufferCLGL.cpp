@@ -19,9 +19,9 @@
  * THE SOFTWARE.
  */
 
-#include "ocl_runtime_error.h"
-#include "BufferCLGL.h"
-#include "ComputeCL.h"
+#include "ocl/ocl_runtime_error.h"
+#include "ocl/BufferCLGL.h"
+#include "ocl/ComputeCL.h"
 #include <CL/cl_gl.h>
 namespace aly {
 	BufferCLGL::BufferCLGL() :

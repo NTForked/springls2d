@@ -49,7 +49,7 @@ bool SuperPixelToy::init(Composite& rootNode) {
 	}
 
 	simulation->onUpdate = [this](uint64_t iteration, bool lastIteration) {
-		if (lastIteration || iteration == timelineSlider->getMaxValue().toInteger()) {
+		if (lastIteration || (int)iteration == timelineSlider->getMaxValue().toInteger()) {
 			stopButton->setVisible(false);
 			playButton->setVisible(true);
 			running = false;
@@ -65,7 +65,7 @@ bool SuperPixelToy::init(Composite& rootNode) {
 	BorderCompositePtr layout = BorderCompositePtr(new BorderComposite("UI Layout", CoordPX(0.0f, 0.0f), CoordPercent(1.0f, 1.0f), false));
 	ParameterPanePtr controls = ParameterPanePtr(new ParameterPane("Controls", CoordPX(0.0f, 0.0f), CoordPercent(1.0f, 1.0f)));
 	BorderCompositePtr controlLayout = BorderCompositePtr(new BorderComposite("Control Layout", CoordPX(0.0f, 0.0f), CoordPercent(1.0f, 1.0f), true));
-	float aspect = 6.0f;
+
 	controls->setAlwaysShowVerticalScrollBar(false);
 	controls->setScrollEnabled(false);
 	controls->backgroundColor = MakeColor(getContext()->theme.DARKER);
@@ -287,12 +287,7 @@ bool SuperPixelToy::init(Composite& rootNode) {
 		context->requestPack();
 		return true;
 	};
-	drawContour->onMouseOver = [this](AlloyContext* context, const InputEvent& event) {
-		box2px bbox = resizeableRegion->getBounds(true);
-		float2 dims = float2(img.dimensions());
-		float2 cursor = aly::clamp(dims*(event.cursor - bbox.position) / bbox.dimensions, float2(0.0f), dims);
-		return false;
-	};
+
 	resizeableRegion->add(glyphRegion);
 	resizeableRegion->add(drawContour);
 

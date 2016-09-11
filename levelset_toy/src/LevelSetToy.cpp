@@ -97,7 +97,7 @@ bool LevelSetToy::init(Composite& rootNode) {
 		return false;
 	}
 	simulation->onUpdate = [this](uint64_t iteration, bool lastIteration) {
-		if (lastIteration || iteration == timelineSlider->getMaxValue().toInteger()) {
+		if (lastIteration || (int)iteration == timelineSlider->getMaxValue().toInteger()) {
 			stopButton->setVisible(false);
 			playButton->setVisible(true);
 			running = false;
@@ -126,7 +126,6 @@ bool LevelSetToy::init(Composite& rootNode) {
 		parametersDirty = true;
 	};
 
-	float aspect = 6.0f;
 	lineWidth = Float(4.0f);
 	particleSize = Float(0.2f);
 
@@ -468,12 +467,7 @@ bool LevelSetToy::init(Composite& rootNode) {
 		context->requestPack();
 		return true;
 	};
-	drawContour->onMouseOver = [this](AlloyContext* context, const InputEvent& event) {
-		box2px bbox = resizeableRegion->getBounds(true);
-		float2 dims = float2(img.dimensions());
-		float2 cursor = aly::clamp(dims*(event.cursor - bbox.position) / bbox.dimensions, float2(0.0f), dims);
-		return false;
-	};
+
 	resizeableRegion->add(glyphRegion);
 	resizeableRegion->add(drawContour);
 	resizeableRegion->setAspectRatio(img.width / (float)img.height);

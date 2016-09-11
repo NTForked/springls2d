@@ -109,7 +109,7 @@ namespace aly {
 		levelSet.resize(dims.x, dims.y);
 		swapLevelSet.resize(dims.x, dims.y);
 #pragma omp parallel for
-		for (int i = 0; i < initialLevelSet.size(); i++) {
+		for (int i = 0; i < (int)initialLevelSet.size(); i++) {
 			float val = clamp(initialLevelSet[i], -(maxLayers + 1.0f), (maxLayers + 1.0f));
 			levelSet[i] = val;
 			swapLevelSet[i] = val;
@@ -299,7 +299,7 @@ namespace aly {
 
 	int ActiveContour2D::deleteElements() {
 		std::vector<int2> newList;
-		for (int i = 0; i < activeList.size(); i++) {
+		for (int i = 0; i < (int)activeList.size(); i++) {
 			int2 pos = activeList[i];
 			float val = swapLevelSet(pos.x, pos.y);
 			if (std::abs(val) <= MAX_DISTANCE) {
@@ -559,8 +559,8 @@ namespace aly {
 			int2 pos = activeList[i];
 			swapLevelSet(pos.x, pos.y) = levelSet(pos.x, pos.y);
 		}
-		int deleted = deleteElements();
-		int added = addElements();
+		deleteElements();
+		addElements();
 		deltaLevelSet.clear();
 		deltaLevelSet.resize(activeList.size(), 0.0f);
 		return timeStep;
@@ -586,7 +586,7 @@ namespace aly {
 		float minValue = 1E30f;
 		float maxValue = -1E30f;
 		if (!std::isnan(targetPressureParam.toFloat())) {
-			for (int i = 0; i < pressureForce.size(); i++) {
+			for (int i = 0; i < (int)pressureForce.size(); i++) {
 				float val = pressureForce[i] - targetPressureParam.toFloat();
 				minValue = std::min(val, minValue);
 				maxValue = std::max(val, maxValue);
@@ -595,7 +595,7 @@ namespace aly {
 		float normMin = (std::abs(minValue) > 1E-4) ? 1 / std::abs(minValue) : 1;
 		float normMax = (std::abs(maxValue) > 1E-4) ? 1 / std::abs(maxValue) : 1;
 #pragma omp parallel for
-		for (int i = 0; i < pressureForce.size(); i++) {
+		for (int i = 0; i < (int)pressureForce.size(); i++) {
 			float val = pressureForce[i] - targetPressureParam.toFloat();
 			if (val < 0) {
 				pressureForce[i] = (float) (val * normMin);

@@ -31,11 +31,11 @@
 #include "SpringlCache2D.h"
 class SuperPixelToy: public aly::Application {
 protected:
-	int example;
 	aly::Image1f gray;
 	aly::ImageRGBA img;
 	bool showCenters;
 	bool showContours;
+	int example;
 	int lastSimTime;
 	bool running = false;
 	aly::Number transparency;

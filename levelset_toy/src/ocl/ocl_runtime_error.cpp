@@ -19,7 +19,7 @@
  * THE SOFTWARE.
  */
 
-#include "ocl_runtime_error.h"
+#include "ocl/ocl_runtime_error.h"
 #include <AlloyCommon.h>
 #include <CL/cl.h>
 namespace aly {

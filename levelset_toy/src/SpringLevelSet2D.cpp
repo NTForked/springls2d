@@ -50,10 +50,7 @@ namespace aly {
 		float F = 0.5f*(m(0, 0) - m(1, 1));
 		float G = 0.5f*(m(1, 0) + m(0, 1));
 		float H = 0.5f*(m(1, 0) - m(0, 1));
-		float Q = std::sqrt(E*E + H*H);
-		float R = std::sqrt(F*F + G*G);
-		float sx = Q + R;
-		float sy = Q - R;
+
 		float a1 = std::atan2(G, F);
 		float a2 = std::atan2(H, E);
 		float theta = 0.5f*(a2 - a1);
@@ -121,7 +118,6 @@ namespace aly {
 		do {
 			maxDelta = 0.0f;
 			for (std::list<uint32_t> curve : contour.indexes) {
-				size_t count = 0;
 				uint32_t cur = 0, prev = 0, next = 0;
 				if (curve.size() > 1) {
 					auto prevIter = curve.begin();
@@ -211,14 +207,14 @@ namespace aly {
 			std::vector<std::pair<size_t, float>> result;
 			matcher->closest(pt0, maxDistance, result);
 			for (auto pr : result) {
-				if (pr.first != i&&pr.first != i + 1) {
+				if ((int)pr.first != i&&(int)pr.first != i + 1) {
 					nearestNeighbors[i].push_back((uint32_t)pr.first);
 					break;
 				}
 			}
 			matcher->closest(pt1, maxDistance, result);
 			for (auto pr : result) {
-				if (pr.first != i&&pr.first != i + 1) {
+				if ((int)pr.first != i&&(int)pr.first != i + 1) {
 					nearestNeighbors[i + 1].push_back((uint32_t)pr.first);
 					break;
 				}
@@ -442,7 +438,7 @@ namespace aly {
 		f1 += correction;
 		f2 += correction;
 	}
-	float SpringLevelSet2D::updateSignedLevelSet(float maxStep) {
+	void SpringLevelSet2D::updateSignedLevelSet(float maxStep) {
 #pragma omp parallel for
 		for (int i = 0; i < (int)activeList.size(); i++) {
 			int2 pos = activeList[i];
@@ -494,8 +490,8 @@ namespace aly {
 			int2 pos = activeList[i];
 			swapLevelSet(pos.x, pos.y) = levelSet(pos.x, pos.y);
 		}
-		int deleted = deleteElements();
-		int added = addElements();
+		deleteElements();
+		addElements();
 		deltaLevelSet.clear();
 		deltaLevelSet.resize(activeList.size(), 0.0f);
 	}

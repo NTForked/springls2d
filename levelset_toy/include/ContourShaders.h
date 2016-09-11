@@ -26,8 +26,8 @@
 namespace aly {
 	class UnsignedDistanceShader : public GLShader {
 	protected:
-		GLFrameBuffer texture;
 		std::shared_ptr<AlloyContext> context;
+		GLFrameBuffer texture;
 	public:
 		UnsignedDistanceShader(bool onScreen = true,
 			const std::shared_ptr<AlloyContext>& context =

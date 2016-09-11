@@ -99,7 +99,7 @@ namespace aly {
 		if (vao == 0)
 			glGenVertexArrays(1, &vao);
 		if (points.size() > 0) {
-			if (vertexCount != points.size()) {
+			if (vertexCount != (int)points.size()) {
 				if (glIsBuffer(vertexBuffer) == GL_TRUE)
 					glDeleteBuffers(1, &vertexBuffer);
 				glGenBuffers(1, &vertexBuffer);
@@ -118,7 +118,7 @@ namespace aly {
 			vertexCount = 0;
 		}
 		if (particles.size() > 0) {
-			if (vertexCount != particles.size()) {
+			if (vertexCount != (int)particles.size()) {
 				if (glIsBuffer(particleBuffer) == GL_TRUE)
 					glDeleteBuffers(1, &particleBuffer);
 				glGenBuffers(1, &particleBuffer);
@@ -140,7 +140,7 @@ namespace aly {
 	void Contour2D::updateNormals() {
 		normals.resize(points.size() / 2);
 #pragma omp parallel for
-		for (int i = 0;i < points.size();i += 2) {
+		for (int i = 0;i < (int)points.size();i += 2) {
 			float2 norm = normalize(points[i+1] - points[i]);
 			normals[i / 2] = float2(-norm.y,norm.x);
 		}

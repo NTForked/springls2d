@@ -71,7 +71,6 @@ namespace aly {
 			int currentLabel = pr.first;
 			MultiContourData& data = metadata[currentLabel];
 			std::map<uint64_t, EdgeSplitPtr>& splits = data.splits;
-			std::list<EdgePtr>& edges = data.edges;
 			vertexOffset = points.size();
 			std::vector<EdgeSplitPtr> pts(splits.size());
 			for (const std::pair<uint64_t, EdgeSplitPtr>& split : splits) {

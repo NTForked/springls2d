@@ -28,10 +28,11 @@
 namespace aly {
 	class CacheElement {
 	protected:
+		bool loaded;
 		bool writeOnce;
 		std::string contourFile;
 		std::shared_ptr<Contour2D> contour;
-		bool loaded;
+
 		std::mutex accessLock;
 	public:
 		bool isLoaded() {

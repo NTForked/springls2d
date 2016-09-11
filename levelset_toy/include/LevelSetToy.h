@@ -31,12 +31,12 @@
 #include "SpringlCache2D.h"
 class LevelSetToy: public aly::Application {
 protected:
+	float currentIso;
 	int example;
 	aly::Image1f gray;
 	aly::ImageRGBA img;
 	bool parametersDirty;
 	bool frameBuffersDirty;
-	float currentIso;
 	bool running = false;
 	aly::Image2f vecField;
 	aly::Number lineWidth;

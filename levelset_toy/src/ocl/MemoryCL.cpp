@@ -20,9 +20,9 @@
  */
 
 
-#include "ocl_runtime_error.h"
-#include "MemoryCL.h"
-#include "ComputeCL.h"
+#include "ocl/ocl_runtime_error.h"
+#include "ocl/MemoryCL.h"
+#include "ocl/ComputeCL.h"
 #include <string>
 #include <iostream>
 namespace aly {

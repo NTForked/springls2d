@@ -19,10 +19,10 @@
  * THE SOFTWARE.
  */
 
-#include "ocl_runtime_error.h"
-#include "Image2dCLGL.h"
-#include "ComputeCL.h"
-#include "GLTexture.h"
+#include "ocl/ocl_runtime_error.h"
+#include "ocl/Image2dCLGL.h"
+#include "ocl/ComputeCL.h"
+#include  <GLTexture.h>
 //#include <GL/glew.h>
 #include <CL/cl.h>
 #include <CL/cl_gl.h>

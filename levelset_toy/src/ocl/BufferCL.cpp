@@ -20,9 +20,9 @@
  */
 
 
-#include "BufferCL.h"
-#include "ocl_runtime_error.h"
-#include "ComputeCL.h"
+#include "ocl/BufferCL.h"
+#include "ocl/ocl_runtime_error.h"
+#include "ocl/ComputeCL.h"
 namespace aly {
 	BufferCL::BufferCL() :
 			MemoryCL() {

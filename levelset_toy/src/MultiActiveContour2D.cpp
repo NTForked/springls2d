@@ -42,7 +42,6 @@ namespace aly {
 	}
 	void MultiActiveContour2D::plugLevelSet(int i, int j, size_t index) {
 		int label = labelImage(i, j);
-		float v11 = levelSet(i, j);
 		int activeLabels[8];
 		activeLabels[0] = labelImage(i + 1, j);
 		activeLabels[1] = labelImage(i - 1, j);
@@ -69,7 +68,7 @@ namespace aly {
 #pragma omp parallel for
 			for (int j = 0; j <overlay.height; j++) {
 				for (int i = 0; i < overlay.width; i++) {
-					float d = levelSet(i, j).x;
+
 					int l = labelImage(i, j).x;
 					Color c = getColor(l);
 					RGBAf rgba = c.toRGBAf();
@@ -175,7 +174,7 @@ namespace aly {
 		swapLevelSet.resize(dims.x, dims.y);
 		swapLabelImage.resize(dims.x, dims.y);
 #pragma omp parallel for
-		for (int i = 0; i < initialLevelSet.size(); i++) {
+		for (int i = 0; i < (int)initialLevelSet.size(); i++) {
 			float val = clamp(initialLevelSet[i], 0.0f, (maxLayers + 1.0f));
 			levelSet[i] = val;
 			swapLevelSet[i] = val;
@@ -209,7 +208,7 @@ namespace aly {
 			}
 		}
 		else {
-			if (lineColors.size() != L + 1) {
+			if ((int)lineColors.size() != L + 1) {
 				lineColors.clear();
 				lineColors[0] = RGBAf(0.0f, 0.0f, 0.0f, 0.0f);
 				for (int i = 0;i < L;i++) {
@@ -502,7 +501,7 @@ namespace aly {
 
 	int MultiActiveContour2D::deleteElements() {
 		std::vector<int2> newList;
-		for (int i = 0; i < activeList.size(); i++) {
+		for (int i = 0; i <(int) activeList.size(); i++) {
 			int2 pos = activeList[i];
 			float val = swapLevelSet(pos.x, pos.y);
 			if (std::abs(val) <= MAX_DISTANCE) {
@@ -834,8 +833,8 @@ namespace aly {
 			swapLevelSet(pos.x, pos.y) = levelSet(pos.x, pos.y);
 			swapLabelImage(pos.x, pos.y) = labelImage(pos.x, pos.y);
 		}
-		int deleted = deleteElements();
-		int added = addElements();
+		deleteElements();
+		addElements();
 		deltaLevelSet.resize(5 * activeList.size(), 0.0f);
 		objectIds.resize(5 * activeList.size(), -1);
 		return timeStep;
@@ -862,7 +861,7 @@ namespace aly {
 		float minValue = 1E30f;
 		float maxValue = -1E30f;
 		if (!std::isnan(targetPressureParam.toFloat())) {
-			for (int i = 0; i < pressureForce.size(); i++) {
+			for (int i = 0; i <(int) pressureForce.size(); i++) {
 				float val = pressureForce[i] - targetPressureParam.toFloat();
 				minValue = std::min(val, minValue);
 				maxValue = std::max(val, maxValue);
@@ -871,7 +870,7 @@ namespace aly {
 		float normMin = (std::abs(minValue) > 1E-4) ? 1 / std::abs(minValue) : 1;
 		float normMax = (std::abs(maxValue) > 1E-4) ? 1 / std::abs(maxValue) : 1;
 #pragma omp parallel for
-		for (int i = 0; i < pressureForce.size(); i++) {
+		for (int i = 0; i < (int)pressureForce.size(); i++) {
 			float val = pressureForce[i] - targetPressureParam.toFloat();
 			if (val < 0) {
 				pressureForce[i] = (float)(val * normMin);

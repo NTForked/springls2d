@@ -59,7 +59,7 @@ namespace aly {
 				}
 			}
 			compCounts.push_back(ccCount);
-			int2 lastPivot = pivot;
+
 			pivot = int2(-1, -1);
 			for (int t = 0;t < 16;t++) {
 				int i = RandomUniform(0, labels.width - 1);
@@ -86,11 +86,12 @@ namespace aly {
 	}
 	int MakeLabelsUnique(Image1i& outImage) {
 		std::map<int, int> lookup;
+		int counter=0;
 		for (int j = 0;j < outImage.height;j++) {
 			for (int i = 0;i < outImage.width;i++) {
 				int l = outImage(i, j).x;
 				if (lookup.find(l) == lookup.end()) {
-					lookup[l] = (int)lookup.size();
+					lookup[l] =counter++;
 				}
 			}
 		}
@@ -99,7 +100,7 @@ namespace aly {
 				outImage(i, j).x = lookup[outImage(i, j).x];
 			}
 		}
-		return (int)lookup.size();
+		return counter;
 	}
 	int RemoveSmallConnectedComponents(const Image1i& labelImage, Image1i& outImage, int minSize)
 	{
@@ -202,7 +203,7 @@ namespace aly {
 		}
 		int newLabel = numLabels;
 		for (int l = 0;l < numLabels;l++) {
-			if (regionMap[l].pixels.size()> minSize) {
+			if ((int)regionMap[l].pixels.size()> minSize) {
 				regionMap[l].classify(labImage, labelImage, minLab[l],maxLab[l], l - labelOffset, newLabel - labelOffset);
 				//regionMap[l].classify(labelImage, std::vector<int>{ l - labelOffset, newLabel - labelOffset, newLabel + 1 - labelOffset, newLabel + 2 - labelOffset});
 				newLabel+=3;
@@ -380,7 +381,7 @@ namespace aly {
 				int idx = labelImage(i, j).x+ labelOffset;
 				if (idx >= 0) {
 					if (idx >= numLabels) {
-						throw std::runtime_error("Invalid cluster id.");
+						throw std::runtime_error(MakeString()<<"Invalid cluster id. "<<idx<<"/"<<numLabels);
 					}
 					colorMean[idx] += labImage(i, j);
 					pixelMean[idx] += float2((float)i, (float)j);

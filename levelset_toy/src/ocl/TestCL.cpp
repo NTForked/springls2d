@@ -23,11 +23,11 @@
 #include <AlloyContext.h>
 #include <AlloyMath.h>
 #include <AlloyVector.h>
-#include "ComputeCL.h"
-#include "ProgramCL.h"
-#include "BufferCL.h"
-#include "FunctionCL.h"
-#include "ocl_runtime_error.h"
+#include "ocl/ComputeCL.h"
+#include "ocl/ProgramCL.h"
+#include "ocl/BufferCL.h"
+#include "ocl/FunctionCL.h"
+#include "ocl/ocl_runtime_error.h"
 #include <iostream>
 using namespace aly;
 void SANITY_CHECK_OPENCL(){

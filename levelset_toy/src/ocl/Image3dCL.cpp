@@ -19,9 +19,9 @@
  * THE SOFTWARE.
  */
 
-#include "Image3dCL.h"
-#include "ocl_runtime_error.h"
-#include "ComputeCL.h"
+#include "ocl/Image3dCL.h"
+#include "ocl/ocl_runtime_error.h"
+#include "ocl/ComputeCL.h"
 #include <AlloyCommon.h>
 namespace aly {
 	Image3dCL::Image3dCL() :

@@ -19,15 +19,15 @@
  * THE SOFTWARE.
  */
 
-#include "FunctionCL.h"
-#include "ocl_runtime_error.h"
-#include "ComputeCL.h"
-#include "BufferCL.h"
-#include "BufferCLGL.h"
-#include "Image2dCL.h"
-#include "Image2dCLGL.h"
-#include "Image3dCL.h"
-#include "ProgramCL.h"
+#include "ocl/FunctionCL.h"
+#include "ocl/ocl_runtime_error.h"
+#include "ocl/ComputeCL.h"
+#include "ocl/BufferCL.h"
+#include "ocl/BufferCLGL.h"
+#include "ocl/Image2dCL.h"
+#include "ocl/Image2dCLGL.h"
+#include "ocl/Image3dCL.h"
+#include "ocl/ProgramCL.h"
 #include <CL/cl.h>
 #include <iostream>
 namespace aly {

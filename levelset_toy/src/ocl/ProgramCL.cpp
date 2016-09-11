@@ -19,8 +19,8 @@
  * THE SOFTWARE.
  */
 
-#include "ocl_runtime_error.h"
-#include "ProgramCL.h"
+#include "ocl/ocl_runtime_error.h"
+#include "ocl/ProgramCL.h"
 #include <iostream>
 #include <vector>
 #include <AlloyCommon.h>
