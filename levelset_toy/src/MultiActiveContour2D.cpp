@@ -73,8 +73,6 @@ namespace aly {
 					int l = labelImage(i, j).x;
 					Color c = getColor(l);
 					RGBAf rgba = c.toRGBAf();
-					rgba.w = 0.5;
-					rgba=aly::mix(RGBAf(0.0f, 0.0f, 0.0f, 1.0f), rgba,clamp(d/1.5f,0.0f,1.0f));
 					overlay(i, j) = ToRGBA(rgba);
 				}
 			}
@@ -88,7 +86,7 @@ namespace aly {
 	bool MultiActiveContour2D::updateContour() {
 		if (requestUpdateContour) {
 			std::lock_guard<std::mutex> lockMe(contourLock);
-			isoContour.solve(levelSet, labelImage, labelList, contour.vertexes, contour.vertexLabels, contour.indexes, 0.0f, (preserveTopology) ? TopologyRule2D::Connect4 : TopologyRule2D::Unconstrained, Winding::Clockwise);
+			isoContour.solve(levelSet, labelImage, contour.vertexes, contour.vertexLabels, contour.indexes, 0.0f, (preserveTopology) ? TopologyRule2D::Connect4 : TopologyRule2D::Unconstrained, Winding::Clockwise);
 			requestUpdateContour = false;
 			return true;
 		}
@@ -826,7 +824,7 @@ namespace aly {
 			int2 pos = activeList[i];
 			plugLevelSet(pos.x, pos.y, i);
 		}
-		requestUpdateContour = (getNumLabels()<256);
+		requestUpdateContour =true;
 		requestUpdateOverlay = true;
 		contourLock.unlock();
 

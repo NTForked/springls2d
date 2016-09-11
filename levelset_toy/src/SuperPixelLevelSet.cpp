@@ -23,7 +23,6 @@ namespace aly {
 					int l = labelImage(i, j).x;
 					Color c = (l>0)?superPixels->getColorCenter(l-1):Color(0,0,0,0);//getColor(l);
 					RGBAf rgba = c.toRGBAf();
-					rgba = aly::mix(rgba,RGBAf(0.0f, 0.0f, 0.0f, 1.0f),(d<2.0f)?std::exp(-d*d/(0.5f)): 0.0f);
 					overlay(i, j) = ToRGBA(rgba);
 				}
 			}
@@ -93,7 +92,7 @@ namespace aly {
 			}
 		}
 		rebuildNarrowBand();
-		requestUpdateContour = false;
+		requestUpdateContour = true;
 		requestUpdateOverlay = true;
 		contour.clusterCenters = superPixels->getPixelCenters();
 		contour.clusterColors = superPixels->getColorCenters();
@@ -288,7 +287,7 @@ namespace aly {
 			int2 pos = activeList[i];
 			plugLevelSet(pos.x, pos.y, i);
 		}
-		requestUpdateContour = false;// (getNumLabels() < 256);
+		requestUpdateContour = true;
 		requestUpdateOverlay = true;
 		contourLock.unlock();
 #pragma omp parallel for

@@ -35,9 +35,11 @@ protected:
 	aly::Image1f gray;
 	aly::ImageRGBA img;
 	bool showCenters;
+	bool showContours;
 	int lastSimTime;
 	bool running = false;
 	aly::Number transparency;
+	aly::Number lineWidth;
 	aly::AdjustableCompositePtr resizeableRegion;
 	std::shared_ptr<aly::SuperPixelLevelSet> simulation;
 	aly::IconButtonPtr playButton,stopButton;

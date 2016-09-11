@@ -28,9 +28,14 @@
 #include <list>
 #include <map>
 namespace aly {
+	struct MultiContourData {
+		std::map<uint64_t, EdgeSplitPtr> splits;
+		std::list<EdgePtr> edges;
+		int vertCount=0;
+	};
 class MultiIsoContour {
 protected:
-	uint32_t vertCount = 0;
+
 	const int a2fVertex1Offset[4][2] =
 			{ { 0, 0 }, { 1, 0 }, { 1, 1 }, { 0, 1 } };
 	const int a2fVertex2Offset[4][2] =
@@ -73,24 +78,16 @@ protected:
 	bool nudgeLevelSet;
 	const float LEVEL_SET_TOLERANCE;
 	TopologyRule2D rule = TopologyRule2D::Unconstrained;
-	int rows=0, cols=0,currentLabel=0;
+	int rows=0, cols=0;
 	const Image1f* img;
 	const Image1i* label;
-	float getValue(int x, int y);
-	float fGetOffset(uint2 v1, uint2 v2);
-	EdgeSplitPtr createSplit(std::map<uint64_t, EdgeSplitPtr>& splits, int p1x,
-			int p1y, int p2x, int p2y);
-	void addEdge(std::map<uint64_t, EdgeSplitPtr>& splits,
-			std::list<EdgePtr>& edges, int p1x, int p1y, int p2x, int p2y,
-			int p3x, int p3y, int p4x, int p4y);
-	void processSquare2(int x, int y, std::map<uint64_t, EdgeSplitPtr>& splits,
-			std::list<EdgePtr>& edges);
-	void processSquare1(int x, int y, std::map<uint64_t, EdgeSplitPtr>& splits,
-			std::list<EdgePtr>& edges);
-	void processSquare(int x, int y, std::map<uint64_t, EdgeSplitPtr>& splits,
-			std::list<EdgePtr>& edges);
-	bool orient(const Image1f& img, const EdgeSplit& split1,
-			const EdgeSplit& split2, Edge& edge);
+	float getValue(int x, int y,int l);
+	int getLabel(int x, int y);
+	float fGetOffset(uint2 v1, uint2 v2,int l);
+	EdgeSplitPtr createSplit(std::map<uint64_t, EdgeSplitPtr>& splits, int p1x,int p1y, int p2x, int p2y, int l, int& vertCount);
+	void addEdge(std::map<uint64_t, EdgeSplitPtr>& splits,std::list<EdgePtr>& edges, int p1x, int p1y, int p2x, int p2y,int p3x, int p3y, int p4x, int p4y,int l, int& vertCount);
+	void processSquare(int x, int y,int l, std::map<uint64_t, EdgeSplitPtr>& splits,std::list<EdgePtr>& edges,int & vertCount);
+	bool orient(const Image1f& img, const EdgeSplit& split1,const EdgeSplit& split2, Edge& edge);
 public:
 	MultiIsoContour(bool nudgeLevelSet = true, float levelSetTolerance = 1E-3f) :
 			nudgeLevelSet(nudgeLevelSet), LEVEL_SET_TOLERANCE(
@@ -99,18 +96,12 @@ public:
 	}
 	virtual ~MultiIsoContour() {
 	}
-	void solve(const Image1f& levelset, const Image1i& labels, int labelIndex, Vector2f& points, Vector2ui& indexes,
-			float isoLevel = 0.0f, const TopologyRule2D& rule =
-					TopologyRule2D::Unconstrained, const Winding& winding =
-					Winding::CounterClockwise);
-	void solve(const Image1f& levelset, const Image1i& labels, const std::vector<int>& labelList, Vector2f& points, Vector1i& vertexLabels,
+
+	void solve(const Image1f& levelset, const Image1i& labels, Vector2f& points, Vector1i& vertexLabels,
 		std::vector<std::list<uint32_t>>& indexes, float isoLevel = 0.0f,
 		const TopologyRule2D& rule = TopologyRule2D::Unconstrained,
 		const Winding& winding = Winding::CounterClockwise);
-	void solve(const Image1f& levelset, const Image1i& labels,int labelIndex, Vector2f& points, 
-			std::vector<std::list<uint32_t>>& indexes, float isoLevel = 0.0f,
-			const TopologyRule2D& rule = TopologyRule2D::Unconstrained,
-			const Winding& winding = Winding::CounterClockwise);
+
 };
 }
 #endif 

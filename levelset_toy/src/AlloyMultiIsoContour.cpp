@@ -23,6 +23,7 @@
 #include <map>
 #include <list>
 #include <algorithm>
+#include <set>
 namespace aly {
 	bool MultiIsoContour::orient(const Image1f& img, const EdgeSplit& split1, const EdgeSplit& split2, Edge& edge) {
 		float2 pt1 = split1.pt2d;
@@ -35,113 +36,8 @@ namespace aly {
 		return true;
 	}
 
-	void MultiIsoContour::solve(const Image1f& levelset, const Image1i& labels, int labelIndex, Vector2f& points,std::vector<std::list<uint32_t>>& lines, float isoLevel, const TopologyRule2D& topoRule, const Winding& winding) {
-		rows = levelset.width;
-		cols = levelset.height;
-		this->isoLevel = isoLevel;
-		rule = topoRule;
-		currentLabel = labelIndex;
-		img = &levelset;
-		label = &labels;
 
-		vertCount = 0;
-		std::map<uint64_t, EdgeSplitPtr> splits;
-		std::list<EdgePtr> edges;
-		for (int i = 0; i < rows-1; i++) {
-			for (int j = 0; j < cols-1; j++) {
-				processSquare(i, j, splits, edges);
-			}
-		}
-		std::vector<EdgeSplitPtr> pts(splits.size());
-		for (const std::pair<uint64_t, EdgeSplitPtr>& split : splits) {
-			pts[split.second->vid] = split.second;
-		}
-		lines.clear();
-		points.resize(splits.size());
-		uint32_t index = 0;
-		for (const std::pair<uint64_t, EdgeSplitPtr>& split : splits) {
-			index = split.second->vid;
-			points[index] = split.second->pt2d;
-		}
-		EdgeSplitPtr lastSplit = pts.front();
-		bool firstPass = true;
-		std::list<uint32_t> curvePath;
-		index = 0;
-		while (lastSplit.get() != nullptr) {
-			curvePath.push_back(lastSplit->vid);
-			EdgePtr e1 = lastSplit->e1;
-			EdgePtr e2 = lastSplit->e2;
-			float val = getValue(lastSplit->pt1.x, lastSplit->pt1.y);
-			if ((val > 0 && winding == Winding::CounterClockwise)
-				|| (val <= 0 && winding == Winding::Clockwise)) {
-				// Swap edges so they are correctly ordered. This technique may
-				// fail if a vertex lies exactly on the iso-level.
-				std::swap(e1, e2);
-			}
-			// March around contour
-			if (e1.get() != nullptr) {
-				//if (!firstPass) {
-					lastSplit->e1.reset();
-				//}
-				if (e1->x == lastSplit->vid) {
-					lastSplit = pts[e1->y];
-				}
-				else {
-					lastSplit = pts[e1->x];
-				}
-				if (!firstPass) {
-					if (lastSplit->e1.get() == e1.get()) {
-						lastSplit->e1.reset();
-					}
-					if (lastSplit->e2.get() == e1.get()) {
-						lastSplit->e2.reset();
-					}
-				}
-				firstPass = false;
-			}
-			else if (e2.get() != nullptr) {
-				//if (!firstPass) {
-					lastSplit->e2.reset();
-				//}
-				firstPass = false;
-				if (e2->x == lastSplit->vid) {
-					lastSplit = pts[e2->y];
-				}
-				else {
-					lastSplit = pts[e2->x];
-				}
-				if (!firstPass) {
-					if (lastSplit->e1.get() == e2.get()) {
-						lastSplit->e1.reset();
-					}
-					if (lastSplit->e2.get() == e2.get()) {
-						lastSplit->e2.reset();
-					}
-				}
-				firstPass = false;
-			}
-			else {
-				// Start new contour
-				lastSplit.reset();
-				lines.push_back(curvePath);
-				curvePath.clear();
-				firstPass = true;
-				index = 0;
-				while (index < pts.size()) {
-					EdgeSplitPtr tmp = pts[index++];
-					if (tmp->e1.get() != nullptr && tmp->e2.get() != nullptr) {
-						lastSplit = tmp;
-						break;
-					}
-				}
-			}
-		}
-		img = nullptr;
-		label = nullptr;
-	}
-
-
-	void MultiIsoContour::solve(const Image1f& levelset, const Image1i& labels, const std::vector<int>& labelList, Vector2f& points,Vector1i& vertexLabels, std::vector<std::list<uint32_t>>& lines, float isoLevel, const TopologyRule2D& topoRule, const Winding& winding) {
+	void MultiIsoContour::solve(const Image1f& levelset, const Image1i& labels, Vector2f& points, Vector1i& vertexLabels, std::vector<std::list<uint32_t>>& lines, float isoLevel, const TopologyRule2D& topoRule, const Winding& winding) {
 		rows = levelset.width;
 		cols = levelset.height;
 		this->isoLevel = isoLevel;
@@ -153,27 +49,40 @@ namespace aly {
 		points.clear();
 		lines.clear();
 		vertexLabels.clear();
-		for (int li = 0;li < (int)labelList.size();li++) {
-			vertCount = 0;
-			currentLabel = labelList[li];
-			std::map<uint64_t, EdgeSplitPtr> splits;
-			std::list<EdgePtr> edges;
-			vertexOffset = points.size();
-			for (int i = 0; i < rows - 1; i++) {
-				for (int j = 0; j < cols - 1; j++) {
-					processSquare(i, j, splits, edges);
+		std::map<int, MultiContourData> metadata;
+		std::set<int> labelSet;
+		for (int i = 0; i < rows - 1; i++) {
+			for (int j = 0; j < cols - 1; j++) {
+				labelSet.clear();
+				labelSet.insert(getLabel(i, j));
+				labelSet.insert(getLabel(i + 1, j));
+				labelSet.insert(getLabel(i, j + 1));
+				labelSet.insert(getLabel(i + 1, j + 1));
+				for (int l : labelSet) {
+					if (l != 0) {
+						MultiContourData& data = metadata[l];
+						processSquare(i, j, l, data.splits, data.edges,data.vertCount);
+					}
 				}
 			}
+		}
+
+		for (auto pr : metadata) {
+			int currentLabel = pr.first;
+			MultiContourData& data = metadata[currentLabel];
+			std::map<uint64_t, EdgeSplitPtr>& splits = data.splits;
+			std::list<EdgePtr>& edges = data.edges;
+			vertexOffset = points.size();
 			std::vector<EdgeSplitPtr> pts(splits.size());
 			for (const std::pair<uint64_t, EdgeSplitPtr>& split : splits) {
 				pts[split.second->vid] = split.second;
 			}
-			points.resize(vertexOffset +splits.size());
+			points.resize(vertexOffset + splits.size());
 			vertexLabels.resize(vertexOffset + splits.size());
 			uint32_t index = 0;
 			for (const std::pair<uint64_t, EdgeSplitPtr>& split : splits) {
 				index = split.second->vid;
-				points[vertexOffset +index] = split.second->pt2d;
+				points[vertexOffset + index] = split.second->pt2d;
 				vertexLabels[vertexOffset + index] = currentLabel;
 			}
 			if (pts.size() == 0)continue;
@@ -185,7 +94,7 @@ namespace aly {
 				curvePath.push_back(lastSplit->vid);
 				EdgePtr e1 = lastSplit->e1;
 				EdgePtr e2 = lastSplit->e2;
-				float val = getValue(lastSplit->pt1.x, lastSplit->pt1.y);
+				float val = getValue(lastSplit->pt1.x, lastSplit->pt1.y, currentLabel);
 				if ((val > 0 && winding == Winding::CounterClockwise)
 					|| (val <= 0 && winding == Winding::Clockwise)) {
 					// Swap edges so they are correctly ordered. This technique may
@@ -239,7 +148,7 @@ namespace aly {
 					lastSplit.reset();
 					//Add vertex offset to contour
 					for (uint32_t& idx : curvePath) {
-						idx+=(uint32_t)vertexOffset;
+						idx += (uint32_t)vertexOffset;
 					}
 					lines.push_back(curvePath);
 					curvePath.clear();
@@ -258,132 +167,7 @@ namespace aly {
 		img = nullptr;
 		label = nullptr;
 	}
-	void MultiIsoContour::solve(const Image1f& levelset, const Image1i& labels, int labelIndex, Vector2f& points, Vector2ui& indexes, float isoLevel, const TopologyRule2D& topoRule,const Winding& winding){
-		rows = levelset.width;
-		cols = levelset.height;
-		this->isoLevel = isoLevel;
-		rule = topoRule;
-		currentLabel = labelIndex;
-		img = &levelset;
-		label = &labels;
-		vertCount = 0;
-		std::map<uint64_t, EdgeSplitPtr> splits;
-		std::list<EdgePtr> edges;
-		for (int i = 0; i < rows - 1; i++) {
-			for (int j = 0; j < cols - 1; j++) {
-				processSquare(i, j, splits, edges);
-			}
-		}
-		std::vector<EdgeSplitPtr> pts(splits.size());
-		for (const std::pair<uint64_t, EdgeSplitPtr>& split : splits) {
-			pts[split.second->vid] = split.second;
-		}
-		indexes.resize(edges.size());
-		points.resize(splits.size());
-		uint32_t index = 0;
-		if (winding == Winding::Clockwise) {
-			for (EdgePtr edge : edges) {
-				indexes[index++] = uint2(edge->x, edge->y);
-			}
-		}
-		else if (winding == Winding::CounterClockwise) {
-			for (EdgePtr edge : edges) {
-				indexes[index++]= uint2(edge->y,edge->x);
-			}
-		}
-		index = 0;
-		for (const std::pair<uint64_t, EdgeSplitPtr>& split : splits) {
-			index = split.second->vid;
-			points[index] = split.second->pt2d;
-		}
-		img = nullptr;
-		label = nullptr;
-	}
-	
-	void MultiIsoContour::processSquare2(int x, int y, std::map<uint64_t, EdgeSplitPtr>& splits, std::list<EdgePtr>& edges) {
-		int iFlagIndex = 0;
-		for (int iVertex = 0; iVertex < 4; iVertex++) {
-			if (getValue(x + a2fVertex1Offset[iVertex][0], y + a2fVertex1Offset[iVertex][1]) > isoLevel) {
-				iFlagIndex |= 1 << iVertex;
-			}
-		}
-		const int* mask = nullptr;
-		if (rule == TopologyRule2D::Connect4) {
-			mask = &afSquareValue4[iFlagIndex][0];
-		}
-		else {
-			mask = &afSquareValue8[iFlagIndex][0];
-		}
 
-		if (mask[0] < 4) {
-			EdgeSplitPtr split1 = createSplit(splits, x
-				+ a2fVertex1Offset[mask[0]][0], y
-				+ a2fVertex1Offset[mask[0]][1], x
-				+ a2fVertex2Offset[mask[0]][0], y
-				+ a2fVertex2Offset[mask[0]][1]);
-
-			EdgeSplitPtr split2 = createSplit(splits, x
-				+ a2fVertex1Offset[mask[1]][0], y
-				+ a2fVertex1Offset[mask[1]][1], x
-				+ a2fVertex2Offset[mask[1]][0], y
-				+ a2fVertex2Offset[mask[1]][1]);
-			EdgePtr edge = EdgePtr(new Edge(split1->vid, split2->vid));
-
-			if (split1->e1.get() == nullptr) {
-				split1->e1 = edge;
-			}
-			else {
-				split1->e2 = edge;
-			}
-			if (split2->e1.get() == nullptr) {
-				split2->e1 = edge;
-			}
-			else {
-				split2->e2 = edge;
-			}
-			edges.push_back(edge);
-
-		}
-
-		if (mask[2] < 4) {
-			EdgeSplitPtr split1 = createSplit(splits, x
-				+ a2fVertex1Offset[mask[2]][0], y
-				+ a2fVertex1Offset[mask[2]][1], x
-				+ a2fVertex2Offset[mask[2]][0], y
-				+ a2fVertex2Offset[mask[2]][1]);
-
-			EdgeSplitPtr split2 = createSplit(splits, x
-				+ a2fVertex1Offset[mask[3]][0], y
-				+ a2fVertex1Offset[mask[3]][1], x
-				+ a2fVertex2Offset[mask[3]][0], y
-				+ a2fVertex2Offset[mask[3]][1]);
-
-			EdgePtr edge = EdgePtr(new Edge(split1->vid, split2->vid));
-			//orient(*split1, *split2, edge);
-			if (split1->e1.get() == nullptr) {
-				split1->e1 = edge;
-			}
-			else {
-				split1->e2 = edge;
-			}
-			if (split2->e1.get() == nullptr) {
-				split2->e1 = edge;
-			}
-			else {
-				split2->e2 = edge;
-			}
-			edges.push_back(edge);
-		}
-
-	}
-	void MultiIsoContour::processSquare(int x, int y, std::map<uint64_t, EdgeSplitPtr>& splits, std::list<EdgePtr>& edges) {
-		//if (rule == TopologyRule2D::Unconstrained) {
-			processSquare1(x, y, splits, edges);
-		//}
-		//else {
-		//	processSquare2(x, y, splits, edges);
-		//}
-	}
 	/*
 	* Geometric Tools, LLC Copyright (c) 1998-2010 Distributed under the Boost
 	* Software License, Version 1.0. http://www.boost.org/LICENSE_1_0.txt
@@ -391,11 +175,11 @@ namespace aly {
 	*
 	* File Version: 4.10.0 (2009/11/18)
 	*/
-	void MultiIsoContour::processSquare1(int i, int j, std::map<uint64_t, EdgeSplitPtr>& splits, std::list<EdgePtr>& edges) {
-		float iF00 = getValue(i, j);
-		float iF10 = getValue(i + 1, j);
-		float iF01 = getValue(i, j + 1);
-		float iF11 = getValue(i + 1, j + 1);
+	void MultiIsoContour::processSquare(int i, int j, int l, std::map<uint64_t, EdgeSplitPtr>& splits, std::list<EdgePtr>& edges,int& vertCount) {
+		float iF00 = getValue(i, j, l);
+		float iF10 = getValue(i + 1, j, l);
+		float iF01 = getValue(i, j + 1, l);
+		float iF11 = getValue(i + 1, j + 1, l);
 		bool signFlip = false;
 		if (iF00 != 0) {
 			if (iF00 < 0) {
@@ -415,24 +199,24 @@ namespace aly {
 					else {
 						// +++-
 						addEdge(splits, edges, i, j + 1, i + 1, j + 1, i,
-							j + 1, i, j);
+							j + 1, i, j, l,vertCount);
 					}
 				}
 				else if (iF11 < 0) {
 					if (iF01 > 0) {
 						// ++-+
 						addEdge(splits, edges, i + 1, j, i + 1, j + 1, i + 1,
-							j + 1, i, j + 1);
+							j + 1, i, j + 1, l,vertCount);
 					}
 					else if (iF01 < 0) {
 						// ++--
 						addEdge(splits, edges, i, j + 1, i, j, i + 1, j, i + 1,
-							j + 1);
+							j + 1, l,vertCount);
 					}
 					else {
 						// ++-0
 						addEdge(splits, edges, i, j + 1, i, j + 1, i + 1, j,
-							i + 1, j + 1);
+							i + 1, j + 1, l,vertCount);
 					}
 				}
 				else {
@@ -443,12 +227,12 @@ namespace aly {
 					else if (iF01 < 0) {
 						// ++0-
 						addEdge(splits, edges, i + 1, j + 1, i + 1, j + 1, i,
-							j, i, j + 1);
+							j, i, j + 1, l,vertCount);
 					}
 					else {
 						// ++00
 						addEdge(splits, edges, i + 1, j + 1, i + 1, j + 1, i,
-							j + 1, i, j + 1);
+							j + 1, i, j + 1, l,vertCount);
 					}
 				}
 			}
@@ -457,7 +241,7 @@ namespace aly {
 					if (iF01 > 0) {
 						// +-++
 						addEdge(splits, edges, i, j, i + 1, j, i + 1, j + 1,
-							i + 1, j);
+							i + 1, j, l,vertCount);
 					}
 					else if (iF01 < 0) {
 						// +-+-
@@ -476,86 +260,86 @@ namespace aly {
 							}
 							if (iDet > 0) {
 								addEdge(splits, edges, i + 1, j + 1, i, j + 1,
-									i + 1, j + 1, i + 1, j);
+									i + 1, j + 1, i + 1, j, l,vertCount);
 								addEdge(splits, edges, i, j, i + 1, j, i, j, i,
-									j + 1);
+									j + 1, l,vertCount);
 							}
 							else {
 								addEdge(splits, edges, i + 1, j + 1, i, j + 1,
-									i, j, i, j + 1);
+									i, j, i, j + 1, l,vertCount);
 								addEdge(splits, edges, i, j, i + 1, j, i + 1,
-									j + 1, i + 1, j);
+									j + 1, i + 1, j, l,vertCount);
 							}
 						}
 						else if (rule == TopologyRule2D::Connect4) {
 							if (signFlip) {
 								addEdge(splits, edges, i + 1, j + 1, i, j + 1,
-									i + 1, j + 1, i + 1, j);
+									i + 1, j + 1, i + 1, j, l,vertCount);
 								addEdge(splits, edges, i, j, i + 1, j, i, j, i,
-									j + 1);
+									j + 1, l,vertCount);
 							}
 							else {
 								addEdge(splits, edges, i + 1, j + 1, i, j + 1,
-									i, j, i, j + 1);
+									i, j, i, j + 1, l,vertCount);
 								addEdge(splits, edges, i, j, i + 1, j, i + 1,
-									j + 1, i + 1, j);
+									j + 1, i + 1, j, l,vertCount);
 							}
 						}
 						else if (rule == TopologyRule2D::Connect8) {
 							if (signFlip) {
 								addEdge(splits, edges, i + 1, j + 1, i, j + 1,
-									i, j, i, j + 1);
+									i, j, i, j + 1, l,vertCount);
 								addEdge(splits, edges, i, j, i + 1, j, i + 1,
-									j + 1, i + 1, j);
+									j + 1, i + 1, j, l,vertCount);
 							}
 							else {
 								addEdge(splits, edges, i + 1, j + 1, i, j + 1,
-									i + 1, j + 1, i + 1, j);
+									i + 1, j + 1, i + 1, j, l,vertCount);
 								addEdge(splits, edges, i, j, i + 1, j, i, j, i,
-									j + 1);
+									j + 1, l,vertCount);
 							}
 						}
 					}
 					else {
 						// +-+0
 						addEdge(splits, edges, i, j, i + 1, j, i + 1, j + 1,
-							i + 1, j);
+							i + 1, j, l,vertCount);
 					}
 				}
 				else if (iF11 < 0) {
 					if (iF01 > 0) {
 						// +--+
 						addEdge(splits, edges, i, j, i + 1, j, i + 1, j + 1, i,
-							j + 1);
+							j + 1, l,vertCount);
 					}
 					else if (iF01 < 0) {
 						// +---
-						addEdge(splits, edges, i, j + 1, i, j, i, j, i + 1, j);
+						addEdge(splits, edges, i, j + 1, i, j, i, j, i + 1, j, l,vertCount);
 					}
 					else {
 						// +--0
 						addEdge(splits, edges, i, j + 1, i, j + 1, i, j, i + 1,
-							j);
+							j, l,vertCount);
 					}
 				}
 				else {
 					if (iF01 > 0) {
 						// +-0+
 						addEdge(splits, edges, i + 1, j + 1, i + 1, j + 1, i,
-							j, i + 1, j);
+							j, i + 1, j, l,vertCount);
 					}
 					else if (iF01 < 0) {
 						// +-0-
-						addEdge(splits, edges, i, j + 1, i, j, i, j, i + 1, j);
+						addEdge(splits, edges, i, j + 1, i, j, i, j, i + 1, j, l,vertCount);
 					}
 					else {
 						// +-00
 						addEdge(splits, edges, i + 1, j + 1, i + 1, j + 1, i,
-							j + 1, i + 1, j + 1);
+							j + 1, i + 1, j + 1, l,vertCount);
 						addEdge(splits, edges, i, j + 1, i + 1, j + 1, i,
-							j + 1, i, j + 1);
+							j + 1, i, j + 1, l,vertCount);
 						addEdge(splits, edges, i, j + 1, i + 1, j + 1, i, j,
-							i + 1, j);
+							i + 1, j, l,vertCount);
 					}
 				}
 			}
@@ -567,45 +351,45 @@ namespace aly {
 					else if (iF01 < 0) {
 						// +0+-
 						addEdge(splits, edges, i, j + 1, i + 1, j + 1, i,
-							j + 1, i, j);
+							j + 1, i, j, l,vertCount);
 					}
 				}
 				else if (iF11 < 0) {
 					if (iF01 > 0) {
 						// +0-+
 						addEdge(splits, edges, i + 1, j, i + 1, j, i, j + 1,
-							i + 1, j + 1);
+							i + 1, j + 1, l,vertCount);
 					}
 					else if (iF01 < 0) {
 						// +0--
 						addEdge(splits, edges, i + 1, j, i + 1, j, i, j, i,
-							j + 1);
+							j + 1, l,vertCount);
 					}
 					else {
 						// +0-0
 						addEdge(splits, edges, i + 1, j, i + 1, j, i, j + 1, i,
-							j + 1);
+							j + 1, l,vertCount);
 					}
 				}
 				else {
 					if (iF01 > 0) {
 						// +00+
 						addEdge(splits, edges, i + 1, j, i + 1, j, i + 1,
-							j + 1, i + 1, j + 1);
+							j + 1, i + 1, j + 1, l,vertCount);
 					}
 					else if (iF01 < 0) {
 						// +00-
 						addEdge(splits, edges, i + 1, j, i + 1, j, i + 1, j,
-							i + 1, j + 1);
+							i + 1, j + 1, l,vertCount);
 						addEdge(splits, edges, i + 1, j, i + 1, j + 1, i + 1,
-							j + 1, i + 1, j + 1);
+							j + 1, i + 1, j + 1, l,vertCount);
 						addEdge(splits, edges, i + 1, j, i + 1, j + 1, i, j, i,
-							j + 1);
+							j + 1, l,vertCount);
 					}
 					else {
 						// +000
-						addEdge(splits, edges, i, j + 1, i, j + 1, i, j, i, j);
-						addEdge(splits, edges, i, j, i, j, i + 1, j, i + 1, j);
+						addEdge(splits, edges, i, j + 1, i, j + 1, i, j, i, j, l,vertCount);
+						addEdge(splits, edges, i, j, i, j, i + 1, j, i + 1, j, l,vertCount);
 					}
 				}
 			}
@@ -624,29 +408,29 @@ namespace aly {
 				}
 				else if (iF01 < 0) {
 					// 0++-
-					addEdge(splits, edges, i, j, i, j, i, j + 1, i + 1, j + 1);
+					addEdge(splits, edges, i, j, i, j, i, j + 1, i + 1, j + 1, l,vertCount);
 				}
 				else {
 					// 0++0
-					addEdge(splits, edges, i, j + 1, i, j + 1, i, j, i, j);
+					addEdge(splits, edges, i, j + 1, i, j + 1, i, j, i, j, l,vertCount);
 				}
 			}
 			else if (iF11 < 0) {
 				if (iF01 > 0) {
 					// 0+-+
 					addEdge(splits, edges, i + 1, j, i + 1, j + 1, i + 1,
-						j + 1, i, j + 1);
+						j + 1, i, j + 1, l,vertCount);
 				}
 				else if (iF01 < 0) {
 					// 0+--
-					addEdge(splits, edges, i, j, i, j, i + 1, j, i + 1, j + 1);
+					addEdge(splits, edges, i, j, i, j, i + 1, j, i + 1, j + 1, l,vertCount);
 				}
 				else {
 					// 0+-0
-					addEdge(splits, edges, i, j, i, j, i, j, i, j + 1);
-					addEdge(splits, edges, i, j, i, j + 1, i, j + 1, i, j + 1);
+					addEdge(splits, edges, i, j, i, j, i, j, i, j + 1, l,vertCount);
+					addEdge(splits, edges, i, j, i, j + 1, i, j + 1, i, j + 1, l,vertCount);
 					addEdge(splits, edges, i, j, i, j + 1, i + 1, j, i + 1,
-						j + 1);
+						j + 1, l,vertCount);
 				}
 			}
 			else {
@@ -656,13 +440,13 @@ namespace aly {
 				else if (iF01 < 0) {
 					// 0+0-
 					addEdge(splits, edges, i, j, i, j, i + 1, j + 1, i + 1,
-						j + 1);
+						j + 1, l,vertCount);
 				}
 				else {
 					// 0+00
 					addEdge(splits, edges, i + 1, j + 1, i + 1, j + 1, i,
-						j + 1, i, j + 1);
-					addEdge(splits, edges, i, j + 1, i, j + 1, i, j, i, j);
+						j + 1, i, j + 1, l,vertCount);
+					addEdge(splits, edges, i, j + 1, i, j + 1, i, j, i, j, l,vertCount);
 				}
 			}
 		}
@@ -675,41 +459,41 @@ namespace aly {
 
 			if (iF01 > 0) {
 				// 00++
-				addEdge(splits, edges, i, j, i, j, i + 1, j, i + 1, j);
+				addEdge(splits, edges, i, j, i, j, i + 1, j, i + 1, j, l,vertCount);
 			}
 			else if (iF01 < 0) {
 				// 00+-
-				addEdge(splits, edges, i, j, i, j, i, j, i + 1, j);
-				addEdge(splits, edges, i, j, i + 1, j, i + 1, j, i + 1, j);
-				addEdge(splits, edges, i, j, i + 1, j, i, j + 1, i + 1, j + 1);
+				addEdge(splits, edges, i, j, i, j, i, j, i + 1, j, l,vertCount);
+				addEdge(splits, edges, i, j, i + 1, j, i + 1, j, i + 1, j, l,vertCount);
+				addEdge(splits, edges, i, j, i + 1, j, i, j + 1, i + 1, j + 1, l,vertCount);
 			}
 			else {
 				// 00+0
 				addEdge(splits, edges, i + 1, j, i + 1, j, i + 1, j + 1, i + 1,
-					j + 1);
+					j + 1, l,vertCount);
 				addEdge(splits, edges, i + 1, j + 1, i + 1, j + 1, i, j + 1, i,
-					j + 1);
+					j + 1, l,vertCount);
 			}
 		}
 		else if (iF01 != 0) {
 			// cases 000+ or 000-
-			addEdge(splits, edges, i, j, i, j, i + 1, j, i + 1, j);
+			addEdge(splits, edges, i, j, i, j, i + 1, j, i + 1, j, l,vertCount);
 			addEdge(splits, edges, i + 1, j, i + 1, j, i + 1, j + 1, i + 1,
-				j + 1);
+				j + 1, l,vertCount);
 		}
 		else {
 			// case 0000
-			addEdge(splits, edges, i, j, i, j, i + 1, j, i + 1, j);
+			addEdge(splits, edges, i, j, i, j, i + 1, j, i + 1, j, l,vertCount);
 			addEdge(splits, edges, i + 1, j, i + 1, j, i + 1, j + 1, i + 1,
-				j + 1);
+				j + 1, l,vertCount);
 			addEdge(splits, edges, i + 1, j + 1, i + 1, j + 1, i, j + 1, i,
-				j + 1);
-			addEdge(splits, edges, i, j + 1, i, j + 1, i, j, i, j);
+				j + 1, l,vertCount);
+			addEdge(splits, edges, i, j + 1, i, j + 1, i, j, i, j, l,vertCount);
 		}
 	}
-	float MultiIsoContour::getValue(int i, int j) {
-		float sgn = (((*label)(i, j) == currentLabel) ? -1.0f : 1.0f);
-		float val = (*img)(i,j)*sgn - isoLevel;
+	float MultiIsoContour::getValue(int i, int j, int l) {
+		float sgn = (((*label)(i, j).x == l) ? -1.0f : 1.0f);
+		float val = (*img)(i, j)*sgn - isoLevel;
 		if (nudgeLevelSet) {
 			if (val < 0) {
 				val = std::min(val, -LEVEL_SET_TOLERANCE);
@@ -720,9 +504,12 @@ namespace aly {
 		}
 		return val;
 	}
-	float MultiIsoContour::fGetOffset(uint2 v1, uint2 v2) {
-		float fValue1 = getValue(v1.x, v1.y);
-		float fValue2 = getValue(v2.x, v2.y);
+	int MultiIsoContour::getLabel(int i, int j) {
+		return (*label)(i, j).x;
+	}
+	float MultiIsoContour::fGetOffset(uint2 v1, uint2 v2, int l) {
+		float fValue1 = getValue(v1.x, v1.y, l);
+		float fValue2 = getValue(v2.x, v2.y, l);
 		double fDelta = fValue2 - fValue1;
 		if (fDelta == 0.0) {
 			return 0.5f;
@@ -730,9 +517,9 @@ namespace aly {
 		return (float)(-fValue1 / fDelta);
 	}
 
-	void MultiIsoContour::addEdge(std::map<uint64_t, EdgeSplitPtr>& splits, std::list<EdgePtr>& edges, int p1x, int p1y, int p2x, int p2y, int p3x, int p3y, int p4x, int p4y) {
-		EdgeSplitPtr split1 = createSplit(splits, p1x, p1y, p2x, p2y);
-		EdgeSplitPtr split2 = createSplit(splits, p3x, p3y, p4x, p4y);
+	void MultiIsoContour::addEdge(std::map<uint64_t, EdgeSplitPtr>& splits, std::list<EdgePtr>& edges, int p1x, int p1y, int p2x, int p2y, int p3x, int p3y, int p4x, int p4y, int l, int& vertCount) {
+		EdgeSplitPtr split1 = createSplit(splits, p1x, p1y, p2x, p2y, l, vertCount);
+		EdgeSplitPtr split2 = createSplit(splits, p3x, p3y, p4x, p4y, l, vertCount);
 		EdgePtr edge = EdgePtr(new Edge(split1->vid, split2->vid));
 		if (split1->e1.get() == nullptr) {
 			split1->e1 = edge;
@@ -748,21 +535,22 @@ namespace aly {
 		}
 		edges.push_back(edge);
 	}
-	EdgeSplitPtr MultiIsoContour::createSplit(std::map<uint64_t, EdgeSplitPtr>& splits, int p1x, int p1y, int p2x, int p2y) {
-		EdgeSplitPtr split=EdgeSplitPtr(new EdgeSplit(uint2(p1x, p1y), uint2(p2x, p2y)));
+	EdgeSplitPtr MultiIsoContour::createSplit(std::map<uint64_t, EdgeSplitPtr>& splits, int p1x, int p1y, int p2x, int p2y, int l, int& vertCount) {
+		EdgeSplitPtr split = EdgeSplitPtr(new EdgeSplit(uint2(p1x, p1y), uint2(p2x, p2y)));
 		uint64_t hash = split->hashValue(rows, cols);
 		if (splits.find(hash) != splits.end()) {
 			EdgeSplitPtr foundSplit = splits[hash];
 			return foundSplit;
-		} else {
+		}
+		else {
 			split->vid = vertCount++;
 			float2 pt2d(0.0f);
-			float fOffset = fGetOffset(split->pt1, split->pt2);
+			float fOffset = fGetOffset(split->pt1, split->pt2, l);
 			float fInvOffset = 1.0f - fOffset;
 			pt2d.x = (fInvOffset * p1x + fOffset * p2x);
 			pt2d.y = (fInvOffset * p1y + fOffset * p2y);
 			split->pt2d = pt2d;
-			splits[split->hashValue(rows,cols)]= split;
+			splits[split->hashValue(rows, cols)] = split;
 			return split;
 		}
 	}

@@ -28,7 +28,7 @@
 using namespace aly;
 
 SuperPixelToy::SuperPixelToy(int example) :
-	Application(1600, 800, "Super-Pixel Level Set Toy", false), showCenters(true),example(example), lastSimTime(-1){
+	Application(1600, 800, "Super-Pixel Level Set Toy", false), showCenters(true),showContours(true),example(example), lastSimTime(-1){
 }
 
 
@@ -36,6 +36,7 @@ bool SuperPixelToy::init(Composite& rootNode) {
 	cache = std::shared_ptr<SpringlCache2D>(new SpringlCache2D());
 	ImageRGBA down;
 	transparency = Float(1.0f);
+	lineWidth = Float(1.0f);
 	ReadImageFromFile(getFullPath("images/picnic.png"),down);
 	DownSample(down,img);
 	if (example == 0) {
@@ -131,7 +132,9 @@ bool SuperPixelToy::init(Composite& rootNode) {
 	simulation->setup(controls);
 	controls->addGroup("Visualization", true);
 	controls->addNumberField("Transparency", transparency, Float(0.0f), Float(1.0f));
+	controls->addNumberField("Line Width", lineWidth, Float(0.0f), Float(4.0f));
 	controls->addCheckBox("Show Centers", showCenters);
+	controls->addCheckBox("Show Contours", showContours);
 	timelineSlider = TimelineSliderPtr(
 		new TimelineSlider("Timeline", CoordPerPX(0.0f, 1.0f, 0.0f, -80.0f), CoordPerPX(1.0f, 0.0f, 0.0f, 80.0f), Integer(0), Integer(0), Integer(0)));
 	CompositePtr viewRegion = CompositePtr(new Composite("View", CoordPX(0.0f, 0.0f), CoordPerPX(1.0f, 1.0f, 0.0f, -80.0f)));
@@ -231,6 +234,31 @@ bool SuperPixelToy::init(Composite& rootNode) {
 				nvgBeginPath(nvg);
 				nvgEllipse(nvg, pt.x, pt.y, circlRadius*scale, circlRadius*scale);
 				nvgFill(nvg);
+				nvgStroke(nvg);
+			}
+		}
+		if (showContours&&scale*lineWidth.toFloat()>0.5f) {
+			nvgStrokeWidth(nvg, scale*lineWidth.toFloat());
+			nvgStrokeColor(nvg, Color(0.0f, 0.0f, 0.0f, 1.0f));
+			for (int n = 0;n < (int)contour->indexes.size();n++) {
+				std::list<uint32_t> curve = contour->indexes[n];
+				nvgPathWinding(nvg, NVG_CW);
+				nvgBeginPath(nvg);
+				bool firstTime = true;
+				for (uint32_t idx : curve) {
+					float2 pt = contour->vertexes[idx] + float2(0.5f);
+					pt.x = pt.x / (float)img.width;
+					pt.y = pt.y / (float)img.height;
+					pt = pt*bounds.dimensions + bounds.position;
+					if (firstTime) {
+						nvgMoveTo(nvg, pt.x, pt.y);
+					}
+					else {
+						nvgLineTo(nvg, pt.x, pt.y);
+					}
+					firstTime = false;
+				}
+				nvgClosePath(nvg);
 				nvgStroke(nvg);
 			}
 		}
