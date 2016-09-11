@@ -1,14 +1,6 @@
 Spring Level Set Toy
 =====
-1) [Spring level sets: a deformable model representation to provide interoperability between meshes and level sets, 
-BC Lucas, M Kazhdan, RH Taylor - IEEE TVCG, 2013](http://cs.jhu.edu/~blake/docs/springls_tvcg.pdf)
 
-2) [Multi-object geodesic active contours (MOGAC), BC Lucas, M Kazhdan, RH Taylor - MICCAI, 2012](http://www.cs.jhu.edu/~blake/docs/mogac_miccai12.pdf)
-
-3) [Multi-object spring level sets (MUSCLE), BC Lucas, M Kazhdan, RH Taylor - MICCAI, 2012](http://www.cs.jhu.edu/~blake/docs/sled_miccai2012.pdf)
-
-4) [Parametric Images: An Image Representation that Preserves Edge Strength in Registration and Atlasing,
-BC Lucas, Y Otake, M Armand, RH Taylor, MICCAI 2012](http://www.cs.jhu.edu/~blake/docs/pimages_miccai2012.pdf)
 ## Initialization
 ![Initialization](https://github.com/bclucas/blob/blob/master/screenshots/levelset_toy1.png)
 ## Midway
@@ -21,3 +13,15 @@ BC Lucas, Y Otake, M Armand, RH Taylor, MICCAI 2012](http://www.cs.jhu.edu/~blak
 ![Extra](https://github.com/bclucas/blob/blob/master/screenshots/levelset_toy5.png)
 ## Super Pixels (SLIC) with Multi-Object Level Sets
 ![Extra](https://github.com/bclucas/blob/blob/master/screenshots/levelset_toy6.png)
+
+References
+===
+1) [Spring level sets: a deformable model representation to provide interoperability between meshes and level sets, 
+BC Lucas, M Kazhdan, RH Taylor - IEEE TVCG, 2013](http://cs.jhu.edu/~blake/docs/springls_tvcg.pdf)
+
+2) [Multi-object geodesic active contours (MOGAC), BC Lucas, M Kazhdan, RH Taylor - MICCAI, 2012](http://www.cs.jhu.edu/~blake/docs/mogac_miccai12.pdf)
+
+3) [Multi-object spring level sets (MUSCLE), BC Lucas, M Kazhdan, RH Taylor - MICCAI, 2012](http://www.cs.jhu.edu/~blake/docs/sled_miccai2012.pdf)
+
+4) [Parametric Images: An Image Representation that Preserves Edge Strength in Registration and Atlasing,
+BC Lucas, Y Otake, M Armand, RH Taylor, MICCAI 2012](http://www.cs.jhu.edu/~blake/docs/pimages_miccai2012.pdf)
