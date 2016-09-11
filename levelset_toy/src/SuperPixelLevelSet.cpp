@@ -1,7 +1,7 @@
 #include "SuperPixelLevelSet.h"
 namespace aly {
 	void SuperPixelLevelSet::setup(const aly::ParameterPanePtr& pane) {
-		pane->addNumberField("SLIC Count", superPixelCount, Integer(8), Integer(2048));
+		pane->addNumberField("SLIC Pixels", superPixelCount, Integer(8), Integer(2048));
 		pane->addNumberField("SLIC Iterations", superPixelIterations, Integer(1), Integer(128));
 		pane->addNumberField("Pressure Weight", pressureParam, Float(-2.0f), Float(2.0f));
 		pane->addNumberField("Curvature Weight", curvatureParam, Float(0.0f), Float(4.0f));
