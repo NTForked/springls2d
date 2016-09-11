@@ -60,9 +60,7 @@ bool SuperPixelToy::init(Composite& rootNode) {
 		});
 	};
 
-	std::shared_ptr<SuperPixels> sp=std::shared_ptr<SuperPixels>(new SuperPixels());
-	sp->solve(img,1024,16);
-	simulation->setSuperPixels(sp);
+	simulation->setReference(img);
 	simulation->init();
 	BorderCompositePtr layout = BorderCompositePtr(new BorderComposite("UI Layout", CoordPX(0.0f, 0.0f), CoordPercent(1.0f, 1.0f), false));
 	ParameterPanePtr controls = ParameterPanePtr(new ParameterPane("Controls", CoordPX(0.0f, 0.0f), CoordPercent(1.0f, 1.0f)));
@@ -133,6 +131,7 @@ bool SuperPixelToy::init(Composite& rootNode) {
 	controls->addGroup("Visualization", true);
 	controls->addNumberField("Transparency", transparency, Float(0.0f), Float(1.0f));
 	controls->addNumberField("Line Width", lineWidth, Float(0.0f), Float(4.0f));
+
 	controls->addCheckBox("Show Centers", showCenters);
 	controls->addCheckBox("Show Contours", showContours);
 	timelineSlider = TimelineSliderPtr(
@@ -162,7 +161,7 @@ bool SuperPixelToy::init(Composite& rootNode) {
 	Application::addListener(resizeableRegion.get());
 	ImageGlyphPtr imageGlyph = AlloyApplicationContext()->createImageGlyph(img, false);
 	overlayGlyph = AlloyApplicationContext()->createImageGlyph(simulation->getContour()->overlay, false);
-	DrawPtr drawContour = DrawPtr(new Draw("Contour Draw", CoordPX(0.0f, 0.0f), CoordPercent(1.0f, 1.0f), [this,sp](AlloyContext* context, const box2px& bounds) {
+	DrawPtr drawContour = DrawPtr(new Draw("Contour Draw", CoordPX(0.0f, 0.0f), CoordPercent(1.0f, 1.0f), [this](AlloyContext* context, const box2px& bounds) {
 		int currentTime = timelineSlider->getTimeValue().toInteger();
 		std::shared_ptr<CacheElement> elem = this->cache->get(currentTime);
 		Contour2D* contour;
@@ -258,7 +257,6 @@ bool SuperPixelToy::init(Composite& rootNode) {
 					}
 					firstTime = false;
 				}
-				nvgClosePath(nvg);
 				nvgStroke(nvg);
 			}
 		}

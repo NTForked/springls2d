@@ -231,7 +231,7 @@ namespace aly {
 			dists[2] = lengthSqr(float2(pix- p3));
 			dists[3] = lengthSqr(float2(pix- p2));
 			int minL = labelImage(pix).x;
-			float mind = 1E30;
+			float mind = 1E30f;
 			for (int k = 0;k < 4;k++) {
 				if (dists[k] < mind) {
 					minL = labels[k];

@@ -1,6 +1,8 @@
 #include "SuperPixelLevelSet.h"
 namespace aly {
 	void SuperPixelLevelSet::setup(const aly::ParameterPanePtr& pane) {
+		pane->addNumberField("SLIC Count", superPixelCount, Integer(8), Integer(2048));
+		pane->addNumberField("SLIC Iterations", superPixelIterations, Integer(1), Integer(128));
 		pane->addNumberField("Pressure Weight", pressureParam, Float(-2.0f), Float(2.0f));
 		pane->addNumberField("Curvature Weight", curvatureParam, Float(0.0f), Float(4.0f));
 		pane->addNumberField("Prune Interval", pruneInterval, Integer(1), Integer(257));
@@ -21,7 +23,7 @@ namespace aly {
 				for (int i = 0; i < overlay.width; i++) {
 					float d = levelSet(i, j).x;
 					int l = labelImage(i, j).x;
-					Color c = (l>0)?superPixels->getColorCenter(l-1):Color(0,0,0,0);//getColor(l);
+					Color c = (l>0)?superPixels.getColorCenter(l-1):Color(0,0,0,0);//getColor(l);
 					RGBAf rgba = c.toRGBAf();
 					overlay(i, j) = ToRGBA(rgba);
 				}
@@ -33,11 +35,28 @@ namespace aly {
 			return false;
 		}
 	}
-
 	bool SuperPixelLevelSet::init() {
+		contour.clusterCenters.clear();
+		contour.clusterColors.clear();
+		contour.overlay.set(RGBA(0, 0, 0, 0));
+		contour.vertexes.clear();
+		contour.indexes.clear();
+
+		superPixels.solve(referenceImage, superPixelCount.toInteger(),superPixelIterations.toInteger());
+		Image1i initLabels = superPixels.getLabelImage();
+		for (int j = 0;j < initLabels.height;j++) {
+			for (int i = 0;i < initLabels.width;i++) {
+				if (i < 1 || j < 1 || i >= initLabels.width - 1 || j >= initLabels.height - 1) {
+					initLabels(i, j) = int1(0);
+				}
+				else {
+					initLabels(i, j).x++;
+				}
+			}
+		}
+		setInitial(initLabels);
 		int2 dims = initialLevelSet.dimensions();
-		if (dims.x == 0 || dims.y == 0||superPixels.get()==nullptr)return false;
-		*superPixels = initSuperPixels;
+		if (dims.x == 0 || dims.y == 0)return false;
 		mSimulationDuration = std::max(dims.x, dims.y)*0.5f;
 		mSimulationIteration = 0;
 		mSimulationTime = 0;
@@ -94,8 +113,10 @@ namespace aly {
 		rebuildNarrowBand();
 		requestUpdateContour = true;
 		requestUpdateOverlay = true;
-		contour.clusterCenters = superPixels->getPixelCenters();
-		contour.clusterColors = superPixels->getColorCenters();
+		superPixels.updateClusters(labelImage,-1);
+		superPixels.updateMaxColor(labelImage, -1);
+		contour.clusterCenters = superPixels.getPixelCenters();
+		contour.clusterColors = superPixels.getColorCenters();
 		if (cache.get() != nullptr) {
 			updateOverlay();
 			updateContour();
@@ -186,26 +207,26 @@ namespace aly {
 				}
 			}
 		}
-		contour.clusterCenters = superPixels->getPixelCenters();
-		contour.clusterColors = superPixels->getColorCenters();
+		contour.clusterCenters = superPixels.getPixelCenters();
+		contour.clusterColors = superPixels.getColorCenters();
 	}
 	bool SuperPixelLevelSet::stepInternal() {
 		if ((mSimulationIteration) % splitInterval.toInteger() == 0 && mSimulationIteration>0) {
-			superPixels->splitRegions(labelImage, splitThreshold.toFloat(),-1);
+			superPixels.splitRegions(labelImage, splitThreshold.toFloat(),-1);
 			reinit();
 		} else 
 		if (mSimulationIteration % pruneInterval.toInteger() == 0&&mSimulationIteration>0) {
-			superPixels->enforceLabelConnectivity(labelImage);
+			superPixels.enforceLabelConnectivity(labelImage);
 			reinit();
 		}
 		else {
 			if (updateClusterCenters) {
-				float E = superPixels->updateClusters(labelImage, -1);
-				contour.clusterCenters = superPixels->getPixelCenters();
-				contour.clusterColors = superPixels->getColorCenters();
+				float E = superPixels.updateClusters(labelImage, -1);
+				contour.clusterCenters = superPixels.getPixelCenters();
+				contour.clusterColors = superPixels.getColorCenters();
 			}
 			if (updateCompactness) {
-				float mx = superPixels->updateMaxColor(labelImage, -1);
+				float mx = superPixels.updateMaxColor(labelImage, -1);
 			}
 		}
 		if (mSimulationIteration == 0) {
@@ -218,7 +239,7 @@ namespace aly {
 					int label = swapLabelImage(pos.x, pos.y).x;
 					if (label > 0) {
 						samples++;
-						float d = superPixels->distance(pos.x, pos.y, label - 1);
+						float d = superPixels.distance(pos.x, pos.y, label - 1);
 						maxClusterDistance = std::max(maxClusterDistance, d);
 						meanClusterDistance += d;
 					}
@@ -317,7 +338,7 @@ namespace aly {
 		float maxDiff = 0.0f;
 		for (int index = 0;index < 5;index++) {
 			int label = activeLabels[index];
-			offsets[index] = (label > 0) ? superPixels->distance(i, j, label - 1) : -0.01f;
+			offsets[index] = (label > 0) ? superPixels.distance(i, j, label - 1) : -0.01f;
 			if (label != activeLabels[0]) {
 				if (offsets[index] > maxDiff) {
 					maxDiff = offsets[index];
@@ -394,26 +415,13 @@ namespace aly {
 			}
 		}
 	}
-	void SuperPixelLevelSet::setSuperPixels(const std::shared_ptr<SuperPixels>& superPixels) {
-		this->superPixels = superPixels;
-		initSuperPixels = *superPixels;
-		Image1i initLabels = superPixels->getLabelImage();
-		for (int j = 0;j < initLabels.height;j++) {
-			for (int i = 0;i < initLabels.width;i++) {
-				if (i < 1 || j < 1 || i >= initLabels.width - 1 || j >= initLabels.height - 1) {
-					initLabels(i, j) = int1(0);
-				}
-				else {
-					initLabels(i, j).x++;
-				}
-			}
-		}
-		setInitial(initLabels);
-	}
-	SuperPixelLevelSet::SuperPixelLevelSet(const std::shared_ptr<SpringlCache2D>& cache) :MultiActiveContour2D(cache),updateClusterCenters(true),updateCompactness(true), pruneInterval(Integer(16)), splitInterval(Integer(64)), splitThreshold(Float(40.0f)){
 
+	SuperPixelLevelSet::SuperPixelLevelSet(const std::shared_ptr<SpringlCache2D>& cache) :MultiActiveContour2D(cache),updateClusterCenters(true),updateCompactness(true), pruneInterval(Integer(16)), splitInterval(Integer(64)), splitThreshold(Float(40.0f)){
+		superPixelCount = Integer(1024);
+		superPixelIterations = Integer(16);
 	}
 	SuperPixelLevelSet::SuperPixelLevelSet(const std::string& name, const std::shared_ptr<SpringlCache2D>& cache) : MultiActiveContour2D(name, cache), updateClusterCenters(true), updateCompactness(true), pruneInterval(Integer(16)),splitInterval(Integer(64)), splitThreshold(Float(40.0f)) {
-
+		superPixelCount = Integer(1024);
+		superPixelIterations = Integer(16);
 	}
 }
