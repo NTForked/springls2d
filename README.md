@@ -1,4 +1,4 @@
-Spring Level Set Toy
+2D Spring Level Sets
 =====
 
 ## Initialization
