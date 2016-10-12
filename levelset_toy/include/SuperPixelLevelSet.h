@@ -23,7 +23,7 @@
 #include "MultiActiveContour2D.h"
 #include "SLIC.h"
 namespace aly {
-	class SuperPixelLevelSet : public MultiActiveContour2D {
+	class SuperPixelLevelSet : public MultiActiveManifold2D {
 	protected:
 		float maxClusterDistance;
 		float meanClusterDistance;

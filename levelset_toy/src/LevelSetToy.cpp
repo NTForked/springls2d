@@ -82,15 +82,15 @@ bool LevelSetToy::init(Composite& rootNode) {
 	ConvertImage(gray, img);
 	cache = std::shared_ptr<SpringlCache2D>(new SpringlCache2D());
 	if (example == 0) {
-		simulation = std::shared_ptr<ActiveContour2D>(new ActiveContour2D(cache));
+		simulation = std::shared_ptr<ActiveManifold2D>(new ActiveManifold2D(cache));
 		simulation->setCurvature(2.0f);
 	}
 	else if (example == 1) {
-		simulation = std::shared_ptr<ActiveContour2D>(new SpringLevelSet2D(cache));
+		simulation = std::shared_ptr<ActiveManifold2D>(new SpringLevelSet2D(cache));
 		simulation->setCurvature(0.1f);
 	}
 	else if (example == 2) {
-		simulation = std::shared_ptr<ActiveContour2D>(new SpringlsSecondOrder(cache));
+		simulation = std::shared_ptr<ActiveManifold2D>(new SpringlsSecondOrder(cache));
 		simulation->setCurvature(0.1f);
 	}
 	else {
@@ -238,7 +238,7 @@ bool LevelSetToy::init(Composite& rootNode) {
 	ImageGlyphPtr imageGlyph = AlloyApplicationContext()->createImageGlyph(img, false);
 	DrawPtr drawContour = DrawPtr(new Draw("Contour Draw", CoordPX(0.0f, 0.0f), CoordPercent(1.0f, 1.0f), [this](AlloyContext* context, const box2px& bounds) {
 		std::shared_ptr<CacheElement> elem = this->cache->get(timelineSlider->getTimeValue().toInteger());
-		Contour2D* contour;
+		Manifold2D* contour;
 		if (elem.get() != nullptr) {
 			contour = elem->getContour().get();
 		}

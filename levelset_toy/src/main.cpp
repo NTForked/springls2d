@@ -18,9 +18,11 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+
 #include "LevelSetToy.h"
 #include "MultiLevelSetToy.h"
 #include "SuperPixelToy.h"
+
 int main(int argc, char *argv[]) {
 	std::string filePath;
 	int index = -1;
@@ -31,7 +33,8 @@ int main(int argc, char *argv[]) {
 			std::cout << "[1] Spring Level Set" << std::endl;
 			std::cout << "[2] Second Order Spring Level Set" << std::endl;
 			std::cout << "[3] Multi-Object Level Set" << std::endl;
-			std::cout << "[4] Super-Pixel Level Set" << std::endl;
+			std::cout << "[4] Multi-Object Spring Level Set" << std::endl;
+			std::cout << "[5] Super-Pixel Level Set" << std::endl;
 			std::cout << ">> Enter Example Number: ";
 			std::cin >> index;
 		} else {
@@ -41,11 +44,11 @@ int main(int argc, char *argv[]) {
 			LevelSetToy app(index);
 			app.run();
 		}
-		else if (index == 3) {
-			MultiLevelSetToy app(0);
+		else if (index <5) {
+			MultiLevelSetToy app(index-3);
 			app.run();
 		}
-		else if (index == 4) {
+		else if (index == 5) {
 			SuperPixelToy app(0);
 			app.run();
 		}
@@ -55,6 +58,6 @@ int main(int argc, char *argv[]) {
 		std::getchar();
 		return 1;
 	}
+	
 
 }
-

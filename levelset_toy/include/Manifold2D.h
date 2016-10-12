@@ -18,8 +18,8 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 * THE SOFTWARE.
 */
-#ifndef INCLUDE_CONTOUR2D_H_
-#define INCLUDE_CONTOUR2D_H_
+#ifndef INCLUDE_Manifold2D_H_
+#define INCLUDE_Manifold2D_H_
 #include "GLComponent.h"
 #include "AlloyVector.h"
 #include "AlloyContext.h"
@@ -30,7 +30,7 @@
 #include <array>
 namespace aly {
 	class AlloyContext;
-	class Contour2D {
+	class Manifold2D {
 	protected:
 		bool onScreen;
 		std::shared_ptr<AlloyContext> context;
@@ -63,8 +63,8 @@ namespace aly {
 		std::string getFile() const {
 			return file;
 		}
-		~Contour2D();
-		Contour2D(bool onScreen=true,const std::shared_ptr<AlloyContext>& context=AlloyDefaultContext());
+		~Manifold2D();
+		Manifold2D(bool onScreen=true,const std::shared_ptr<AlloyContext>& context=AlloyDefaultContext());
 		void updateNormals();
 		void setFile(const std::string& file) {
 			this->file = file;
@@ -85,11 +85,11 @@ namespace aly {
 				ReadImageFromFile(imageFile, overlay);
 			}
 		}
-		void operator=(const Contour2D &c);
-		Contour2D(const Contour2D& c);
+		void operator=(const Manifold2D &c);
+		Manifold2D(const Manifold2D& c);
 	};
-	void ReadContourFromFile(const std::string& file, Contour2D& contour);
-	void WriteContourToFile(const std::string& file, Contour2D& contour);
+	void ReadContourFromFile(const std::string& file, Manifold2D& contour);
+	void WriteContourToFile(const std::string& file, Manifold2D& contour);
 
 }
 #endif

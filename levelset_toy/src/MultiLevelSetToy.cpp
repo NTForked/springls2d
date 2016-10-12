@@ -24,6 +24,7 @@
 #include "AlloyIsoContour.h"
 #include "SpringlsSecondOrder.h"
 #include "GradientVectorFlow.h"
+#include "MultiSpringLevelSet2D.h"
 #include "SLIC.h"
 using namespace aly;
 
@@ -86,11 +87,12 @@ bool MultiLevelSetToy::init(Composite& rootNode) {
 	ConvertImage(gray, img);
 	cache = std::shared_ptr<SpringlCache2D>(new SpringlCache2D());
 	if (example == 0) {
-		simulation = std::shared_ptr<MultiActiveContour2D>(new MultiActiveContour2D(cache));
+		simulation = std::shared_ptr<MultiActiveManifold2D>(new MultiActiveManifold2D(cache));
 		simulation->setCurvature(2.0f);
 	}
 	else {
-		return false;
+		simulation = std::shared_ptr<MultiActiveManifold2D>(new MultiSpringLevelSet2D(cache));
+		simulation->setCurvature(0.1f);
 	}
 	simulation->onUpdate = [this](uint64_t iteration, bool lastIteration) {
 		if (lastIteration || (int)iteration == timelineSlider->getMaxValue().toInteger()) {
@@ -236,7 +238,7 @@ bool MultiLevelSetToy::init(Composite& rootNode) {
 	ImageGlyphPtr imageGlyph = AlloyApplicationContext()->createImageGlyph(img, false);
 	DrawPtr drawContour = DrawPtr(new Draw("Contour Draw", CoordPX(0.0f, 0.0f), CoordPercent(1.0f, 1.0f), [this](AlloyContext* context, const box2px& bounds) {
 		std::shared_ptr<CacheElement> elem = this->cache->get(timelineSlider->getTimeValue().toInteger());
-		Contour2D* contour;
+		Manifold2D* contour;
 		if (elem.get() != nullptr) {
 			contour = elem->getContour().get();
 		}

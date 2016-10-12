@@ -18,9 +18,6 @@
     <ClInclude Include="include\ActiveContour2D.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\Contour2D.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="include\Simulation.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -60,12 +57,15 @@
     <ClInclude Include="include\SuperPixelLevelSet.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\MultiSpringLevelSet2D.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Manifold2D.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\ActiveContour2D.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Contour2D.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\main.cpp">
@@ -108,6 +108,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\SuperPixelLevelSet.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\MultiSpringLevelSet2D.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Manifold2D.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

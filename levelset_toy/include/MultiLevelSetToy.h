@@ -49,7 +49,7 @@ protected:
 	aly::Color matchColor;
 	aly::Color vecfieldColor;
 	aly::AdjustableCompositePtr resizeableRegion;
-	std::shared_ptr<aly::MultiActiveContour2D> simulation;
+	std::shared_ptr<aly::MultiActiveManifold2D> simulation;
 	aly::IconButtonPtr playButton,stopButton;
     std::shared_ptr<aly::TimelineSlider> timelineSlider;
 	void createCircleLevelSet(int w, int h, int rows, int cols, float r, aly::Image1f& levelset, aly::Image1i& labelImage);

@@ -146,7 +146,7 @@ UnsignedDistanceShader::UnsignedDistanceShader(bool onScreen,
 void UnsignedDistanceShader::init(int width, int height) {
 	texture.initialize(width, height);
 }
-Image1f UnsignedDistanceShader::solve(Contour2D& contour,float maxDistance) {
+Image1f UnsignedDistanceShader::solve(Manifold2D& contour,float maxDistance) {
 	texture.begin();
 	glEnable(GL_DEPTH_TEST);
 	glDisable(GL_BLEND);

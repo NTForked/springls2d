@@ -24,7 +24,7 @@ namespace aly {
 	void CacheElement::load() {
 		std::lock_guard<std::mutex> lockMe(accessLock);
 		if (!loaded) {
-			contour.reset(new Contour2D());
+			contour.reset(new Manifold2D());
 			ReadContourFromFile(contourFile, *contour);
 			//std::cout << "Load: " << contour->getFile() << std::endl;
 			loaded = true;
@@ -42,17 +42,17 @@ namespace aly {
 			loaded = false;
 		}
 	}
-	void CacheElement::set(const Contour2D& springl) {
-		contour.reset(new Contour2D());
+	void CacheElement::set(const Manifold2D& springl) {
+		contour.reset(new Manifold2D());
 		*contour = springl;
 		contourFile = springl.getFile();
 		loaded = true;
 	}
-	std::shared_ptr<Contour2D> CacheElement::getContour() {
+	std::shared_ptr<Manifold2D> CacheElement::getContour() {
 		load();
 		return contour;
 	}
-	std::shared_ptr<CacheElement> SpringlCache2D::set(int frame, const Contour2D& springl) {
+	std::shared_ptr<CacheElement> SpringlCache2D::set(int frame, const Manifold2D& springl) {
 		std::lock_guard<std::mutex> lockMe(accessLock);
 		auto iter = cache.find(frame);
 		std::shared_ptr<CacheElement> elem;

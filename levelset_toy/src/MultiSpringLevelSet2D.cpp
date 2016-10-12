@@ -1,115 +1,47 @@
 /*
- * Copyright(C) 2016, Blake C. Lucas, Ph.D. (img.science@gmail.com)
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- */
-#include "SpringLevelSet2D.h"
+* Copyright(C) 2016, Blake C. Lucas, Ph.D. (img.science@gmail.com)
+*
+* Permission is hereby granted, free of charge, to any person obtaining a copy
+* of this software and associated documentation files (the "Software"), to deal
+* in the Software without restriction, including without limitation the rights
+* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the Software is
+* furnished to do so, subject to the following conditions:
+* The above copyright notice and this permission notice shall be included in
+* all copies or substantial portions of the Software.
+*
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+* THE SOFTWARE.
+*/
+#include "MultiSpringLevelSet2D.h"
 #include "AlloyApplication.h"
 namespace aly {
 
-	float SpringLevelSet2D::MIN_ANGLE_TOLERANCE = (float)(ALY_PI * 20 / 180.0f);
-	float SpringLevelSet2D::NEAREST_NEIGHBOR_DISTANCE = std::sqrt(2.0f)*0.5f;
-	float SpringLevelSet2D::PARTICLE_RADIUS = 0.05f;
-	float SpringLevelSet2D::REST_RADIUS = 0.1f;
-	float SpringLevelSet2D::SPRING_CONSTANT = 0.3f;
-	float SpringLevelSet2D::EXTENT = 0.5f;
-	float SpringLevelSet2D::SHARPNESS = 5.0f;
-	void Decompose(const float2x2& m, float& theta, float& phi, float& sx, float& sy)
-	{
-		float E = 0.5f*(m(0, 0) + m(1, 1));
-		float F = 0.5f*(m(0, 0) - m(1, 1));
-		float G = 0.5f*(m(1, 0) + m(0, 1));
-		float H = 0.5f*(m(1, 0) - m(0, 1));
-		float Q = std::sqrt(E*E + H*H);
-		float R = std::sqrt(F*F + G*G);
-		sx = Q + R;
-		sy = Q - R;
-		float a1 = std::atan2(G, F);
-		float a2 = std::atan2(H, E);
-		theta = 0.5f*(a2 - a1);
-		phi = 0.5f*(a2 + a1);
+	float MultiSpringLevelSet2D::MIN_ANGLE_TOLERANCE = (float)(ALY_PI * 20 / 180.0f);
+	float MultiSpringLevelSet2D::NEAREST_NEIGHBOR_DISTANCE = std::sqrt(2.0f)*0.5f;
+	float MultiSpringLevelSet2D::PARTICLE_RADIUS = 0.05f;
+	float MultiSpringLevelSet2D::REST_RADIUS = 0.1f;
+	float MultiSpringLevelSet2D::SPRING_CONSTANT = 0.3f;
+	float MultiSpringLevelSet2D::EXTENT = 0.5f;
+	float MultiSpringLevelSet2D::SHARPNESS = 5.0f;
+	
+	MultiSpringLevelSet2D::MultiSpringLevelSet2D(const std::shared_ptr<SpringlCache2D>& cache) :MultiActiveManifold2D("Multi Spring Level Set 2D", cache), resampleEnabled(true) {
 	}
-	float2x2 MakeRigid(const float2x2& m)
-	{
-		float E = 0.5f*(m(0, 0) + m(1, 1));
-		float F = 0.5f*(m(0, 0) - m(1, 1));
-		float G = 0.5f*(m(1, 0) + m(0, 1));
-		float H = 0.5f*(m(1, 0) - m(0, 1));
-
-		float a1 = std::atan2(G, F);
-		float a2 = std::atan2(H, E);
-		float theta = 0.5f*(a2 - a1);
-		float phi = 0.5f*(a2 + a1);
-
-		float st = std::sin(theta);
-		float ct = std::cos(theta);
-		float sp = std::sin(phi);
-		float cp = std::cos(phi);
-		float2x2 Vt(float2(ct, st), float2(-st, ct));
-		float2x2 U(float2(cp, sp), float2(-sp, cp));
-		return U*Vt;
-	}
-	float2x2 MakeSimilarity(const float2x2& m)
-	{
-		float E = 0.5f*(m(0, 0) + m(1, 1));
-		float F = 0.5f*(m(0, 0) - m(1, 1));
-		float G = 0.5f*(m(1, 0) + m(0, 1));
-		float H = 0.5f*(m(1, 0) - m(0, 1));
-		float Q = std::sqrt(E*E + H*H);
-		float R = std::sqrt(F*F + G*G);
-		float sx = Q + R;
-		float sy = Q - R;
-		float a1 = std::atan2(G, F);
-		float a2 = std::atan2(H, E);
-		float theta = 0.5f*(a2 - a1);
-		float phi = 0.5f*(a2 + a1);
-
-		float st = std::sin(theta);
-		float ct = std::cos(theta);
-		float sp = std::sin(phi);
-		float cp = std::cos(phi);
-		float2x2 Vt(float2(ct, st), float2(-st, ct));
-		float2x2 U(float2(cp, sp), float2(-sp, cp));
-		float2x2 S(float2(0.5f*(sx+sy), 0.0f), float2(0.0f, 0.5f*(sx + sy)));
-		return U*S*Vt;
-	}
-	float2x2 Compose(const float& theta, const float& phi,const float& sx, const float& sy) {
-		float st = std::sin(theta);
-		float ct = std::cos(theta);
-		float sp = std::sin(phi);
-		float cp = std::cos(phi);
-		float2x2 Vt(float2(ct, st),float2(-st, ct));
-		float2x2 U(float2(cp, sp),float2(-sp, cp));
-		float2x2 S(float2(sx,0.0f),float2(0.0f,sy));
-		return U*S*Vt;
-	}
-	SpringLevelSet2D::SpringLevelSet2D(const std::shared_ptr<SpringlCache2D>& cache) :ActiveManifold2D("Spring Level Set 2D", cache), resampleEnabled(true){
-	}
-	void SpringLevelSet2D::setSpringls(const Vector2f& particles, const Vector2f& points) {
+	void MultiSpringLevelSet2D::setSpringls(const Vector2f& particles, const Vector2f& points) {
 		contour.particles = particles;
 		contour.correspondence = particles;
 		contour.points = points;
 		contour.updateNormals();
 	}
-	void SpringLevelSet2D::updateUnsignedLevelSet(float maxDistance) {
+	void MultiSpringLevelSet2D::updateUnsignedLevelSet(float maxDistance) {
 		unsignedLevelSet = unsignedShader->solve(contour, maxDistance);
 	}
-	void SpringLevelSet2D::refineContour(bool signedIso) {
+	void MultiSpringLevelSet2D::refineContour(bool signedIso) {
 		//Optimize location of level set to remove jitter and improve spacing of iso-vertexes.
 		int N = (int)contour.vertexes.size();
 		Vector2f delta(N);
@@ -150,7 +82,7 @@ namespace aly {
 		} while (iter < 10);
 		//Add line search to find zero crossing.
 	}
-	float2 SpringLevelSet2D::traceUnsigned(float2 pt) {
+	float2 MultiSpringLevelSet2D::traceUnsigned(float2 pt) {
 		float disp = 0.0f;
 		int iter = 0;
 		const float timeStep = 0.5f;
@@ -173,7 +105,7 @@ namespace aly {
 		return pt;
 	}
 
-	float2 SpringLevelSet2D::traceInitial(float2 pt) {
+	float2 MultiSpringLevelSet2D::traceInitial(float2 pt) {
 		float disp = 0.0f;
 		int iter = 0;
 		const float timeStep = 0.5f;
@@ -195,7 +127,7 @@ namespace aly {
 		} while (disp > 1E-5f&&iter < 30);
 		return pt;
 	}
-	void SpringLevelSet2D::updateNearestNeighbors(float maxDistance) {
+	void MultiSpringLevelSet2D::updateNearestNeighbors(float maxDistance) {
 		matcher.reset(new Matcher2f(contour.points));
 		nearestNeighbors.clear();
 		nearestNeighbors.resize(contour.points.size(), std::list<uint32_t>());
@@ -207,24 +139,24 @@ namespace aly {
 			std::vector<std::pair<size_t, float>> result;
 			matcher->closest(pt0, maxDistance, result);
 			for (auto pr : result) {
-				if ((int)pr.first != i&&(int)pr.first != i + 1) {
+				if ((int)pr.first != i && (int)pr.first != i + 1) {
 					nearestNeighbors[i].push_back((uint32_t)pr.first);
 					break;
 				}
 			}
 			matcher->closest(pt1, maxDistance, result);
 			for (auto pr : result) {
-				if ((int)pr.first != i&&(int)pr.first != i + 1) {
+				if ((int)pr.first != i && (int)pr.first != i + 1) {
 					nearestNeighbors[i + 1].push_back((uint32_t)pr.first);
 					break;
 				}
 			}
 		}
 	}
-	int SpringLevelSet2D::fill() {
+	int MultiSpringLevelSet2D::fill() {
 		{
 			std::lock_guard<std::mutex> lockMe(contourLock);
-			isoContour.solve(levelSet, contour.vertexes, contour.indexes, 0.0f, (preserveTopology) ? TopologyRule2D::Connect4 : TopologyRule2D::Unconstrained, Winding::Clockwise);
+			isoContour.solve(levelSet, labelImage, contour.vertexes, contour.vertexLabels, contour.indexes, 0.0f, (preserveTopology) ? TopologyRule2D::Connect4 : TopologyRule2D::Unconstrained, Winding::Clockwise);
 			refineContour(false);
 			requestUpdateContour = false;
 		}
@@ -236,7 +168,7 @@ namespace aly {
 				for (uint32_t idx : curve) {
 					if (count != 0) {
 						float2 pt = 0.5f*(contour.vertexes[prev] + contour.vertexes[idx]);
-						if (unsignedLevelSet(pt.x, pt.y).x > 0.5f*(NEAREST_NEIGHBOR_DISTANCE+EXTENT)) {
+						if (unsignedLevelSet(pt.x, pt.y).x > 0.5f*(NEAREST_NEIGHBOR_DISTANCE + EXTENT)) {
 							contour.particles.push_back(pt);
 							for (Vector2f& vel : contour.velocities) {
 								vel.push_back(float2(0.0f));
@@ -259,7 +191,7 @@ namespace aly {
 
 		return fillCount;
 	}
-	void SpringLevelSet2D::updateTracking(float maxDistance) {
+	void MultiSpringLevelSet2D::updateTracking(float maxDistance) {
 		int tries = 0;
 		int invalid = 0;
 		do {
@@ -314,7 +246,7 @@ namespace aly {
 						q1 = traceInitial(0.5f*(q1 + q2));
 						contour.correspondence[pid] = q1;
 						oldCorrespondences.push_back(q1);
-						
+
 						oldPoints.push_back(pt0);
 						oldPoints.push_back(pt1);
 					}
@@ -346,7 +278,7 @@ namespace aly {
 			tries++;
 		} while (invalid > 0 && tries<4);
 	}
-	int SpringLevelSet2D::contract() {
+	int MultiSpringLevelSet2D::contract() {
 		int contractCount = 0;
 		Vector2f particles;
 		Vector2f points;
@@ -370,7 +302,7 @@ namespace aly {
 				points.push_back(contour.points[2 * i]);
 				points.push_back(contour.points[2 * i + 1]);
 				normals.push_back(contour.normals[i]);
-				for (int nn = 0;nn < 4;nn++){
+				for (int nn = 0;nn < 4;nn++) {
 					velocities[nn].push_back(contour.velocities[nn][i]);
 				}
 				correspondence.push_back(contour.correspondence[i]);
@@ -389,14 +321,14 @@ namespace aly {
 		}
 		return contractCount;
 	}
-	void SpringLevelSet2D::computeForce(size_t idx, float2& f1, float2& f2, float2& f) {
+	void MultiSpringLevelSet2D::computeForce(size_t idx, float2& f1, float2& f2, float2& f) {
 		f1 = float2(0.0f);
 		f2 = float2(0.0f);
 		f = float2(0.0f);
 		float2 p = contour.particles[idx];
 		float2 p1 = contour.points[2 * idx];
 		float2 p2 = contour.points[2 * idx + 1];
-		if (pressureImage.size() > 0&& pressureParam.toFloat()!=0.0f) {
+		if (pressureImage.size() > 0 && pressureParam.toFloat() != 0.0f) {
 			float2 v1 = normalize(contour.points[2 * idx + 1] - contour.points[2 * idx]);
 			float2 norm = float2(-v1.y, v1.x);
 			float2 pres = pressureParam.toFloat()*norm*pressureImage(p.x, p.y).x;
@@ -404,13 +336,13 @@ namespace aly {
 			f1 = f;
 			f2 = f;
 		}
-		
-		float2x2 M,A;
-		if (vecFieldImage.size() > 0&& advectionParam.toFloat()!=0.0f) {
+
+		float2x2 M, A;
+		if (vecFieldImage.size() > 0 && advectionParam.toFloat() != 0.0f) {
 			float w = advectionParam.toFloat();
 			f1 += vecFieldImage(p1.x, p1.y)*w;
 			f2 += vecFieldImage(p2.x, p2.y)*w;
-			f  += vecFieldImage(p.x , p.y )*w;
+			f += vecFieldImage(p.x, p.y)*w;
 		}
 		float2 k1, k2, k3, k4;
 		k4 = contour.velocities[2][idx];
@@ -422,23 +354,24 @@ namespace aly {
 		contour.velocities[2][idx] = k3;
 		contour.velocities[1][idx] = k2;
 		contour.velocities[0][idx] = k1;
-		if (mSimulationIteration>=4) {
+		if (mSimulationIteration >= 4) {
 			f = (1.0f / 6.0f)*(k1 + 2.0f * k2 + 2.0f * k3 + k4);
-		} else if (mSimulationIteration == 3) {
+		}
+		else if (mSimulationIteration == 3) {
 			f = (1.0f / 4.0f)*(k1 + 2.0f * k2 + k3);
 		} if (mSimulationIteration == 2) {
 			f = (1.0f / 2.0f)*(k1 + k2);
 		}
-		float2 v1 = p1 +f1;
-		float2 v2 = p2 +f2;
+		float2 v1 = p1 + f1;
+		float2 v2 = p2 + f2;
 		float2 v = p + f;
 		//Correction keeps particle and points on same line segment
 		float2 t = normalize(v2 - v1);
-		float2 correction=v-(v1+dot(t,v-v1)*t);
+		float2 correction = v - (v1 + dot(t, v - v1)*t);
 		f1 += correction;
 		f2 += correction;
 	}
-	void SpringLevelSet2D::updateSignedLevelSet(float maxStep) {
+	void MultiSpringLevelSet2D::updateSignedLevelSet(float maxStep) {
 #pragma omp parallel for
 		for (int i = 0; i < (int)activeList.size(); i++) {
 			int2 pos = activeList[i];
@@ -474,7 +407,7 @@ namespace aly {
 #pragma omp parallel for
 			for (int i = 0; i < (int)activeList.size(); i++) {
 				int2 pos = activeList[i];
-				updateDistanceField(pos.x, pos.y, band, i);
+				updateDistanceField(pos.x, pos.y, band);
 			}
 		}
 #pragma omp parallel for
@@ -495,7 +428,7 @@ namespace aly {
 		deltaLevelSet.clear();
 		deltaLevelSet.resize(activeList.size(), 0.0f);
 	}
-	float SpringLevelSet2D::advect(float maxStep) {
+	float MultiSpringLevelSet2D::advect(float maxStep) {
 		Vector2f f(contour.particles.size());
 		Vector2f f1(contour.particles.size());
 		Vector2f f2(contour.particles.size());
@@ -519,7 +452,7 @@ namespace aly {
 		contour.setDirty(true);
 		return timeStep;
 	}
-	void SpringLevelSet2D::relax(float timeStep) {
+	void MultiSpringLevelSet2D::relax(float timeStep) {
 		Vector2f updates(contour.points.size());
 #pragma omp parallel for
 		for (int i = 0;i < (int)contour.particles.size();i++) {
@@ -529,7 +462,7 @@ namespace aly {
 		contour.updateNormals();
 		contour.setDirty(true);
 	}
-	void SpringLevelSet2D::relax(size_t idx, float timeStep, float2& f1, float2& f2) {
+	void MultiSpringLevelSet2D::relax(size_t idx, float timeStep, float2& f1, float2& f2) {
 		const float maxForce = 0.999f;
 		float2 particlePt = contour.particles[idx];
 		float2 tangets[2];
@@ -571,19 +504,19 @@ namespace aly {
 		start = dotProd*tangets[1];
 		f2 = float2(start.x*cosa + start.y*sina, -start.x*sina + start.y*cosa) + particlePt;
 	}
-	float2 SpringLevelSet2D::getScaledGradientValue(int i, int j) {
+	float2 MultiSpringLevelSet2D::getScaledGradientValue(int i, int j) {
 		float v21 = unsignedLevelSet(i + 1, j).x;
 		float v12 = unsignedLevelSet(i, j + 1).x;
 		float v10 = unsignedLevelSet(i, j - 1).x;
 		float v01 = unsignedLevelSet(i - 1, j).x;
 		float v11 = unsignedLevelSet(i, j).x;
-float2 grad;
-grad.x = 0.5f*(v21 - v01);
-grad.y = 0.5f*(v12 - v10);
-float len = max(1E-6f, length(grad));
-return -(v11*grad / len);
+		float2 grad;
+		grad.x = 0.5f*(v21 - v01);
+		grad.y = 0.5f*(v12 - v10);
+		float len = max(1E-6f, length(grad));
+		return -(v11*grad / len);
 	}
-	float2 SpringLevelSet2D::getScaledGradientValue(float i, float j, bool signedIso) {
+	float2 MultiSpringLevelSet2D::getScaledGradientValue(float i, float j, bool signedIso) {
 		float2 grad;
 		float v21;
 		float v12;
@@ -609,7 +542,7 @@ return -(v11*grad / len);
 		float len = max(1E-6f, length(grad));
 		return -(v11*grad / len);
 	}
-	void SpringLevelSet2D::distanceFieldMotion(int i, int j, size_t gid) {
+	void MultiSpringLevelSet2D::distanceFieldMotion(int i, int j, size_t gid) {
 		float v11 = swapLevelSet(i, j).x;
 		float2 grad;
 		if (std::abs(v11) > 0.5f) {
@@ -672,12 +605,12 @@ return -(v11*grad / len);
 		}
 		deltaLevelSet[gid] = -advection + kappa;
 	}
-	bool SpringLevelSet2D::init() {
-		ActiveManifold2D::init();
+	bool MultiSpringLevelSet2D::init() {
+		MultiActiveManifold2D::init();
 		refineContour(true);
 		contour.points.clear();
 		contour.particles.clear();
-		for(Vector2f& vel:contour.velocities){
+		for (Vector2f& vel : contour.velocities) {
 			vel.clear();
 		}
 		for (std::list<uint32_t> curve : contour.indexes) {
@@ -720,7 +653,7 @@ return -(v11*grad / len);
 		cache->set((int)mSimulationIteration, contour);
 		return true;
 	}
-	void SpringLevelSet2D::relax() {
+	void MultiSpringLevelSet2D::relax() {
 		const int maxIterations = 4;
 		const float timeStep = 0.1f;
 		updateNearestNeighbors();
@@ -728,10 +661,10 @@ return -(v11*grad / len);
 			relax(timeStep);
 		}
 	}
-	void SpringLevelSet2D::cleanup() {
-		ActiveManifold2D::cleanup();
+	void MultiSpringLevelSet2D::cleanup() {
+		MultiActiveManifold2D::cleanup();
 	}
-	bool SpringLevelSet2D::stepInternal() {
+	bool MultiSpringLevelSet2D::stepInternal() {
 		double remaining = mTimeStep;
 		double t = 0.0;
 		const int evolveIterations = 8;
@@ -750,19 +683,20 @@ return -(v11*grad / len);
 				oldCorrespondences = contour.correspondence;
 				oldVelocities = contour.velocities;
 				contract();
-				updateNearestNeighbors();	
+				updateNearestNeighbors();
 				int fillCount = 0;
 				do {
 					updateUnsignedLevelSet();
-					fillCount=fill();
+					fillCount = fill();
 					relax();
 				} while (fillCount > 0); //Continue filling until all gaps are closed
 				contour.updateNormals();
 				contour.setDirty(true);
 				updateTracking();
-			}else {
+			}
+			else {
 				std::lock_guard<std::mutex> lockMe(contourLock);
-				isoContour.solve(levelSet, contour.vertexes, contour.indexes, 0.0f, (preserveTopology) ? TopologyRule2D::Connect4 : TopologyRule2D::Unconstrained, Winding::Clockwise);
+				isoContour.solve(levelSet, labelImage, contour.vertexes, contour.vertexLabels, contour.indexes, 0.0f, (preserveTopology) ? TopologyRule2D::Connect4 : TopologyRule2D::Unconstrained, Winding::Clockwise);
 				refineContour(false);
 				contour.updateNormals();
 				contour.setDirty(true);
@@ -781,8 +715,8 @@ return -(v11*grad / len);
 		return (mSimulationTime < mSimulationDuration);
 	}
 
-	void SpringLevelSet2D::setup(const aly::ParameterPanePtr& pane) {
-		ActiveManifold2D::setup(pane);
+	void MultiSpringLevelSet2D::setup(const aly::ParameterPanePtr& pane) {
+		MultiActiveManifold2D::setup(pane);
 		pane->addCheckBox("Re-sampling", resampleEnabled);
 	}
 }

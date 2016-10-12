@@ -22,7 +22,7 @@
 
 namespace aly {
 
-	void ActiveContour2D::rebuildNarrowBand() {
+	void ActiveManifold2D::rebuildNarrowBand() {
 		activeList.clear();
 		for (int band = 1; band <= maxLayers; band++) {
 #pragma omp parallel for
@@ -41,7 +41,7 @@ namespace aly {
 		deltaLevelSet.clear();
 		deltaLevelSet.resize(activeList.size(), 0.0f);
 	}
-	void ActiveContour2D::plugLevelSet(int i, int j, size_t index) {
+	void ActiveManifold2D::plugLevelSet(int i, int j, size_t index) {
 		float v11;
 		float v01;
 		float v12;
@@ -58,7 +58,7 @@ namespace aly {
 			levelSet(i, j) = sgn * MAX_DISTANCE;
 		}
 	}
-	bool ActiveContour2D::updateContour() {
+	bool ActiveManifold2D::updateContour() {
 		if (requestUpdateContour) {
 			std::lock_guard<std::mutex> lockMe(contourLock);
 			isoContour.solve(levelSet, contour.vertexes, contour.indexes, 0.0f, (preserveTopology) ? TopologyRule2D::Connect4 : TopologyRule2D::Unconstrained, Winding::Clockwise);
@@ -67,10 +67,10 @@ namespace aly {
 		}
 		return false;
 	}
-	Contour2D* ActiveContour2D::getContour() {
+	Manifold2D* ActiveManifold2D::getContour() {
 		return &contour;
 	}
-	ActiveContour2D::ActiveContour2D(const std::shared_ptr<SpringlCache2D>& cache) :Simulation("Active Contour 2D"),
+	ActiveManifold2D::ActiveManifold2D(const std::shared_ptr<SpringlCache2D>& cache) :Simulation("Active Contour 2D"),
 			cache(cache),  preserveTopology(false), clampSpeed(false), requestUpdateContour(
 					false){
 		advectionParam = Float(1.0f);
@@ -78,7 +78,7 @@ namespace aly {
 		targetPressureParam = Float(0.5f);
 		curvatureParam = Float(0.3f);
 	}
-	ActiveContour2D::ActiveContour2D(const std::string& name,const std::shared_ptr<SpringlCache2D>& cache) : Simulation(name),
+	ActiveManifold2D::ActiveManifold2D(const std::string& name,const std::shared_ptr<SpringlCache2D>& cache) : Simulation(name),
 		cache(cache),  preserveTopology(false), clampSpeed(false), requestUpdateContour(
 			false){
 		advectionParam = Float(1.0f);
@@ -88,7 +88,7 @@ namespace aly {
 	}
 
 
-	void ActiveContour2D::setup(const aly::ParameterPanePtr& pane){
+	void ActiveManifold2D::setup(const aly::ParameterPanePtr& pane){
 		pane->addNumberField("Target Pressure", targetPressureParam, Float(0.0f), Float(1.0f));
 		pane->addNumberField("Pressure Weight", pressureParam, Float(-2.0f), Float(2.0f));
 		pane->addNumberField("Advection Weight", advectionParam, Float(-1.0f), Float(1.0f));
@@ -96,10 +96,10 @@ namespace aly {
 		pane->addCheckBox("Preserve Topology", preserveTopology);
 		pane->addCheckBox("Clamp Speed",clampSpeed);
 	}
-	void ActiveContour2D::cleanup(){
+	void ActiveManifold2D::cleanup(){
 		if(cache.get()!=nullptr)cache->clear();
 	}
-	bool ActiveContour2D::init() {
+	bool ActiveManifold2D::init() {
 		int2 dims = initialLevelSet.dimensions();
 		if (dims.x == 0 || dims.y == 0)return false;
 		mSimulationDuration=std::max(dims.x,dims.y)*0.5f;
@@ -124,7 +124,7 @@ namespace aly {
 		}
 		return true;
 	}
-	void ActiveContour2D::pressureAndAdvectionMotion(int i, int j, size_t gid) {
+	void ActiveManifold2D::pressureAndAdvectionMotion(int i, int j, size_t gid) {
 		float v11 = swapLevelSet(i, j).x;
 		float2 grad;
 		if (v11 > 0.5f || v11 < -0.5f) {
@@ -208,7 +208,7 @@ namespace aly {
 		}
 		deltaLevelSet[gid] = -advection + kappa + pressure;
 	}
-	void ActiveContour2D::advectionMotion(int i, int j, size_t gid) {
+	void ActiveManifold2D::advectionMotion(int i, int j, size_t gid) {
 		float v11 = swapLevelSet(i, j).x;
 		float2 grad;
 		if (v11 > 0.5f || v11 < -0.5f) {
@@ -275,7 +275,7 @@ namespace aly {
 
 		deltaLevelSet[gid] = -advection + kappa;
 	}
-	void ActiveContour2D::applyForces(int i, int j, size_t index, float timeStep) {
+	void ActiveManifold2D::applyForces(int i, int j, size_t index, float timeStep) {
 		float delta;
 		float old = swapLevelSet(i, j);
 		if (std::abs(old) > 0.5f)
@@ -288,7 +288,7 @@ namespace aly {
 		old += delta;
 		levelSet(i, j) = float1(old);
 	}
-	bool ActiveContour2D::getBitValue(int i) {
+	bool ActiveManifold2D::getBitValue(int i) {
 		const char lut4_8[] = { 123, -13, -5, -13, -69, 51, -69, 51, -128, -13, -128, -13, 0, 51, 0, 51, -128, -13, -128, -13, -69, -52, -69, -52, -128, -13,
 				-128, -13, -69, -52, -69, -52, -128, 0, -128, 0, -69, 51, -69, 51, 0, 0, 0, 0, 0, 51, 0, 51, -128, -13, -128, -13, -69, -52, -69, -52, -128,
 				-13, -128, -13, -69, -52, -69, -52, 123, -13, -5, -13, -69, 51, -69, 51, -128, -13, -128, -13, 0, 51, 0, 51, -128, -13, -128, -13, -69, -52,
@@ -297,7 +297,7 @@ namespace aly {
 		return ((((uint8_t)lut4_8[63 - (i >> 3)]) & (1 << (i % 8))) > 0);
 	}
 
-	int ActiveContour2D::deleteElements() {
+	int ActiveManifold2D::deleteElements() {
 		std::vector<int2> newList;
 		for (int i = 0; i < (int)activeList.size(); i++) {
 			int2 pos = activeList[i];
@@ -314,7 +314,7 @@ namespace aly {
 		activeList = newList;
 		return diff;
 	}
-	int ActiveContour2D::addElements() {
+	int ActiveManifold2D::addElements() {
 		const int xShift[4] =  {-1, 1, 0, 0};
 		const int yShift[4] =  { 0, 0,-1, 1};
 		std::vector<int2> newList;
@@ -354,7 +354,7 @@ namespace aly {
 		}
 		return (int)(activeList.size() - sz);
 	}
-	void ActiveContour2D::applyForcesTopoRule(int i, int j, int offset, size_t index, float timeStep) {
+	void ActiveManifold2D::applyForcesTopoRule(int i, int j, int offset, size_t index, float timeStep) {
 		float v11 = swapLevelSet(i, j).x;
 		if (std::abs(v11) > 0.5f) {
 			levelSet(i, j) = v11;
@@ -391,7 +391,7 @@ namespace aly {
 		}
 		levelSet(i, j) = newValue;
 	}
-	void ActiveContour2D::pressureMotion(int i, int j, size_t gid) {
+	void ActiveManifold2D::pressureMotion(int i, int j, size_t gid) {
 		float v11 = swapLevelSet(i, j).x;
 		float2 grad;
 		if (std::abs(v11) > 0.5f) {
@@ -451,7 +451,7 @@ namespace aly {
 		}
 		deltaLevelSet[gid] = kappa + pressure;
 	}
-	void ActiveContour2D::updateDistanceField(int i, int j, int band, size_t index) {
+	void ActiveManifold2D::updateDistanceField(int i, int j, int band, size_t index) {
 		float v11;
 		float v01;
 		float v12;
@@ -489,7 +489,7 @@ namespace aly {
 			levelSet(i, j) = oldVal;
 		}
 	}
-	float ActiveContour2D::evolve(float maxStep) {
+	float ActiveManifold2D::evolve(float maxStep) {
 		if (pressureImage.size() > 0) {
 			if (vecFieldImage.size() > 0) {
 #pragma omp parallel for
@@ -565,7 +565,7 @@ namespace aly {
 		deltaLevelSet.resize(activeList.size(), 0.0f);
 		return timeStep;
 	}
-	bool ActiveContour2D::stepInternal() {
+	bool ActiveManifold2D::stepInternal() {
 		double remaining = mTimeStep;
 		double t = 0.0;
 		do {
@@ -582,7 +582,7 @@ namespace aly {
 		}
 		return (mSimulationTime<mSimulationDuration);
 	}
-	void ActiveContour2D::rescale(aly::Image1f& pressureForce) {
+	void ActiveManifold2D::rescale(aly::Image1f& pressureForce) {
 		float minValue = 1E30f;
 		float maxValue = -1E30f;
 		if (!std::isnan(targetPressureParam.toFloat())) {

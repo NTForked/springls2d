@@ -19,8 +19,8 @@
  * THE SOFTWARE.
  */
 
-#ifndef INCLUDE_ACTIVECONTOUR2D_H_
-#define INCLUDE_ACTIVECONTOUR2D_H_
+#ifndef INCLUDE_ACTIVEManifold2D_H_
+#define INCLUDE_ACTIVEManifold2D_H_
 #include <AlloyVector.h>
 #include <AlloyImage.h>
 #include <AlloyIsoContour.h>
@@ -31,11 +31,11 @@
 #include "Simulation.h"
 #include "SpringlCache2D.h"
 namespace aly {
-	class ActiveContour2D: public Simulation {
+	class ActiveManifold2D: public Simulation {
 	protected:
 		std::shared_ptr<SpringlCache2D> cache;
 		IsoContour isoContour;
-		Contour2D contour;
+		Manifold2D contour;
 		bool preserveTopology;
 		bool clampSpeed;
 
@@ -72,8 +72,8 @@ namespace aly {
 		void applyForcesTopoRule(int i, int j, int offset, size_t index, float timeStep);
 		virtual bool stepInternal() override;
 	public:
-		ActiveContour2D(const std::shared_ptr<SpringlCache2D>& cache=nullptr);
-		ActiveContour2D(const std::string& name,const std::shared_ptr<SpringlCache2D>& cache = nullptr);
+		ActiveManifold2D(const std::shared_ptr<SpringlCache2D>& cache=nullptr);
+		ActiveManifold2D(const std::string& name,const std::shared_ptr<SpringlCache2D>& cache = nullptr);
 		void setCurvature(float c) {
 			curvatureParam.setValue(c);
 		}
@@ -96,7 +96,7 @@ namespace aly {
 			advectionParam.setValue(f);
 			vecFieldImage = img;
 		}
-		Contour2D* getContour();
+		Manifold2D* getContour();
 
 		virtual bool init()override;
 		virtual void cleanup() override;
@@ -108,4 +108,4 @@ namespace aly {
 	};
 }
 
-#endif /* INCLUDE_ACTIVECONTOUR2D_H_ */
+#endif /* INCLUDE_ACTIVEManifold2D_H_ */

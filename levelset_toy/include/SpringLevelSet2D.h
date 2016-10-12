@@ -31,7 +31,7 @@ namespace aly {
 	float2x2 Compose(const float& theta,const float& phi,const float& sx,const float& sy);
 	float2x2 MakeRigid(const float2x2& M);
 	float2x2 MakeSimilarity(const float2x2& M);
-	class SpringLevelSet2D : public ActiveContour2D {
+	class SpringLevelSet2D : public ActiveManifold2D {
 	public:
 		static float MIN_ANGLE_TOLERANCE;
 		static float NEAREST_NEIGHBOR_DISTANCE;

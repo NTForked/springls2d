@@ -21,7 +21,7 @@
 
 #ifndef INCLUDE_SPRINGLCACHE2D_H_
 #define INCLUDE_SPRINGLCACHE2D_H_
-#include "Contour2D.h"
+#include "Manifold2D.h"
 #include <mutex>
 #include <map>
 #include <set>
@@ -31,7 +31,7 @@ namespace aly {
 		bool loaded;
 		bool writeOnce;
 		std::string contourFile;
-		std::shared_ptr<Contour2D> contour;
+		std::shared_ptr<Manifold2D> contour;
 
 		std::mutex accessLock;
 	public:
@@ -47,8 +47,8 @@ namespace aly {
 		}
 		void load();
 		void unload();
-		void set(const Contour2D& springl);
-		std::shared_ptr<Contour2D> getContour();
+		void set(const Manifold2D& springl);
+		std::shared_ptr<Manifold2D> getContour();
 	};
 	struct CacheCompare {
 		inline bool operator() (const std::pair<uint64_t, int>& lhs, const std::pair<uint64_t, int>& rhs) const {
@@ -63,7 +63,7 @@ namespace aly {
 		int maxElements = 32;
 		uint64_t counter = 0;
 	public:
-		std::shared_ptr<CacheElement> set(int frame, const Contour2D& springl);
+		std::shared_ptr<CacheElement> set(int frame, const Manifold2D& springl);
 		std::shared_ptr<CacheElement> get(int frame);
 		void clear();
 	};

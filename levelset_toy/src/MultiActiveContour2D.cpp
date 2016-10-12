@@ -21,7 +21,7 @@
 #include "MultiActiveContour2D.h"
 #include <AlloyImageProcessing.h>
 namespace aly {
-	void MultiActiveContour2D::rebuildNarrowBand() {
+	void MultiActiveManifold2D::rebuildNarrowBand() {
 		activeList.clear();
 		for (int band = 1; band <= maxLayers; band++) {
 #pragma omp parallel for
@@ -40,7 +40,7 @@ namespace aly {
 		deltaLevelSet.resize(5 * activeList.size(), 0.0f);
 		objectIds.resize(5 * activeList.size(), -1);
 	}
-	void MultiActiveContour2D::plugLevelSet(int i, int j, size_t index) {
+	void MultiActiveManifold2D::plugLevelSet(int i, int j, size_t index) {
 		int label = labelImage(i, j);
 		int activeLabels[8];
 		activeLabels[0] = labelImage(i + 1, j);
@@ -61,7 +61,7 @@ namespace aly {
 			levelSet(i, j) = 3.0f;
 		}
 	}
-	bool MultiActiveContour2D::updateOverlay() {
+	bool MultiActiveManifold2D::updateOverlay() {
 		if (requestUpdateOverlay) {
 			ImageRGBA& overlay = contour.overlay;
 			overlay.resize(labelImage.width, labelImage.height);
@@ -82,7 +82,7 @@ namespace aly {
 			return false;
 		}
 	}
-	bool MultiActiveContour2D::updateContour() {
+	bool MultiActiveManifold2D::updateContour() {
 		if (requestUpdateContour) {
 			std::lock_guard<std::mutex> lockMe(contourLock);
 			isoContour.solve(levelSet, labelImage, contour.vertexes, contour.vertexLabels, contour.indexes, 0.0f, (preserveTopology) ? TopologyRule2D::Connect4 : TopologyRule2D::Unconstrained, Winding::Clockwise);
@@ -93,10 +93,10 @@ namespace aly {
 			return false;
 		}
 	}
-	Contour2D* MultiActiveContour2D::getContour() {
+	Manifold2D* MultiActiveManifold2D::getContour() {
 		return &contour;
 	}
-	MultiActiveContour2D::MultiActiveContour2D(const std::shared_ptr<SpringlCache2D>& cache) :Simulation("Active Contour 2D"),
+	MultiActiveManifold2D::MultiActiveManifold2D(const std::shared_ptr<SpringlCache2D>& cache) :Simulation("Active Contour 2D"),
 		cache(cache), preserveTopology(false), clampSpeed(false), requestUpdateContour(
 			false) {
 		advectionParam = Float(1.0f);
@@ -104,7 +104,7 @@ namespace aly {
 		targetPressureParam = Float(0.5f);
 		curvatureParam = Float(0.3f);
 	}
-	MultiActiveContour2D::MultiActiveContour2D(const std::string& name, const std::shared_ptr<SpringlCache2D>& cache) : Simulation(name),
+	MultiActiveManifold2D::MultiActiveManifold2D(const std::string& name, const std::shared_ptr<SpringlCache2D>& cache) : Simulation(name),
 		cache(cache), preserveTopology(false), clampSpeed(false), requestUpdateContour(
 			false) {
 		advectionParam = Float(1.0f);
@@ -114,7 +114,7 @@ namespace aly {
 	}
 
 
-	void MultiActiveContour2D::setup(const aly::ParameterPanePtr& pane) {
+	void MultiActiveManifold2D::setup(const aly::ParameterPanePtr& pane) {
 		pane->addNumberField("Target Pressure", targetPressureParam, Float(0.0f), Float(1.0f));
 		pane->addNumberField("Pressure Weight", pressureParam, Float(-2.0f), Float(2.0f));
 		pane->addNumberField("Advection Weight", advectionParam, Float(-1.0f), Float(1.0f));
@@ -122,10 +122,10 @@ namespace aly {
 		pane->addCheckBox("Preserve Topology", preserveTopology);
 		pane->addCheckBox("Clamp Speed", clampSpeed);
 	}
-	void MultiActiveContour2D::cleanup() {
+	void MultiActiveManifold2D::cleanup() {
 		if (cache.get() != nullptr)cache->clear();
 	}
-	void MultiActiveContour2D::setInitial(const Image1i& labels) {
+	void MultiActiveManifold2D::setInitial(const Image1i& labels) {
 		this->initialLabels = labels;
 		this->swapLabelImage = labels;
 		this->labelImage = labels;
@@ -162,7 +162,7 @@ namespace aly {
 		initialLevelSet = levelSet;
 	}
 
-	bool MultiActiveContour2D::init() {
+	bool MultiActiveManifold2D::init() {
 		int2 dims = initialLevelSet.dimensions();
 		if (dims.x == 0 || dims.y == 0)return false;
 		mSimulationDuration = std::max(dims.x, dims.y)*0.5f;
@@ -229,7 +229,7 @@ namespace aly {
 		}
 		return true;
 	}
-	void MultiActiveContour2D::pressureAndAdvectionMotion(int i, int j, size_t gid) {
+	void MultiActiveManifold2D::pressureAndAdvectionMotion(int i, int j, size_t gid) {
 		float v11 = swapLevelSet(i, j).x;
 		if (v11 > 0.5f) {
 			for (int index = 0;index < 5;index++) {
@@ -348,7 +348,7 @@ namespace aly {
 			}
 		}
 	}
-	void MultiActiveContour2D::advectionMotion(int i, int j, size_t gid) {
+	void MultiActiveManifold2D::advectionMotion(int i, int j, size_t gid) {
 		float v11 = swapLevelSet(i, j).x;
 		if (v11 > 0.5f) {
 			for (int index = 0;index < 5;index++) {
@@ -443,7 +443,7 @@ namespace aly {
 			}
 		}
 	}
-	void MultiActiveContour2D::applyForces(int i, int j, size_t gid, float timeStep) {
+	void MultiActiveManifold2D::applyForces(int i, int j, size_t gid, float timeStep) {
 		if (swapLevelSet(i, j).x>0.5f)return;
 		float minValue1 = 1E10f;
 		float minValue2 = 1E10f;
@@ -490,7 +490,7 @@ namespace aly {
 			levelSet(i, j) = std::abs(minValue1);
 		}
 	}
-	bool MultiActiveContour2D::getBitValue(int i) {
+	bool MultiActiveManifold2D::getBitValue(int i) {
 		const char lut4_8[] = { 123, -13, -5, -13, -69, 51, -69, 51, -128, -13, -128, -13, 0, 51, 0, 51, -128, -13, -128, -13, -69, -52, -69, -52, -128, -13,
 				-128, -13, -69, -52, -69, -52, -128, 0, -128, 0, -69, 51, -69, 51, 0, 0, 0, 0, 0, 51, 0, 51, -128, -13, -128, -13, -69, -52, -69, -52, -128,
 				-13, -128, -13, -69, -52, -69, -52, 123, -13, -5, -13, -69, 51, -69, 51, -128, -13, -128, -13, 0, 51, 0, 51, -128, -13, -128, -13, -69, -52,
@@ -499,7 +499,7 @@ namespace aly {
 		return ((((uint8_t)lut4_8[63 - (i >> 3)]) & (1 << (i % 8))) > 0);
 	}
 
-	int MultiActiveContour2D::deleteElements() {
+	int MultiActiveManifold2D::deleteElements() {
 		std::vector<int2> newList;
 		for (int i = 0; i <(int) activeList.size(); i++) {
 			int2 pos = activeList[i];
@@ -517,7 +517,7 @@ namespace aly {
 		activeList = newList;
 		return diff;
 	}
-	int MultiActiveContour2D::addElements() {
+	int MultiActiveManifold2D::addElements() {
 		const int xShift[4] = { -1, 1, 0, 0 };
 		const int yShift[4] = { 0, 0,-1, 1 };
 		std::vector<int2> newList;
@@ -557,7 +557,7 @@ namespace aly {
 		}
 		return (int)(activeList.size() - sz);
 	}
-	void MultiActiveContour2D::applyForcesTopoRule(int i, int j, int offset, size_t gid, float timeStep) {
+	void MultiActiveManifold2D::applyForcesTopoRule(int i, int j, int offset, size_t gid, float timeStep) {
 		const int xShift[4] = { 0, 0, 1, 1 };
 		const int yShift[4] = { 0, 1, 0, 1 };
 		int xOff = xShift[offset];
@@ -626,7 +626,7 @@ namespace aly {
 		}
 		
 	}
-	void MultiActiveContour2D::pressureMotion(int i, int j, size_t gid) {
+	void MultiActiveManifold2D::pressureMotion(int i, int j, size_t gid) {
 		float v11 = swapLevelSet(i, j).x;
 		if (v11 > 0.5f) {
 			for (int index = 0;index < 5;index++) {
@@ -720,7 +720,7 @@ namespace aly {
 			}
 		}
 	}
-	float MultiActiveContour2D::getLevelSetValue(int i, int j, int l) const {
+	float MultiActiveManifold2D::getLevelSetValue(int i, int j, int l) const {
 		if (labelImage(i, j).x == l) {
 			return -levelSet(i, j);
 		}
@@ -728,7 +728,7 @@ namespace aly {
 			return levelSet(i, j);
 		}
 	}
-	float MultiActiveContour2D::getSwapLevelSetValue(int i, int j, int l) const {
+	float MultiActiveManifold2D::getSwapLevelSetValue(int i, int j, int l) const {
 		if (swapLabelImage(i, j).x == l) {
 			return -swapLevelSet(i, j);
 		}
@@ -736,7 +736,7 @@ namespace aly {
 			return swapLevelSet(i, j);
 		}
 	}
-	void MultiActiveContour2D::updateDistanceField(int i, int j, int band) {
+	void MultiActiveManifold2D::updateDistanceField(int i, int j, int band) {
 		float v11;
 		float v01;
 		float v12;
@@ -760,7 +760,7 @@ namespace aly {
 			levelSet(i, j) = v11;
 		}
 	}
-	float MultiActiveContour2D::evolve(float maxStep) {
+	float MultiActiveManifold2D::evolve(float maxStep) {
 		if (pressureImage.size() > 0) {
 			if (vecFieldImage.size() > 0) {
 #pragma omp parallel for
@@ -839,7 +839,7 @@ namespace aly {
 		objectIds.resize(5 * activeList.size(), -1);
 		return timeStep;
 	}
-	bool MultiActiveContour2D::stepInternal() {
+	bool MultiActiveManifold2D::stepInternal() {
 		double remaining = mTimeStep;
 		double t = 0.0;
 		do {
@@ -857,7 +857,7 @@ namespace aly {
 		}
 		return (mSimulationTime<mSimulationDuration);
 	}
-	void MultiActiveContour2D::rescale(aly::Image1f& pressureForce) {
+	void MultiActiveManifold2D::rescale(aly::Image1f& pressureForce) {
 		float minValue = 1E30f;
 		float maxValue = -1E30f;
 		if (!std::isnan(targetPressureParam.toFloat())) {

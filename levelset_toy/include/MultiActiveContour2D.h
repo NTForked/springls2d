@@ -19,8 +19,8 @@
  * THE SOFTWARE.
  */
 
-#ifndef INCLUDE_MULTIACTIVECONTOUR2D_H_
-#define INCLUDE_MULTIACTIVECONTOUR2D_H_
+#ifndef INCLUDE_MULTIACTIVEManifold2D_H_
+#define INCLUDE_MULTIACTIVEManifold2D_H_
 #include <AlloyVector.h>
 #include <AlloyImage.h>
 #include <AlloyMultiIsoContour.h>
@@ -31,11 +31,11 @@
 #include "Simulation.h"
 #include "SpringlCache2D.h"
 namespace aly {
-	class MultiActiveContour2D: public Simulation {
+	class MultiActiveManifold2D: public Simulation {
 	protected:
 		std::shared_ptr<SpringlCache2D> cache;
 		MultiIsoContour isoContour;
-		Contour2D contour;
+		Manifold2D contour;
 		std::vector<int> labelList;
 		bool preserveTopology;
 		bool clampSpeed;
@@ -80,8 +80,8 @@ namespace aly {
 		float getSwapLevelSetValue(int i, int j, int l) const;
 		std::map<int, aly::Color> lineColors;
 	public:
-		MultiActiveContour2D(const std::shared_ptr<SpringlCache2D>& cache=nullptr);
-		MultiActiveContour2D(const std::string& name,const std::shared_ptr<SpringlCache2D>& cache = nullptr);
+		MultiActiveManifold2D(const std::shared_ptr<SpringlCache2D>& cache=nullptr);
+		MultiActiveManifold2D(const std::string& name,const std::shared_ptr<SpringlCache2D>& cache = nullptr);
 		void setCurvature(float c) {
 			curvatureParam.setValue(c);
 		}
@@ -112,7 +112,7 @@ namespace aly {
 			advectionParam.setValue(f);
 			vecFieldImage = img;
 		}
-		Contour2D* getContour();
+		Manifold2D* getContour();
 		int getNumLabels() const {
 			return (int)labelList.size();
 		}
@@ -130,4 +130,4 @@ namespace aly {
 	};
 }
 
-#endif /* INCLUDE_ACTIVECONTOUR2D_H_ */
+#endif /* INCLUDE_ACTIVEManifold2D_H_ */

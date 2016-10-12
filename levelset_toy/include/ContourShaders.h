@@ -22,7 +22,7 @@
 #define INCLUDE_CONTOURSHADERS_H_
 #include "AlloyImage.h"
 #include "CommonShaders.h"
-#include "Contour2D.h"
+#include "Manifold2D.h"
 namespace aly {
 	class UnsignedDistanceShader : public GLShader {
 	protected:
@@ -33,7 +33,7 @@ namespace aly {
 			const std::shared_ptr<AlloyContext>& context =
 			AlloyDefaultContext());
 		void init(int width, int height);
-		Image1f solve(Contour2D& contour,float maxDistance);
+		Image1f solve(Manifold2D& contour,float maxDistance);
 	};
 }
 #endif 

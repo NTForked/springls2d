@@ -164,7 +164,7 @@ bool SuperPixelToy::init(Composite& rootNode) {
 	DrawPtr drawContour = DrawPtr(new Draw("Contour Draw", CoordPX(0.0f, 0.0f), CoordPercent(1.0f, 1.0f), [this](AlloyContext* context, const box2px& bounds) {
 		int currentTime = timelineSlider->getTimeValue().toInteger();
 		std::shared_ptr<CacheElement> elem = this->cache->get(currentTime);
-		Contour2D* contour;
+		Manifold2D* contour;
 		if (elem.get() != nullptr) {
 			contour = elem->getContour().get();
 		}

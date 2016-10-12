@@ -18,7 +18,7 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 * THE SOFTWARE.
 */
-#include "Contour2D.h"
+#include "Manifold2D.h"
 #include "AlloyFileUtil.h"
 #include "AlloyContext.h"
 #include <cereal/archives/xml.hpp>
@@ -26,7 +26,7 @@
 #include <cereal/archives/portable_binary.hpp>
 
 namespace aly {
-	void Contour2D::operator=(const Contour2D &c) {
+	void Manifold2D::operator=(const Manifold2D &c) {
 		clusterColors = c.clusterColors;
 		clusterCenters = c.clusterCenters;
 		indexes = c.indexes;
@@ -40,7 +40,7 @@ namespace aly {
 		file = c.file;
 		overlay = c.overlay;
 	}
-	Contour2D::Contour2D(const Contour2D& c){
+	Manifold2D::Manifold2D(const Manifold2D& c){
 		clusterColors = c.clusterColors;
 		clusterCenters = c.clusterCenters;
 		indexes = c.indexes;
@@ -55,9 +55,9 @@ namespace aly {
 		overlay = c.overlay;
 
 	}
-	Contour2D::Contour2D(bool onScreen, const std::shared_ptr<AlloyContext>& context) :onScreen(onScreen), context(context), vao(0), vertexBuffer(0), particleBuffer(0),dirty(false), vertexCount(0) {
+	Manifold2D::Manifold2D(bool onScreen, const std::shared_ptr<AlloyContext>& context) :onScreen(onScreen), context(context), vao(0), vertexBuffer(0), particleBuffer(0),dirty(false), vertexCount(0) {
 	}
-	Contour2D::~Contour2D() {
+	Manifold2D::~Manifold2D() {
 		context->begin(onScreen);
 		if (glIsBuffer(vertexBuffer) == GL_TRUE)
 			glDeleteBuffers(1, &vertexBuffer);
@@ -70,7 +70,7 @@ namespace aly {
 
 
 	}
-	void Contour2D::draw() {
+	void Manifold2D::draw() {
 		if (dirty) {
 			update();
 		}
@@ -94,7 +94,7 @@ namespace aly {
 		glBindVertexArray(0);
 		context->end();
 	}
-	void Contour2D::update() {
+	void Manifold2D::update() {
 		context->begin(onScreen);
 		if (vao == 0)
 			glGenVertexArrays(1, &vao);
@@ -137,7 +137,7 @@ namespace aly {
 		context->end();
 		dirty = false;
 	}
-	void Contour2D::updateNormals() {
+	void Manifold2D::updateNormals() {
 		normals.resize(points.size() / 2);
 #pragma omp parallel for
 		for (int i = 0;i < (int)points.size();i += 2) {
@@ -145,7 +145,7 @@ namespace aly {
 			normals[i / 2] = float2(-norm.y,norm.x);
 		}
 	}
-	void ReadContourFromFile(const std::string& file, Contour2D& params) {
+	void ReadContourFromFile(const std::string& file, Manifold2D& params) {
 		std::string ext = GetFileExtension(file);
 		if (ext == "json") {
 			std::ifstream os(file);
@@ -163,7 +163,7 @@ namespace aly {
 			archive(cereal::make_nvp("contour", params));
 		}
 	}
-	void WriteContourToFile(const std::string& file, Contour2D& params) {
+	void WriteContourToFile(const std::string& file, Manifold2D& params) {
 		params.setFile(file);
 		std::string ext = GetFileExtension(file);
 		if (ext == "json") {
