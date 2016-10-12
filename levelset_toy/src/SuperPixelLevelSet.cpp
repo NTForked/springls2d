@@ -416,11 +416,11 @@ namespace aly {
 		}
 	}
 
-	SuperPixelLevelSet::SuperPixelLevelSet(const std::shared_ptr<SpringlCache2D>& cache) :MultiActiveManifold2D(cache),updateClusterCenters(true),updateCompactness(true), pruneInterval(Integer(16)), splitInterval(Integer(64)), splitThreshold(Float(40.0f)){
+	SuperPixelLevelSet::SuperPixelLevelSet(const std::shared_ptr<SpringlCache2D>& cache) :MultiActiveContour2D(cache),updateClusterCenters(true),updateCompactness(true), pruneInterval(Integer(16)), splitInterval(Integer(64)), splitThreshold(Float(40.0f)){
 		superPixelCount = Integer(1024);
 		superPixelIterations = Integer(16);
 	}
-	SuperPixelLevelSet::SuperPixelLevelSet(const std::string& name, const std::shared_ptr<SpringlCache2D>& cache) : MultiActiveManifold2D(name, cache), updateClusterCenters(true), updateCompactness(true), pruneInterval(Integer(16)),splitInterval(Integer(64)), splitThreshold(Float(40.0f)) {
+	SuperPixelLevelSet::SuperPixelLevelSet(const std::string& name, const std::shared_ptr<SpringlCache2D>& cache) : MultiActiveContour2D(name, cache), updateClusterCenters(true), updateCompactness(true), pruneInterval(Integer(16)),splitInterval(Integer(64)), splitThreshold(Float(40.0f)) {
 		superPixelCount = Integer(1024);
 		superPixelIterations = Integer(16);
 	}

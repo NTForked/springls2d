@@ -30,7 +30,7 @@ namespace aly {
 	float MultiSpringLevelSet2D::EXTENT = 0.5f;
 	float MultiSpringLevelSet2D::SHARPNESS = 5.0f;
 	
-	MultiSpringLevelSet2D::MultiSpringLevelSet2D(const std::shared_ptr<SpringlCache2D>& cache) :MultiActiveManifold2D("Multi Spring Level Set 2D", cache), resampleEnabled(true) {
+	MultiSpringLevelSet2D::MultiSpringLevelSet2D(const std::shared_ptr<SpringlCache2D>& cache) :MultiActiveContour2D("Multi Spring Level Set 2D", cache), resampleEnabled(true) {
 	}
 	void MultiSpringLevelSet2D::setSpringls(const Vector2f& particles, const Vector2f& points) {
 		contour.particles = particles;
@@ -136,19 +136,26 @@ namespace aly {
 		for (int i = 0;i < N;i += 2) {
 			float2 pt0 = contour.points[i];
 			float2 pt1 = contour.points[i + 1];
+			int l1=contour.particleLabels[i / 2];
 			std::vector<std::pair<size_t, float>> result;
 			matcher->closest(pt0, maxDistance, result);
 			for (auto pr : result) {
 				if ((int)pr.first != i && (int)pr.first != i + 1) {
-					nearestNeighbors[i].push_back((uint32_t)pr.first);
-					break;
+					int l2 = contour.particleLabels[pr.first / 2];
+					if (l2 == l1) {
+						nearestNeighbors[i].push_back((uint32_t)pr.first);
+						break;
+					}
 				}
 			}
 			matcher->closest(pt1, maxDistance, result);
 			for (auto pr : result) {
 				if ((int)pr.first != i && (int)pr.first != i + 1) {
-					nearestNeighbors[i + 1].push_back((uint32_t)pr.first);
-					break;
+					int l2 = contour.particleLabels[pr.first / 2];
+					if (l2 == l1) {
+						nearestNeighbors[i + 1].push_back((uint32_t)pr.first);
+						break;
+					}
 				}
 			}
 		}
@@ -170,6 +177,7 @@ namespace aly {
 						float2 pt = 0.5f*(contour.vertexes[prev] + contour.vertexes[idx]);
 						if (unsignedLevelSet(pt.x, pt.y).x > 0.5f*(NEAREST_NEIGHBOR_DISTANCE + EXTENT)) {
 							contour.particles.push_back(pt);
+							contour.particleLabels.push_back(contour.vertexLabels[idx]);
 							for (Vector2f& vel : contour.velocities) {
 								vel.push_back(float2(0.0f));
 							}
@@ -281,6 +289,7 @@ namespace aly {
 	int MultiSpringLevelSet2D::contract() {
 		int contractCount = 0;
 		Vector2f particles;
+		Vector1i particleLabels;
 		Vector2f points;
 		Vector2f normals;
 		Vector2f correspondence;
@@ -288,6 +297,7 @@ namespace aly {
 		particles.data.reserve(contour.particles.size());
 		points.data.reserve(contour.points.size());
 		normals.data.reserve(contour.normals.size());
+		particleLabels.data.reserve(contour.points.size());
 		for (int i = 0;i<(int)contour.particles.size();i++) {
 			float2 pt = contour.particles[i];
 			float d1 = distance(contour.points[2 * i + 1], pt);
@@ -299,6 +309,7 @@ namespace aly {
 				&&d2 < 1.5f
 				) {
 				particles.push_back(pt);
+				particleLabels.push_back(contour.particleLabels[i]);
 				points.push_back(contour.points[2 * i]);
 				points.push_back(contour.points[2 * i + 1]);
 				normals.push_back(contour.normals[i]);
@@ -316,6 +327,7 @@ namespace aly {
 			contour.normals = normals;
 			contour.particles = particles;
 			contour.velocities = velocities;
+			contour.particleLabels = particleLabels;
 			contour.correspondence = correspondence;
 			contour.setDirty(true);
 		}
@@ -344,6 +356,7 @@ namespace aly {
 			f2 += vecFieldImage(p2.x, p2.y)*w;
 			f += vecFieldImage(p.x, p.y)*w;
 		}
+		
 		float2 k1, k2, k3, k4;
 		k4 = contour.velocities[2][idx];
 		k3 = contour.velocities[1][idx];
@@ -362,6 +375,7 @@ namespace aly {
 		} if (mSimulationIteration == 2) {
 			f = (1.0f / 2.0f)*(k1 + k2);
 		}
+		
 		float2 v1 = p1 + f1;
 		float2 v2 = p2 + f2;
 		float2 v = p + f;
@@ -416,17 +430,19 @@ namespace aly {
 			plugLevelSet(pos.x, pos.y, i);
 		}
 		requestUpdateContour = true;
+		requestUpdateOverlay = true;
 		contourLock.unlock();
 
 #pragma omp parallel for
 		for (int i = 0; i < (int)activeList.size(); i++) {
 			int2 pos = activeList[i];
 			swapLevelSet(pos.x, pos.y) = levelSet(pos.x, pos.y);
+			swapLabelImage(pos.x, pos.y) = labelImage(pos.x, pos.y);
 		}
 		deleteElements();
 		addElements();
-		deltaLevelSet.clear();
-		deltaLevelSet.resize(activeList.size(), 0.0f);
+		deltaLevelSet.resize(5 * activeList.size(), 0.0f);
+		objectIds.resize(5 * activeList.size(), -1);
 	}
 	float MultiSpringLevelSet2D::advect(float maxStep) {
 		Vector2f f(contour.particles.size());
@@ -442,11 +458,28 @@ namespace aly {
 		}
 		maxForce = std::sqrt(maxForce);
 		float timeStep = (maxForce > 1.0f) ? maxStep / (maxForce) : maxStep;
+		maxForce = 1.0f/std::min(maxForce, 1.0f);
+		contour.updateNormals();
 #pragma omp parallel for
 		for (int i = 0;i < (int)f.size();i++) {
-			contour.points[2 * i] += timeStep*f1[i];
-			contour.points[2 * i + 1] += timeStep*f2[i];
-			contour.particles[i] += timeStep*f[i];
+			int l = contour.particleLabels[i];
+			float2 pt = contour.particles[i];
+			float phi = getLevelSetValue(pt.x, pt.y, l);
+			float lev;
+			int tries = 0;
+			do{
+				float2 nt = pt + f[i] *maxForce;
+				lev = getLevelSetValue(nt.x, nt.y, l);
+				f[i] *= 0.5f;
+				f1[i] *= 0.5f;
+				f2[i] *= 0.5f;
+				tries++;
+			}while((lev - phi)*dot(f[i], contour.normals[i]) < 0.0f&&tries<=4);
+			if (tries !=4) {
+				contour.points[2 * i] += timeStep*f[i];
+				contour.points[2 * i + 1] += timeStep*f[i];
+				contour.particles[i] += timeStep*f[i];
+			}
 		}
 		contour.updateNormals();
 		contour.setDirty(true);
@@ -504,18 +537,6 @@ namespace aly {
 		start = dotProd*tangets[1];
 		f2 = float2(start.x*cosa + start.y*sina, -start.x*sina + start.y*cosa) + particlePt;
 	}
-	float2 MultiSpringLevelSet2D::getScaledGradientValue(int i, int j) {
-		float v21 = unsignedLevelSet(i + 1, j).x;
-		float v12 = unsignedLevelSet(i, j + 1).x;
-		float v10 = unsignedLevelSet(i, j - 1).x;
-		float v01 = unsignedLevelSet(i - 1, j).x;
-		float v11 = unsignedLevelSet(i, j).x;
-		float2 grad;
-		grad.x = 0.5f*(v21 - v01);
-		grad.y = 0.5f*(v12 - v10);
-		float len = max(1E-6f, length(grad));
-		return -(v11*grad / len);
-	}
 	float2 MultiSpringLevelSet2D::getScaledGradientValue(float i, float j, bool signedIso) {
 		float2 grad;
 		float v21;
@@ -544,69 +565,122 @@ namespace aly {
 	}
 	void MultiSpringLevelSet2D::distanceFieldMotion(int i, int j, size_t gid) {
 		float v11 = swapLevelSet(i, j).x;
-		float2 grad;
-		if (std::abs(v11) > 0.5f) {
-			deltaLevelSet[gid] = 0;
+		if (v11 > 0.5f) {
+			for (int index = 0;index < 5;index++) {
+				deltaLevelSet[5 * gid + index] = 0;
+			}
 			return;
 		}
-		float v00 = swapLevelSet(i - 1, j - 1).x;
-		float v01 = swapLevelSet(i - 1, j).x;
-		float v10 = swapLevelSet(i, j - 1).x;
-		float v21 = swapLevelSet(i + 1, j).x;
-		float v20 = swapLevelSet(i + 1, j - 1).x;
-		float v22 = swapLevelSet(i + 1, j + 1).x;
-		float v02 = swapLevelSet(i - 1, j + 1).x;
-		float v12 = swapLevelSet(i, j + 1).x;
+		int activeLabels[5];
+		activeLabels[0] = swapLabelImage(i, j);
+		activeLabels[1] = swapLabelImage(i + 1, j);
+		activeLabels[2] = swapLabelImage(i - 1, j);
+		activeLabels[3] = swapLabelImage(i, j + 1);
+		activeLabels[4] = swapLabelImage(i, j - 1);
+		int label;
+		float2 grad = getScaledGradientValue(i, j);
+		for (int index = 0;index < 5;index++) {
+			label = activeLabels[index];
+			if (label == 0) {
+				objectIds[5 * gid + index] = 0;
+				deltaLevelSet[5 * gid + index] = 0;
+			}
+			else {
+				objectIds[5 * gid + index] = label;
+				if (forceIndexes[label] < 0) {
+					deltaLevelSet[5 * gid + index] = 0.999f;
+				}
+				else {
+					float v11 = getSwapLevelSetValue(i, j, label);
+					float v00 = getSwapLevelSetValue(i - 1, j - 1, label);
+					float v01 = getSwapLevelSetValue(i - 1, j, label);
+					float v10 = getSwapLevelSetValue(i, j - 1, label);
+					float v21 = getSwapLevelSetValue(i + 1, j, label);
+					float v20 = getSwapLevelSetValue(i + 1, j - 1, label);
+					float v22 = getSwapLevelSetValue(i + 1, j + 1, label);
+					float v02 = getSwapLevelSetValue(i - 1, j + 1, label);
+					float v12 = getSwapLevelSetValue(i, j + 1, label);
 
-		float DxNeg = v11 - v01;
-		float DxPos = v21 - v11;
-		float DyNeg = v11 - v10;
-		float DyPos = v12 - v11;
+					float DxNeg = v11 - v01;
+					float DxPos = v21 - v11;
+					float DyNeg = v11 - v10;
+					float DyPos = v12 - v11;
 
-		float DxCtr = 0.5f * (v21 - v01);
-		float DyCtr = 0.5f * (v12 - v10);
+					float DxNegMin = min(DxNeg, 0.0f);
+					float DxNegMax = max(DxNeg, 0.0f);
+					float DxPosMin = min(DxPos, 0.0f);
+					float DxPosMax = max(DxPos, 0.0f);
+					float DyNegMin = min(DyNeg, 0.0f);
+					float DyNegMax = max(DyNeg, 0.0f);
+					float DyPosMin = min(DyPos, 0.0f);
+					float DyPosMax = max(DyPos, 0.0f);
+					float GradientSqrPos = DxNegMax * DxNegMax + DxPosMin * DxPosMin + DyNegMax * DyNegMax + DyPosMin * DyPosMin;
+					float GradientSqrNeg = DxPosMax * DxPosMax + DxNegMin * DxNegMin + DyPosMax * DyPosMax + DyNegMin * DyNegMin;
 
-		float DxxCtr = v21 - v11 - v11 + v01;
-		float DyyCtr = v12 - v11 - v11 + v10;
-		float DxyCtr = (v22 - v02 - v20 + v00) * 0.25f;
+					float DxCtr = 0.5f * (v21 - v01);
+					float DyCtr = 0.5f * (v12 - v10);
 
-		float numer = 0.5f * (DyCtr * DyCtr * DxxCtr - 2 * DxCtr * DyCtr
-			* DxyCtr + DxCtr * DxCtr * DyyCtr);
-		float denom = DxCtr * DxCtr + DyCtr * DyCtr;
-		float kappa = 0;
+					float DxxCtr = v21 - v11 - v11 + v01;
+					float DyyCtr = v12 - v11 - v11 + v10;
+					float DxyCtr = (v22 - v02 - v20 + v00) * 0.25f;
 
-		const float maxCurvatureForce = 10.0f;
-		if (std::abs(denom) > 1E-5f) {
-			kappa = curvatureParam.toFloat() * numer / denom;
+					float numer = 0.5f * (DyCtr * DyCtr * DxxCtr - 2 * DxCtr * DyCtr
+						* DxyCtr + DxCtr * DxCtr * DyyCtr);
+					float denom = DxCtr * DxCtr + DyCtr * DyCtr;
+					float kappa = 0;
+					const float maxCurvatureForce = 10.0f;
+					if (fabs(denom) > 1E-5f) {
+						kappa = curvatureParam.toFloat()* numer / denom;
+					}
+					else {
+						kappa = curvatureParam.toFloat()* numer * sign(denom) * 1E5f;
+					}
+					if (kappa < -maxCurvatureForce) {
+						kappa = -maxCurvatureForce;
+					}
+					else if (kappa > maxCurvatureForce) {
+						kappa = maxCurvatureForce;
+					}
+
+					// Level set force should be the opposite sign of advection force so it
+					// moves in the direction of the force.
+
+
+
+					float advection = 0;
+
+					// Dot product force with upwind gradient
+					if (grad.x > 0) {
+						advection = grad.x * DxNeg;
+					}
+					else if (grad.x < 0) {
+						advection = grad.x * DxPos;
+					}
+					if (grad.y> 0) {
+						advection += grad.y * DyNeg;
+					}
+					else if (grad.y < 0) {
+						advection += grad.y * DyPos;
+					}
+					deltaLevelSet[5 * gid + index] = -advection + kappa;
+				}
+			}
 		}
-		else {
-			kappa = curvatureParam.toFloat() * numer * sign(denom) * 1E5f;
-		}
-		if (kappa < -maxCurvatureForce) {
-			kappa = -maxCurvatureForce;
-		}
-		else if (kappa > maxCurvatureForce) {
-			kappa = maxCurvatureForce;
-		}
-		grad = getScaledGradientValue(i, j);
-		float advection = 0;
-		// Dot product force with upwind gradient
-		if (grad.x > 0) {
-			advection = grad.x * DxNeg;
-		}
-		else if (grad.x < 0) {
-			advection = grad.x * DxPos;
-		}
-		if (grad.y > 0) {
-			advection += grad.y * DyNeg;
-		}
-		else if (grad.y < 0) {
-			advection += grad.y * DyPos;
-		}
-		deltaLevelSet[gid] = -advection + kappa;
+	}
+	float2 MultiSpringLevelSet2D::getScaledGradientValue(int i, int j) {
+		float v21 = unsignedLevelSet(i + 1, j).x;
+		float v12 = unsignedLevelSet(i, j + 1).x;
+		float v10 = unsignedLevelSet(i, j - 1).x;
+		float v01 = unsignedLevelSet(i - 1, j).x;
+		float v11 = unsignedLevelSet(i, j).x;
+		float2 grad;
+		grad.x = 0.5f*(v21 - v01);
+		grad.y = 0.5f*(v12 - v10);
+		float len = max(1E-6f, length(grad));
+		return -(v11*grad / len);
 	}
 	bool MultiSpringLevelSet2D::init() {
-		MultiActiveManifold2D::init();
+		MultiActiveContour2D::init();
 		refineContour(true);
 		contour.points.clear();
 		contour.particles.clear();
@@ -649,6 +723,7 @@ namespace aly {
 			unsignedShader->init(initialLevelSet.width, initialLevelSet.height);
 
 		}
+
 		relax();
 		updateNearestNeighbors();
 		updateUnsignedLevelSet();
@@ -664,7 +739,7 @@ namespace aly {
 		}
 	}
 	void MultiSpringLevelSet2D::cleanup() {
-		MultiActiveManifold2D::cleanup();
+		MultiActiveContour2D::cleanup();
 	}
 	bool MultiSpringLevelSet2D::stepInternal() {
 		double remaining = mTimeStep;
@@ -718,7 +793,7 @@ namespace aly {
 	}
 
 	void MultiSpringLevelSet2D::setup(const aly::ParameterPanePtr& pane) {
-		MultiActiveManifold2D::setup(pane);
+		MultiActiveContour2D::setup(pane);
 		pane->addCheckBox("Re-sampling", resampleEnabled);
 	}
 }

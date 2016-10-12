@@ -27,7 +27,7 @@
 #include "ContourShaders.h"
 #include "AlloyLocator.h"
 namespace aly {
-	class MultiSpringLevelSet2D : public MultiActiveManifold2D {
+	class MultiSpringLevelSet2D : public MultiActiveContour2D {
 	public:
 		static float MIN_ANGLE_TOLERANCE;
 		static float NEAREST_NEIGHBOR_DISTANCE;
@@ -41,6 +41,7 @@ namespace aly {
 		aly::Vector2f oldCorrespondences;
 		std::array<Vector2f, 4> oldVelocities;
 		aly::Vector2f oldPoints;
+		aly::Vector1i oldLabels;
 		aly::Image1f unsignedLevelSet;
 		std::vector<std::list<uint32_t>> nearestNeighbors;
 		virtual bool stepInternal() override;

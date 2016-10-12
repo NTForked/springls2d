@@ -19,8 +19,8 @@
  * THE SOFTWARE.
  */
 
-#ifndef INCLUDE_MULTIACTIVEManifold2D_H_
-#define INCLUDE_MULTIACTIVEManifold2D_H_
+#ifndef INCLUDE_MultiActiveContour2D_H_
+#define INCLUDE_MultiActiveContour2D_H_
 #include <AlloyVector.h>
 #include <AlloyImage.h>
 #include <AlloyMultiIsoContour.h>
@@ -31,7 +31,7 @@
 #include "Simulation.h"
 #include "SpringlCache2D.h"
 namespace aly {
-	class MultiActiveManifold2D: public Simulation {
+	class MultiActiveContour2D: public Simulation {
 	protected:
 		std::shared_ptr<SpringlCache2D> cache;
 		MultiIsoContour isoContour;
@@ -77,11 +77,12 @@ namespace aly {
 		void applyForcesTopoRule(int i, int j, int offset, size_t index, float timeStep);
 		virtual bool stepInternal() override;
 		float getLevelSetValue(int i, int j, int l) const;
+		float getLevelSetValue(float i, float j, int l) const;
 		float getSwapLevelSetValue(int i, int j, int l) const;
 		std::map<int, aly::Color> lineColors;
 	public:
-		MultiActiveManifold2D(const std::shared_ptr<SpringlCache2D>& cache=nullptr);
-		MultiActiveManifold2D(const std::string& name,const std::shared_ptr<SpringlCache2D>& cache = nullptr);
+		MultiActiveContour2D(const std::shared_ptr<SpringlCache2D>& cache=nullptr);
+		MultiActiveContour2D(const std::string& name,const std::shared_ptr<SpringlCache2D>& cache = nullptr);
 		void setCurvature(float c) {
 			curvatureParam.setValue(c);
 		}

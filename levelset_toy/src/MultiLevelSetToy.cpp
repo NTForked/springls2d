@@ -87,11 +87,11 @@ bool MultiLevelSetToy::init(Composite& rootNode) {
 	ConvertImage(gray, img);
 	cache = std::shared_ptr<SpringlCache2D>(new SpringlCache2D());
 	if (example == 0) {
-		simulation = std::shared_ptr<MultiActiveManifold2D>(new MultiActiveManifold2D(cache));
+		simulation = std::shared_ptr<MultiActiveContour2D>(new MultiActiveContour2D(cache));
 		simulation->setCurvature(2.0f);
 	}
 	else {
-		simulation = std::shared_ptr<MultiActiveManifold2D>(new MultiSpringLevelSet2D(cache));
+		simulation = std::shared_ptr<MultiActiveContour2D>(new MultiSpringLevelSet2D(cache));
 		simulation->setCurvature(0.1f);
 	}
 	simulation->onUpdate = [this](uint64_t iteration, bool lastIteration) {
@@ -239,6 +239,7 @@ bool MultiLevelSetToy::init(Composite& rootNode) {
 		Manifold2D* contour;
 		if (elem.get() != nullptr) {
 			contour = elem->getContour().get();
+			
 		}
 		else {
 			contour = simulation->getContour();
