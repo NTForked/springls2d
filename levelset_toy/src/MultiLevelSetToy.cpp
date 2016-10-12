@@ -134,7 +134,6 @@ bool MultiLevelSetToy::init(Composite& rootNode) {
 	pointColor = Color(1.0f, 0.8f, 0.0f, 1.0f);
 	springlColor = Color(0.5f, 0.5f, 0.5f, 1.0f);
 	matchColor = Color(0.5f, 0.5f, 1.0f, 0.75f);
-	particleColor = Color(0.6f, 0.0f, 0.0f, 1.0f);
 	normalColor = Color(0.0f, 0.8f, 0.0f, 0.5f);
 	vecfieldColor = Color(0.8f, 0.4f, 0.8f, 0.5f);
 	controls->setAlwaysShowVerticalScrollBar(false);
@@ -204,7 +203,6 @@ bool MultiLevelSetToy::init(Composite& rootNode) {
 	if (example > 0) {
 		controls->addNumberField("Particle Size", particleSize, Float(0.0f), Float(1.0f), 6.0f);
 		controls->addColorField("Element", springlColor);	
-		controls->addColorField("Particle", particleColor);
 		controls->addColorField("Point", pointColor);
 		controls->addColorField("Normal", normalColor);
 		controls->addColorField("Correspondence", matchColor);
@@ -433,13 +431,13 @@ bool MultiLevelSetToy::init(Composite& rootNode) {
 			}
 		}
 
-		if (0.1f*scale > 0.5f) {
-			nvgFillColor(nvg, particleColor);
+		if (0.1f*scale > 0.5f) {			
 			for (int n = 0;n < (int)contour->particles.size();n++) {
 				float2 pt = contour->particles[n] + float2(0.5f);
 				pt.x = pt.x / (float)img.width;
 				pt.y = pt.y / (float)img.height;
 				pt = pt*bounds.dimensions + bounds.position;
+				nvgFillColor(nvg, simulation->getColor(contour->particleLabels[n].x));
 				nvgBeginPath(nvg);
 				nvgEllipse(nvg, pt.x, pt.y, 0.1f*scale, 0.1f*scale);
 				nvgFill(nvg);

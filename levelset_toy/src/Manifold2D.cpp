@@ -39,6 +39,8 @@ namespace aly {
 		vertexLabels = c.vertexLabels;
 		file = c.file;
 		overlay = c.overlay;
+		particleLabels = c.particleLabels;
+
 	}
 	Manifold2D::Manifold2D(const Manifold2D& c){
 		clusterColors = c.clusterColors;
@@ -53,6 +55,7 @@ namespace aly {
 		vertexLabels = c.vertexLabels;
 		file = c.file;
 		overlay = c.overlay;
+		particleLabels = c.particleLabels;
 
 	}
 	Manifold2D::Manifold2D(bool onScreen, const std::shared_ptr<AlloyContext>& context) :onScreen(onScreen), context(context), vao(0), vertexBuffer(0), particleBuffer(0),dirty(false), vertexCount(0) {

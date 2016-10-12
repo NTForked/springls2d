@@ -43,7 +43,6 @@ protected:
 	aly::Number particleSize;
 
 	aly::Color pointColor;
-	aly::Color particleColor;
 	aly::Color normalColor;
 	aly::Color springlColor;
 	aly::Color matchColor;

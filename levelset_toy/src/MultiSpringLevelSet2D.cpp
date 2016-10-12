@@ -610,6 +610,7 @@ namespace aly {
 		refineContour(true);
 		contour.points.clear();
 		contour.particles.clear();
+		contour.particleLabels.clear();
 		for (Vector2f& vel : contour.velocities) {
 			vel.clear();
 		}
@@ -620,6 +621,7 @@ namespace aly {
 				for (uint32_t idx : curve) {
 					if (count != 0) {
 						contour.particles.push_back(0.5f*(contour.vertexes[prev] + contour.vertexes[idx]));
+						contour.particleLabels.push_back(int1(contour.vertexLabels[idx]));
 						contour.points.push_back(contour.vertexes[prev]);
 						contour.points.push_back(contour.vertexes[idx]);
 						if (idx == first) break;
