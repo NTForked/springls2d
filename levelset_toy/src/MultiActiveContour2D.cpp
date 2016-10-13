@@ -728,6 +728,15 @@ namespace aly {
 			return levelSet(i, j);
 		}
 	}
+	float MultiActiveContour2D::getUnionLevelSetValue(int i, int j, int l) const {
+		int c = labelImage(i, j).x;
+		if ( c== l||c==0) {
+			return -levelSet(i, j);
+		}
+		else {
+			return levelSet(i, j);
+		}
+	}
 	float MultiActiveContour2D::getLevelSetValue(float x, float y, int l) const {
 		int i = static_cast<int>(std::floor(x));
 		int j = static_cast<int>(std::floor(y));
@@ -740,6 +749,19 @@ namespace aly {
 		return ((rgb00 * (1.0f - dx) + rgb10 * dx) * (1.0f - dy)
 			+ (rgb01 * (1.0f - dx) + rgb11 * dx) * dy);
 	}
+	float MultiActiveContour2D::getUnionLevelSetValue(float x, float y, int l) const {
+		int i = static_cast<int>(std::floor(x));
+		int j = static_cast<int>(std::floor(y));
+		float rgb00 = getUnionLevelSetValue(i, j, l);
+		float rgb10 = getUnionLevelSetValue(i + 1, j, l);
+		float rgb11 = getUnionLevelSetValue(i + 1, j + 1, l);
+		float rgb01 = getUnionLevelSetValue(i, j + 1, l);
+		float dx = x - i;
+		float dy = y - j;
+		return ((rgb00 * (1.0f - dx) + rgb10 * dx) * (1.0f - dy)
+			+ (rgb01 * (1.0f - dx) + rgb11 * dx) * dy);
+	}
+
 	float MultiActiveContour2D::getSwapLevelSetValue(int i, int j, int l) const {
 		if (swapLabelImage(i, j).x == l) {
 			return -swapLevelSet(i, j);

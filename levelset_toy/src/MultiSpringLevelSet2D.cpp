@@ -175,9 +175,10 @@ namespace aly {
 				for (uint32_t idx : curve) {
 					if (count != 0) {
 						float2 pt = 0.5f*(contour.vertexes[prev] + contour.vertexes[idx]);
-						if (unsignedLevelSet(pt.x, pt.y).x > 0.5f*(NEAREST_NEIGHBOR_DISTANCE + EXTENT)) {
+						int l = contour.vertexLabels[idx];
+						if (unsignedLevelSet(pt.x,pt.y).x>0.5f*(NEAREST_NEIGHBOR_DISTANCE + EXTENT)) {
 							contour.particles.push_back(pt);
-							contour.particleLabels.push_back(contour.vertexLabels[idx]);
+							contour.particleLabels.push_back(int1(l));
 							for (Vector2f& vel : contour.velocities) {
 								vel.push_back(float2(0.0f));
 							}
@@ -216,6 +217,7 @@ namespace aly {
 				int pid = retrack[i];
 				int eid1 = pid * 2;
 				int eid2 = pid * 2 + 1;
+				int l = contour.particleLabels[pid];
 				float2 pt0 = contour.points[eid1];
 				float2 pt1 = contour.points[eid2];
 				std::vector<std::pair<size_t, float>> result;
@@ -225,7 +227,7 @@ namespace aly {
 				std::array<float2, 4> velocities;
 				for (auto pr : result) {
 					q1 = oldCorrespondences[pr.first / 2];
-					if (!std::isinf(q1.x)) {
+					if (!std::isinf(q1.x)&&oldLabels[pr.first / 2]==l) {
 						for (int nn = 0;nn < 4;nn++) {
 							velocities[nn] = oldVelocities[nn][pr.first / 2];
 						}
@@ -236,7 +238,7 @@ namespace aly {
 				matcher->closest(pt1, maxDistance, result);
 				for (auto pr : result) {
 					q2 = oldCorrespondences[pr.first / 2];
-					if (!std::isinf(q2.x)) {
+					if (!std::isinf(q2.x) && oldLabels[pr.first / 2] == l) {
 						for (int nn = 0;nn < 4;nn++) {
 							velocities[nn] += oldVelocities[nn][pr.first / 2];
 						}
@@ -257,6 +259,7 @@ namespace aly {
 
 						oldPoints.push_back(pt0);
 						oldPoints.push_back(pt1);
+						oldLabels.push_back(int1(l));
 					}
 					else {
 						for (int nn = 0;nn < 4;nn++) {
@@ -267,6 +270,8 @@ namespace aly {
 						oldCorrespondences.push_back(q1);
 						oldPoints.push_back(pt0);
 						oldPoints.push_back(pt1);
+						oldLabels.push_back(int1(l));
+
 					}
 				}
 				else if (!std::isinf(q2.x)) {
@@ -276,6 +281,7 @@ namespace aly {
 					}
 					contour.correspondence[pid] = q2;
 					oldCorrespondences.push_back(q2);
+					oldLabels.push_back(int1(l));
 					oldPoints.push_back(pt0);
 					oldPoints.push_back(pt1);
 				}
@@ -300,9 +306,10 @@ namespace aly {
 		particleLabels.data.reserve(contour.points.size());
 		for (int i = 0;i<(int)contour.particles.size();i++) {
 			float2 pt = contour.particles[i];
+			int l = contour.particleLabels[i];
 			float d1 = distance(contour.points[2 * i + 1], pt);
 			float d2 = distance(contour.points[2 * i], pt);
-			if (std::abs(levelSet(pt.x, pt.y).x) <= 1.25f*EXTENT
+			if (std::abs(getLevelSetValue(pt.x, pt.y,l)) <= 1.25f*EXTENT
 				&&d1>3.0f*PARTICLE_RADIUS
 				&&d2 > 3.0f*PARTICLE_RADIUS
 				&&d1 < 1.5f
@@ -458,27 +465,25 @@ namespace aly {
 		}
 		maxForce = std::sqrt(maxForce);
 		float timeStep = (maxForce > 1.0f) ? maxStep / (maxForce) : maxStep;
-		maxForce = 1.0f/std::min(maxForce, 1.0f);
-		contour.updateNormals();
 #pragma omp parallel for
 		for (int i = 0;i < (int)f.size();i++) {
 			int l = contour.particleLabels[i];
 			float2 pt = contour.particles[i];
-			float phi = getLevelSetValue(pt.x, pt.y, l);
+			float2 nt;
 			float lev;
+			float t=timeStep;
 			int tries = 0;
+			float2 force = f[i];
 			do{
-				float2 nt = pt + f[i] *maxForce;
-				lev = getLevelSetValue(nt.x, nt.y, l);
-				f[i] *= 0.5f;
-				f1[i] *= 0.5f;
-				f2[i] *= 0.5f;
+				nt = pt + t*force;
+				t *= 0.5f;
+				lev = getUnionLevelSetValue(nt.x, nt.y, l);
 				tries++;
-			}while((lev - phi)*dot(f[i], contour.normals[i]) < 0.0f&&tries<=4);
-			if (tries !=4) {
-				contour.points[2 * i] += timeStep*f[i];
-				contour.points[2 * i + 1] += timeStep*f[i];
-				contour.particles[i] += timeStep*f[i];
+			}while(lev >= 0.0f&&tries<=16);
+			if (tries <16) {
+				contour.points[2 * i] += t*f1[i];
+				contour.points[2 * i + 1] += t*f2[i];
+				contour.particles[i] += t*f[i];
 			}
 		}
 		contour.updateNormals();
@@ -522,10 +527,8 @@ namespace aly {
 			springForce[i] = timeStep*SPRING_CONSTANT*(2 * PARTICLE_RADIUS - tlen);
 			resultantMoment += crossMag(motion[i], tangets[i]);
 		}
-
 		float cosa = std::cos(resultantMoment);
 		float sina = std::sin(resultantMoment);
-
 		std::pair<float2, float2> update;
 		start = contour.points[idx * 2] - particlePt;
 		dotProd = std::max(length(start) + dot(motion[0], tangets[0]) + springForce[0], 0.001f);
@@ -759,6 +762,7 @@ namespace aly {
 				oldPoints = contour.points;
 				oldCorrespondences = contour.correspondence;
 				oldVelocities = contour.velocities;
+				oldLabels = contour.particleLabels;
 				contract();
 				updateNearestNeighbors();
 				int fillCount = 0;
