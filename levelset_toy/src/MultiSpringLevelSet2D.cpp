@@ -38,8 +38,8 @@ namespace aly {
 		contour.points = points;
 		contour.updateNormals();
 	}
-	void MultiSpringLevelSet2D::updateUnsignedLevelSet(float maxDistance) {
-		unsignedLevelSet = unsignedShader->solve(contour, maxDistance);
+	void MultiSpringLevelSet2D::updateUnsignedLevelSet(float maxDistance,int label) {
+		unsignedLevelSet = unsignedShader->solve(contour, maxDistance,label);
 	}
 	void MultiSpringLevelSet2D::refineContour(bool signedIso) {
 		//Optimize location of level set to remove jitter and improve spacing of iso-vertexes.
@@ -168,36 +168,41 @@ namespace aly {
 			requestUpdateContour = false;
 		}
 		int fillCount = 0;
-		for (std::list<uint32_t> curve : contour.indexes) {
-			size_t count = 0;
-			uint32_t first = 0, prev = 0;
-			if (curve.size() > 1) {
-				for (uint32_t idx : curve) {
-					if (count != 0) {
-						float2 pt = 0.5f*(contour.vertexes[prev] + contour.vertexes[idx]);
-						int l = contour.vertexLabels[idx];
-						if (unsignedLevelSet(pt.x,pt.y).x>0.5f*(NEAREST_NEIGHBOR_DISTANCE + EXTENT)) {
-							contour.particles.push_back(pt);
-							contour.particleLabels.push_back(int1(l));
-							for (Vector2f& vel : contour.velocities) {
-								vel.push_back(float2(0.0f));
+		for (int i = 0;i < getNumLabels();i++) {
+			int currentLabel = getLabel(i);
+			updateUnsignedLevelSet(4.0f*EXTENT, currentLabel);
+			for (std::list<uint32_t> curve : contour.indexes) {
+				size_t count = 0;
+				uint32_t first = 0, prev = 0;
+				if (curve.size() > 1) {
+					int l = contour.vertexLabels[curve.front()];
+					if (l != currentLabel)continue;
+					for (uint32_t idx : curve) {
+						if (count != 0) {
+							float2 pt = 0.5f*(contour.vertexes[prev] + contour.vertexes[idx]);
+							
+							if (unsignedLevelSet(pt.x, pt.y).x > 0.5f*(NEAREST_NEIGHBOR_DISTANCE + EXTENT)) {
+								contour.particles.push_back(pt);
+								contour.particleLabels.push_back(int1(l));
+								for (Vector2f& vel : contour.velocities) {
+									vel.push_back(float2(0.0f));
+								}
+								contour.points.push_back(contour.vertexes[prev]);
+								contour.points.push_back(contour.vertexes[idx]);
+								contour.correspondence.push_back(float2(std::numeric_limits<float>::infinity()));
+								fillCount++;
 							}
-							contour.points.push_back(contour.vertexes[prev]);
-							contour.points.push_back(contour.vertexes[idx]);
-							contour.correspondence.push_back(float2(std::numeric_limits<float>::infinity()));
-							fillCount++;
+							if (idx == first) break;
 						}
-						if (idx == first) break;
+						else {
+							first = idx;
+						}
+						count++;
+						prev = idx;
 					}
-					else {
-						first = idx;
-					}
-					count++;
-					prev = idx;
 				}
 			}
 		}
-
 		return fillCount;
 	}
 	void MultiSpringLevelSet2D::updateTracking(float maxDistance) {
@@ -729,7 +734,7 @@ namespace aly {
 
 		relax();
 		updateNearestNeighbors();
-		updateUnsignedLevelSet();
+		updateUnsignedLevelSet();		
 		cache->set((int)mSimulationIteration, contour);
 		return true;
 	}
@@ -767,8 +772,9 @@ namespace aly {
 				updateNearestNeighbors();
 				int fillCount = 0;
 				do {
-					updateUnsignedLevelSet();
 					fillCount = fill();
+
+					updateUnsignedLevelSet();
 					relax();
 				} while (fillCount > 0); //Continue filling until all gaps are closed
 				contour.updateNormals();

@@ -66,7 +66,8 @@ namespace aly {
 			glDeleteBuffers(1, &vertexBuffer);
 		if (glIsBuffer(particleBuffer) == GL_TRUE)
 			glDeleteBuffers(1, &particleBuffer);
-
+		if (glIsBuffer(labelBuffer) == GL_TRUE)
+			glDeleteBuffers(1, &labelBuffer);
 		if (vao != 0)
 			glDeleteVertexArrays(1, &vao);
 		context->end();
@@ -89,7 +90,12 @@ namespace aly {
 			glBindBuffer(GL_ARRAY_BUFFER, particleBuffer);
 			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, 0);
 
+			glEnableVertexAttribArray(2);
+			glBindBuffer(GL_ARRAY_BUFFER, labelBuffer);
+			glVertexAttribPointer(2, 1, GL_INT, GL_FALSE, 0, 0);
+
 			glDrawArrays(GL_POINTS, 0, (GLsizei)(points.size()/2));
+			glDisableVertexAttribArray(2);
 			glDisableVertexAttribArray(1);
 			glDisableVertexAttribArray(0);
 			glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -120,6 +126,7 @@ namespace aly {
 				glDeleteBuffers(1, &vertexBuffer);
 			vertexCount = 0;
 		}
+		
 		if (particles.size() > 0) {
 			if (vertexCount != (int)particles.size()) {
 				if (glIsBuffer(particleBuffer) == GL_TRUE)
@@ -136,6 +143,24 @@ namespace aly {
 		else {
 			if (glIsBuffer(particleBuffer) == GL_TRUE)
 				glDeleteBuffers(1, &particleBuffer);
+		}
+
+		if (particleLabels.size() > 0) {
+			if (vertexCount != (int)particleLabels.size()) {
+				if (glIsBuffer(labelBuffer) == GL_TRUE)
+					glDeleteBuffers(1, &labelBuffer);
+				glGenBuffers(1, &labelBuffer);
+			}
+			glBindBuffer(GL_ARRAY_BUFFER, labelBuffer);
+			if (glIsBuffer(labelBuffer) == GL_FALSE)
+				throw std::runtime_error("Error: Unable to create label buffer");
+			glBufferData(GL_ARRAY_BUFFER, sizeof(GLint) * particleLabels.size(),
+				particleLabels.ptr(), GL_STATIC_DRAW);
+			glBindBuffer(GL_ARRAY_BUFFER, 0);
+		}
+		else {
+			if (glIsBuffer(labelBuffer) == GL_TRUE)
+				glDeleteBuffers(1, &labelBuffer);
 		}
 		context->end();
 		dirty = false;

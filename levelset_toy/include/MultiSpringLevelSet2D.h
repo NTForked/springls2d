@@ -50,7 +50,7 @@ namespace aly {
 
 		void refineContour(bool signedIso);
 		void updateNearestNeighbors(float maxDistance = NEAREST_NEIGHBOR_DISTANCE);
-		void updateUnsignedLevelSet(float maxDistance = 4.0f*EXTENT);
+		void updateUnsignedLevelSet(float maxDistance = 4.0f*EXTENT,int label=-1);
 		void relax(float timeStep);
 		void relax();
 		int fill();

@@ -33,7 +33,7 @@ namespace aly {
 			const std::shared_ptr<AlloyContext>& context =
 			AlloyDefaultContext());
 		void init(int width, int height);
-		Image1f solve(Manifold2D& contour,float maxDistance);
+		Image1f solve(Manifold2D& contour,float maxDistance,int label=-1);
 	};
 }
 #endif 

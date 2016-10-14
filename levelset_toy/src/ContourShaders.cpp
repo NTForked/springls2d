@@ -26,15 +26,18 @@ UnsignedDistanceShader::UnsignedDistanceShader(bool onScreen,
 		R"(	#version 330
 				layout(location = 0) in vec4 vp;
 				layout(location = 1) in vec2 pp;
+				layout(location = 2) in float lp;
 				out LINE {
 					vec2 p0;
 					vec2 p1;
 					vec2 pt;
+					int label;
 				} line;
 				void main() {
 					line.p0=vp.xy+vec2(0.5);
 					line.p1=vp.zw+vec2(0.5);
 					line.pt=pp+vec2(0.5);
+					line.label=int(lp);
 				})",
 		R"(	#version 330
 				uniform int width;
@@ -44,6 +47,7 @@ UnsignedDistanceShader::UnsignedDistanceShader(bool onScreen,
 				in vec2 p0;
 				in vec2 p1;
 				in vec2 pos;
+                flat in int label;
 				void main() {
 					float dist=0;
 					float l2 = dot(p1-p0,p1-p0);
@@ -74,15 +78,20 @@ UnsignedDistanceShader::UnsignedDistanceShader(bool onScreen,
 					uniform float max_distance;
 					uniform int width;
 					uniform int height;
+	                uniform int current_label;
 					in LINE {
 						vec2 p0;
 						vec2 p1;
 						vec2 pt;
+                        int label;
 					} line[];
 					out vec2 p0;
 					out vec2 p1;
 					out vec2 pos;
+					flat out int label;
 					void main() {
+                      label=line[0].label;
+                      if(current_label>=0&&line[0].label!=current_label) return;
 					  vec4 q=vec4(0.0,0.0,1.0,1.0);
 					  vec2 scale=vec2(2.0/float(width),2.0/float(height));
 					  vec2 tan;
@@ -146,13 +155,14 @@ UnsignedDistanceShader::UnsignedDistanceShader(bool onScreen,
 void UnsignedDistanceShader::init(int width, int height) {
 	texture.initialize(width, height);
 }
-Image1f UnsignedDistanceShader::solve(Manifold2D& contour,float maxDistance) {
+Image1f UnsignedDistanceShader::solve(Manifold2D& contour,float maxDistance,int label) {
 	texture.begin();
 	glEnable(GL_DEPTH_TEST);
 	glDisable(GL_BLEND);
 	begin();
 	set("width", texture.width());
 	set("height", texture.height());
+	set("current_label", label);
 	set("max_distance", maxDistance);
 	contour.draw();
 	end();
@@ -164,7 +174,7 @@ Image1f UnsignedDistanceShader::solve(Manifold2D& contour,float maxDistance) {
 #pragma omp parallel for
 	for (int n = 0;n < N;n++) {
 		RGBAf c = tmp[n];
-		out[n] = (c.w==0.0f)?maxDistance:(1.0f - c.z)*maxDistance;
+		out[n] = (c.w==0.0f)?maxDistance:(1.0f - c.x)*maxDistance;
 	}
 	return out;
 }
