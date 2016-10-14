@@ -172,33 +172,35 @@ namespace aly {
 			int currentLabel = getLabel(i);
 			updateUnsignedLevelSet(4.0f*EXTENT, currentLabel);
 			for (std::list<uint32_t> curve : contour.indexes) {
-				size_t count = 0;
-				uint32_t first = 0, prev = 0;
+
 				if (curve.size() > 1) {
 					int l = contour.vertexLabels[curve.front()];
-					if (l != currentLabel)continue;
-					for (uint32_t idx : curve) {
-						if (count != 0) {
-							float2 pt = 0.5f*(contour.vertexes[prev] + contour.vertexes[idx]);
-							
-							if (unsignedLevelSet(pt.x, pt.y).x > 0.5f*(NEAREST_NEIGHBOR_DISTANCE + EXTENT)) {
-								contour.particles.push_back(pt);
-								contour.particleLabels.push_back(int1(l));
-								for (Vector2f& vel : contour.velocities) {
-									vel.push_back(float2(0.0f));
+					if (l == currentLabel) {
+						size_t count = 0;
+						uint32_t first = 0, prev = 0;
+						for (uint32_t idx : curve) {
+							if (count != 0) {
+								float2 pt = 0.5f*(contour.vertexes[prev] + contour.vertexes[idx]);
+
+								if (unsignedLevelSet(pt.x, pt.y).x > 0.5f*(NEAREST_NEIGHBOR_DISTANCE + EXTENT)) {
+									contour.particles.push_back(pt);
+									contour.particleLabels.push_back(int1(l));
+									for (Vector2f& vel : contour.velocities) {
+										vel.push_back(float2(0.0f));
+									}
+									contour.points.push_back(contour.vertexes[prev]);
+									contour.points.push_back(contour.vertexes[idx]);
+									contour.correspondence.push_back(float2(std::numeric_limits<float>::infinity()));
+									fillCount++;
 								}
-								contour.points.push_back(contour.vertexes[prev]);
-								contour.points.push_back(contour.vertexes[idx]);
-								contour.correspondence.push_back(float2(std::numeric_limits<float>::infinity()));
-								fillCount++;
+								if (idx == first) break;
 							}
-							if (idx == first) break;
+							else {
+								first = idx;
+							}
+							count++;
+							prev = idx;
 						}
-						else {
-							first = idx;
-						}
-						count++;
-						prev = idx;
 					}
 				}
 			}
@@ -476,16 +478,17 @@ namespace aly {
 			float2 pt = contour.particles[i];
 			float2 nt;
 			float lev;
-			float t=timeStep;
+			float t=2.0f*timeStep;
 			int tries = 0;
 			float2 force = f[i];
 			do{
-				nt = pt + t*force;
 				t *= 0.5f;
+				nt = pt + t*force;
+				
 				lev = getUnionLevelSetValue(nt.x, nt.y, l);
 				tries++;
-			}while(lev >= 0.0f&&tries<=16);
-			if (tries <16) {
+			}while(lev > 0.0f&&tries<=4);
+			if (tries <= 4) {
 				contour.points[2 * i] += t*f1[i];
 				contour.points[2 * i + 1] += t*f2[i];
 				contour.particles[i] += t*f[i];

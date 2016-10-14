@@ -154,6 +154,7 @@
     <ClInclude Include="include\MultiActiveContour2D.h" />
     <ClInclude Include="include\MultiLevelSetToy.h" />
     <ClInclude Include="include\MultiSpringLevelSet2D.h" />
+    <ClInclude Include="include\MultiSpringLevelSetSecondOrder2D.h" />
     <ClInclude Include="include\Simulation.h" />
     <ClInclude Include="include\SLIC.h" />
     <ClInclude Include="include\SpringlCache2D.h" />
@@ -173,6 +174,7 @@
     <ClCompile Include="src\MultiActiveContour2D.cpp" />
     <ClCompile Include="src\MultiLevelSetToy.cpp" />
     <ClCompile Include="src\MultiSpringLevelSet2D.cpp" />
+    <ClCompile Include="src\MultiSpringLevelSetSecondOrder2D.cpp" />
     <ClCompile Include="src\Simulation.cpp" />
     <ClCompile Include="src\SLIC.cpp" />
     <ClCompile Include="src\SpringlCache2D.cpp" />

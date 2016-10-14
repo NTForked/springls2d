@@ -25,6 +25,7 @@
 #include "SpringlsSecondOrder.h"
 #include "GradientVectorFlow.h"
 #include "MultiSpringLevelSet2D.h"
+#include "MultiSpringLevelSetSecondOrder2D.h"
 #include "SLIC.h"
 using namespace aly;
 
@@ -90,8 +91,12 @@ bool MultiLevelSetToy::init(Composite& rootNode) {
 		simulation = std::shared_ptr<MultiActiveContour2D>(new MultiActiveContour2D(cache));
 		simulation->setCurvature(2.0f);
 	}
-	else {
+	else if(example==1){
 		simulation = std::shared_ptr<MultiActiveContour2D>(new MultiSpringLevelSet2D(cache));
+		simulation->setCurvature(0.1f);
+	}
+	else if (example == 2) {
+		simulation = std::shared_ptr<MultiActiveContour2D>(new MultiSpringLevelSetSecondOrder2D(cache));
 		simulation->setCurvature(0.1f);
 	}
 	simulation->onUpdate = [this](uint64_t iteration, bool lastIteration) {

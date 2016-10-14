@@ -63,6 +63,9 @@
     <ClInclude Include="include\Manifold2D.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\MultiSpringLevelSetSecondOrder2D.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\ActiveContour2D.cpp">
@@ -114,6 +117,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\Manifold2D.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\MultiSpringLevelSetSecondOrder2D.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

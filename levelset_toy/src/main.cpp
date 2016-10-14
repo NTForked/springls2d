@@ -34,7 +34,8 @@ int main(int argc, char *argv[]) {
 			std::cout << "[2] Second Order Spring Level Set" << std::endl;
 			std::cout << "[3] Multi-Object Level Set" << std::endl;
 			std::cout << "[4] Multi-Object Spring Level Set" << std::endl;
-			std::cout << "[5] Super-Pixel Level Set" << std::endl;
+			std::cout << "[5] Second Order Multi-Object Spring Level Set" << std::endl;
+			std::cout << "[6] Super-Pixel Level Set" << std::endl;
 			std::cout << ">> Enter Example Number: ";
 			std::cin >> index;
 		} else {
@@ -44,11 +45,11 @@ int main(int argc, char *argv[]) {
 			LevelSetToy app(index);
 			app.run();
 		}
-		else if (index <5) {
+		else if (index <6) {
 			MultiLevelSetToy app(index-3);
 			app.run();
 		}
-		else if (index == 5) {
+		else if (index == 6) {
 			SuperPixelToy app(0);
 			app.run();
 		}
