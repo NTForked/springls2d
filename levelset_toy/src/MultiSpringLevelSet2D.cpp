@@ -161,6 +161,8 @@ namespace aly {
 		}
 	}
 	int MultiSpringLevelSet2D::fill() {
+		//Call update unsigend to use for refine contour
+		updateUnsignedLevelSet();
 		{
 			std::lock_guard<std::mutex> lockMe(contourLock);
 			isoContour.solve(levelSet, labelImage, contour.vertexes, contour.vertexLabels, contour.indexes, 0.0f, (preserveTopology) ? TopologyRule2D::Connect4 : TopologyRule2D::Unconstrained, Winding::Clockwise);
