@@ -11,6 +11,8 @@
 ![Extra](https://github.com/bclucas/blob/blob/master/screenshots/levelset_toy4.png)
 ## Multi-Object Level Set
 ![Extra](https://github.com/bclucas/blob/blob/master/screenshots/levelset_toy5.png)
+## Multi-Object Spring Level Set
+![Extra](https://github.com/bclucas/blob/blob/master/screenshots/levelset_toy7.png)
 ## Super Pixels (SLIC) with Multi-Object Level Sets
 ![Extra](https://github.com/bclucas/blob/blob/master/screenshots/levelset_toy6.png)
 
