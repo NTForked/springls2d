@@ -43,15 +43,15 @@ int main(int argc, char *argv[]) {
 		}
 		if (index < 3) {
 			LevelSetToy app(index);
-			app.run();
+			app.run(1);
 		}
 		else if (index <6) {
 			MultiLevelSetToy app(index-3);
-			app.run();
+			app.run(1);
 		}
 		else if (index == 6) {
 			SuperPixelToy app(0);
-			app.run();
+			app.run(1);
 		}
 		return 0;
 	} catch (std::exception& e) {
